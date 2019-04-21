@@ -14,6 +14,24 @@ objects = bin/loader.o bin/kernel.o
 %.o: src/*/%.s
 	as $(ASMFLAGS) -o bin/$@ $<
 
-cassio.bin: src/kernel/linker.ld $(objects)
+cassio.bin: src/linker.ld $(objects)
 	ld $(LDFLAGS) -T $< -o bin/$@ $(objects)
 
+cassio.iso: bin/cassio.bin
+	mkdir iso
+	mkdir iso/boot
+	mkdir iso/boot/grub
+	cp $< iso/boot/
+	echo 'set default=0' > iso/boot/grub/grub.cfg
+	echo 'set timeout=0' >> iso/boot/grub/grub.cfg
+	echo '' >> iso/boot/grub/grub.cfg
+	echo 'menuentry "CassiOS" {' >> iso/boot/grub/grub.cfg
+	echo '	multiboot /boot/cassio.bin' >> iso/boot/grub/grub.cfg
+	echo '	boot' >> iso/boot/grub/grub.cfg
+	echo '}' >> iso/boot/grub/grub.cfg
+	echo '' >> iso/boot/grub/grub.cfg
+	grub-mkrescue --output=bin/$@ iso
+	rm -rf iso
+
+run: cassio.iso
+	VirtualBox --startvm "CassiOS" &
