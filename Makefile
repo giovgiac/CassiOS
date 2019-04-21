@@ -6,7 +6,7 @@ ASMFLAGS = --32
 CXXFLAGS = -m32 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore
 LDFLAGS = -melf_i386
 
-objects = bin/loader.o bin/kernel.o
+objects = loader.o gdt.o kernel.o
 
 %.o: src/*/%.cpp
 	g++ $(CXXFLAGS) -o bin/$@ -c $< -I./include/
@@ -15,13 +15,13 @@ objects = bin/loader.o bin/kernel.o
 	as $(ASMFLAGS) -o bin/$@ $<
 
 cassio.bin: src/linker.ld $(objects)
-	ld $(LDFLAGS) -T $< -o bin/$@ $(objects)
+	ld $(LDFLAGS) -T $< -o bin/$@ $(addprefix bin/, $(objects))
 
-cassio.iso: bin/cassio.bin
+cassio.iso: cassio.bin
 	mkdir iso
 	mkdir iso/boot
 	mkdir iso/boot/grub
-	cp $< iso/boot/
+	cp bin/$< iso/boot/
 	echo 'set default=0' > iso/boot/grub/grub.cfg
 	echo 'set timeout=0' >> iso/boot/grub/grub.cfg
 	echo '' >> iso/boot/grub/grub.cfg
