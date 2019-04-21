@@ -14,8 +14,8 @@
 
 
 .section .text
-.extern cassio
 .extern ctors
+.extern start
 .global loader
 
 loader:
@@ -24,7 +24,7 @@ loader:
 
     push    %eax
     push    %ebx
-    call    cassio
+    call    start
 
 stop:
     cli

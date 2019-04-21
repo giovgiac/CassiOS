@@ -10,6 +10,7 @@
 #ifndef CORE_KERNEL_HPP_
 #define CORE_KERNEL_HPP_
 
+#include <core/gdt.hpp>
 #include <core/types.hpp>
 
 /**
@@ -46,6 +47,6 @@ extern "C" void ctors();
  * @param magic
  *
  */
-extern "C" void cassio(void* multiboot, u32 magic);
+extern "C" void start(void* multiboot, u32 magic);
 
 #endif // CORE_KERNEL_HPP_
