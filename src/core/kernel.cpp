@@ -7,14 +7,14 @@
  *
  */
 
-#include "kernel/kernel.hpp"
+#include "core/kernel.hpp"
 
 void outputs(const char* str) {
-    unsigned short* buffer = reinterpret_cast<unsigned short*>(0xb8000);
+    static u16* tty = reinterpret_cast<u16*>(0xb8000);
 
-    for (unsigned int i = 0; str[i] != '\0' ; ++i) {
+    for (u32 i = 0; str[i] != '\0' ; ++i) {
         // Copy High-Bits and Merge with New Low-Bits
-        buffer[i] = (buffer[i] & 0xFF00) | str[i];
+        tty[i] = (tty[i] & 0xFF00) | str[i];
     }
 }
 
@@ -24,7 +24,7 @@ extern "C" void ctors() {
     }
 }
 
-extern "C" void cassio(void* multiboot, unsigned int magic) {
+extern "C" void cassio(void* multiboot, u32 magic) {
     outputs("Hello World!");
     while (true);
 }
