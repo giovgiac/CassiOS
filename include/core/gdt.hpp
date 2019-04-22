@@ -80,6 +80,12 @@ public:
      */
     u16 getDataOffset();
 
+    /** Deleted Methods */
+    GlobalDescriptorTable(const GlobalDescriptorTable&) = delete;
+    GlobalDescriptorTable(GlobalDescriptorTable&&) = delete;
+    GlobalDescriptorTable& operator=(const GlobalDescriptorTable&) = delete;
+    GlobalDescriptorTable& operator=(GlobalDescriptorTable&&) = delete;
+
 private:
     SegmentDescriptor nullSegment;
     SegmentDescriptor unusedSegment;
@@ -87,7 +93,7 @@ private:
     SegmentDescriptor dataSegment;
 };
 
-}
-}
+} // kernel
+} // cassio
 
 #endif // CORE_GDT_HPP_
