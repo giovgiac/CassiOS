@@ -13,6 +13,7 @@
 #include <core/gdt.hpp>
 #include <core/port.hpp>
 #include <core/types.hpp>
+#include <hardware/interrupt.hpp>
 
 const u8 TERMINAL_WIDTH     = 80;
 const u8 TERMINAL_HEIGHT    = 25;
@@ -36,7 +37,7 @@ extern "C" ctor end_ctors;
  * @param str The string to output at the terminal.
  *
  */
-void outputs(const char* str);
+extern "C" void outputs(const char* str);
 
 /**
  * @brief

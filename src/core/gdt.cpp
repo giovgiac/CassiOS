@@ -15,32 +15,30 @@ using namespace cassio::kernel;
 
 GlobalDescriptorTable::GlobalDescriptorTable()
     : nullSegment(0, 0, 0), unusedSegment(0, 0, 0), 
-      codeSegment(0, 128 * 1024 * 1024, 0x9A), dataSegment(0, 128 * 1024 * 1024, 0x92) {
+      codeSegment(0, 64 * 1024 * 1024, 0x9A), dataSegment(0, 64 * 1024 * 1024, 0x92) {
     usize i[2];
-    i[0] = reinterpret_cast<usize>(this);
-    i[1] = sizeof(GlobalDescriptorTable) << 16;
+    i[1] = (usize)this;
+    i[0] = sizeof(GlobalDescriptorTable) << 16;
 
-    asm volatile("lgdt  (%0)": :"p" (reinterpret_cast<u8*>(i) + 2));
+    asm volatile("lgdt  (%0)": :"p" ((u8*)i + 2));
 }
 
-GlobalDescriptorTable::~GlobalDescriptorTable() {
-
-}
+GlobalDescriptorTable::~GlobalDescriptorTable() {}
 
 u16 GlobalDescriptorTable::getCodeOffset() {
-    return reinterpret_cast<u8*>(&codeSegment) - reinterpret_cast<u8*>(this);
+    return (u8*)&codeSegment - (u8*)this;
 }
 
 u16 GlobalDescriptorTable::getDataOffset() {
-    return reinterpret_cast<u8*>(&dataSegment) - reinterpret_cast<u8*>(this);
+    return (u8*)&dataSegment - (u8*)this;
 }
 
 /** Segment Descriptor Methods */
 
 GlobalDescriptorTable::SegmentDescriptor::SegmentDescriptor(u32 base, u32 limit, u8 flags) {
-    u8* target = reinterpret_cast<u8*>(this);
+    u8* target = (u8*)this;
 
-    if (limit <= 0x10000) {
+    if (limit <= 65536) {
         target[6] = 0x40;
     }
     else {
@@ -70,7 +68,7 @@ GlobalDescriptorTable::SegmentDescriptor::SegmentDescriptor(u32 base, u32 limit,
 }
 
 u32 GlobalDescriptorTable::SegmentDescriptor::getBase() {
-    u8* target = reinterpret_cast<u8*>(this);
+    u8* target = (u8*)this;
 
     // Decode Base
     u32 result = target[7];
@@ -82,7 +80,7 @@ u32 GlobalDescriptorTable::SegmentDescriptor::getBase() {
 }
 
 u32 GlobalDescriptorTable::SegmentDescriptor::getLimit() {
-    u8* target = reinterpret_cast<u8*>(this);
+    u8* target = (u8*)this;
 
     // Decode Limit
     u32 result = target[6] & 0xF;

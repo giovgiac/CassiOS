@@ -10,6 +10,7 @@
 #include "core/kernel.hpp"
 
 using namespace cassio::kernel;
+using namespace cassio::hardware;
 
 void clear_screen() {
     static u16* tty = reinterpret_cast<u16*>(0xb8000);
@@ -60,8 +61,16 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
-    outputs("Welcome to CassiOS!");
+    outputs("Welcome to CassiOS!\n");
 
     GlobalDescriptorTable gdt;
-    while (true);
+    InterruptManager& im = InterruptManager::getManager();
+
+    im.load(gdt);
+    im.activate();
+
+    while (1);
+
+    im.deactivate();
+    im.unload();
 }
