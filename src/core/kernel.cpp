@@ -9,6 +9,7 @@
 
 #include "core/kernel.hpp"
 
+using namespace cassio::drivers;
 using namespace cassio::kernel;
 using namespace cassio::hardware;
 
@@ -65,8 +66,10 @@ void start(void* multiboot, u32 magic) {
 
     GlobalDescriptorTable gdt;
     InterruptManager& im = InterruptManager::getManager();
-
     im.load(gdt);
+    
+    KeyboardDriver keyboard;
+
     im.activate();
 
     while (1);
