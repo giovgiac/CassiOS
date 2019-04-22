@@ -11,12 +11,45 @@
 
 using namespace cassio::kernel;
 
-void outputs(const char* str) {
+void clear_screen() {
     static u16* tty = reinterpret_cast<u16*>(0xb8000);
 
+    for (u8 y = 0; y < TERMINAL_HEIGHT; ++y) {
+        for (u8 x = 0; x < TERMINAL_WIDTH; ++x) {
+            // Copy High-Bits and Merge with New Low-Bits
+            tty[TERMINAL_WIDTH * y + x] = (tty[TERMINAL_WIDTH * y + x] & 0xFF00) | ' ';
+        }
+    }
+}
+
+void outputs(const char* str) {
+    static u16* tty = reinterpret_cast<u16*>(0xb8000);
+    static u8 x = 0, y = 0;
+
     for (u32 i = 0; str[i] != '\0' ; ++i) {
-        // Copy High-Bits and Merge with New Low-Bits
-        tty[i] = (tty[i] & 0xFF00) | str[i];
+        switch(str[i]) {
+        case '\n':
+            y += 1;
+            x = 0;
+
+            break;
+        default:
+            // Copy High-Bits and Merge with New Low-Bits
+            tty[TERMINAL_WIDTH * y + x] = (tty[TERMINAL_WIDTH * y + x] & 0xFF00) | str[i];
+            x += 1;
+
+            break;
+        }
+
+        if (x >= TERMINAL_WIDTH) {
+            y += 1;
+            x = 0;
+        }
+
+        if (y >= TERMINAL_HEIGHT) {
+            clear_screen();
+            x = y = 0;
+        }
     }
 }
 

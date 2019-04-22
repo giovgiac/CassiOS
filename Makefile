@@ -6,7 +6,7 @@ ASMFLAGS = --32
 CXXFLAGS = -m32 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore
 LDFLAGS = -melf_i386
 
-objects = loader.o gdt.o kernel.o
+objects = loader.o gdt.o port.o kernel.o
 
 %.o: src/*/%.cpp
 	g++ $(CXXFLAGS) -o bin/$@ -c $< -I./include/
@@ -35,3 +35,7 @@ cassio.iso: cassio.bin
 
 run: cassio.iso
 	VirtualBox --startvm "CassiOS" &
+
+.PHONY: clean
+clean:
+	rm -rf $(addprefix bin/, $(objects)) bin/cassio.bin bin/cassio.iso
