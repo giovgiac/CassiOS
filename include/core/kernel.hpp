@@ -11,9 +11,10 @@
 #define CORE_KERNEL_HPP_
 
 #include <core/gdt.hpp>
-#include <core/port.hpp>
 #include <core/types.hpp>
+#include <drivers/keyboard.hpp>
 #include <hardware/interrupt.hpp>
+#include <hardware/port.hpp>
 
 const u8 TERMINAL_WIDTH     = 80;
 const u8 TERMINAL_HEIGHT    = 25;
@@ -37,7 +38,7 @@ extern "C" ctor end_ctors;
  * @param str The string to output at the terminal.
  *
  */
-extern "C" void outputs(const char* str);
+void outputs(const char* str);
 
 /**
  * @brief

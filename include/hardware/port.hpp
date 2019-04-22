@@ -13,7 +13,7 @@
 #include <core/types.hpp>
 
 namespace cassio {
-namespace kernel {
+namespace hardware {
 
 template <typename T> class Port;
 

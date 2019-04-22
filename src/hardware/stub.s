@@ -25,7 +25,6 @@ HandleInterruptRequest  0x00
 HandleInterruptRequest  0x01
 
 interrupt:
-
     pusha
     pushl   %ds
     pushl   %es
@@ -46,7 +45,6 @@ interrupt:
 
 .global _ZN6cassio8hardware16InterruptManager22ignoreInterruptRequestEv
 _ZN6cassio8hardware16InterruptManager22ignoreInterruptRequestEv:
-
     iret
 
 .data

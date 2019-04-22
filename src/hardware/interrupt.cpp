@@ -13,7 +13,7 @@ using namespace cassio::hardware;
 
 InterruptManager InterruptManager::instance;
 
-extern "C" void outputs(const char* str);
+void outputs(const char* str);
 
 void InterruptManager::activate() {
     asm("sti");
@@ -38,6 +38,7 @@ void InterruptManager::load(cassio::kernel::GlobalDescriptorTable& gdt) {
     u16 code_offset = gdt.getCodeOffset();
 
     for (u16 i = 0; i < 256; ++i) {
+        drv[i] = nullptr;
         setInterrupt(i, code_offset, &ignoreInterruptRequest, 0, IDT_INTERRUPT_GATE);
     }
 
@@ -72,7 +73,30 @@ void InterruptManager::unload() {
 
 }
 
-u32 handleInterrupt(u8 number, u32 esp) {
-    outputs(".");
+u32 InterruptManager::handleInterrupt(u8 number, u32 esp) {
+    if (drv[number] != nullptr) {
+        esp = drv[number]->handleInterrupt(esp);
+    }
+    else if (number != 0x20) {
+        // Print if the interrupt is not a 'timer interrupt' <- interrupt number 0x20.
+        outputs("Unhandled Interrupt Triggered!\n");
+    }
+
+    if (0x20 <= number && number < 0x30) {
+        // Tell the PIC that interrupt was handled.
+        pic_master_cmd.writeSlow(0x20);
+
+        if (0x28 <= number) {
+            // If interrupt came from slave, tell the slave that interrupt was handled.
+            pic_slave_cmd.writeSlow(0x20);
+        }
+    }
+
     return esp;
+}
+
+u32 handleInterrupt(u8 number, u32 esp) {
+    InterruptManager& im = InterruptManager::getManager();
+    // TODO: Check if is loaded (add boolean to keep loaded as status)
+    return im.handleInterrupt(number, esp);
 }
