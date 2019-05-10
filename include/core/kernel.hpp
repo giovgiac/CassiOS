@@ -13,6 +13,7 @@
 #include <core/gdt.hpp>
 #include <core/types.hpp>
 #include <drivers/keyboard.hpp>
+#include <drivers/mouse.hpp>
 #include <hardware/interrupt.hpp>
 #include <hardware/port.hpp>
 

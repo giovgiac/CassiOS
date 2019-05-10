@@ -23,6 +23,7 @@ _ZN6cassio8hardware16InterruptManager26handleInterruptRequest\num\()Ev:
 
 HandleInterruptRequest  0x00
 HandleInterruptRequest  0x01
+HandleInterruptRequest  0x0C
 
 interrupt:
     pusha
