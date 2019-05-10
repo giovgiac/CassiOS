@@ -69,6 +69,7 @@ void start(void* multiboot, u32 magic) {
     im.load(gdt);
     
     KeyboardDriver keyboard;
+    MouseDriver mouse;
 
     im.activate();
 

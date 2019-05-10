@@ -44,6 +44,7 @@ void InterruptManager::load(cassio::kernel::GlobalDescriptorTable& gdt) {
 
     setInterrupt(0x20, code_offset, &handleInterruptRequest0x00, 0, IDT_INTERRUPT_GATE);
     setInterrupt(0x21, code_offset, &handleInterruptRequest0x01, 0, IDT_INTERRUPT_GATE);
+    setInterrupt(0x2C, code_offset, &handleInterruptRequest0x0C, 0, IDT_INTERRUPT_GATE);
 
     /** Tells Master PIC to Add 20 to Interrupts and Slave PIC to Add 28 */
     pic_master_cmd.writeSlow(0x11);
