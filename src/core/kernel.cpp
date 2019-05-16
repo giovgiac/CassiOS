@@ -13,6 +13,12 @@ using namespace cassio::drivers;
 using namespace cassio::kernel;
 using namespace cassio::hardware;
 
+void ctors() {
+    for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
+        (*ct)();
+    }
+}
+
 void clear_screen() {
     static u16* tty = reinterpret_cast<u16*>(0xb8000);
 
@@ -52,12 +58,6 @@ void outputs(const char* str) {
             clear_screen();
             x = y = 0;
         }
-    }
-}
-
-void ctors() {
-    for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
-        (*ct)();
     }
 }
 

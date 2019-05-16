@@ -13,8 +13,8 @@ using namespace cassio::hardware;
 
 /** 8-bit Port Methods */
 
-Port<u8>::Port(u16 num)
-    : number(num) {}
+Port<u8>::Port(PortType type)
+    : number(static_cast<u16>(type)) {}
 
 u8 Port<u8>::read() {
     u8 result;
@@ -32,8 +32,8 @@ void Port<u8>::writeSlow(u8 data) {
 
 /** 16-bit Port Methods */
 
-Port<u16>::Port(u16 num)
-    : number(num) {}
+Port<u16>::Port(PortType type)
+    : number(static_cast<u16>(type)) {}
 
 u16 Port<u16>::read() {
     u16 result;
@@ -47,8 +47,8 @@ void Port<u16>::write(u16 data) {
 
 /** 32-bit Port Methods */
 
-Port<u32>::Port(u16 num)
-    : number(num) {}
+Port<u32>::Port(PortType type)
+    : number(static_cast<u16>(type)) {}
 
 u32 Port<u32>::read() {
     u32 result;

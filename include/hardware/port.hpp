@@ -15,6 +15,21 @@
 namespace cassio {
 namespace hardware {
 
+/**
+ * @brief
+ * 
+ * @see https://wiki.osdev.org/I/O_Ports
+ * 
+ */
+enum class PortType : u16 {
+    MasterProgrammableInterfaceControllerCommand        = 0x20,
+    MasterProgrammableInterfaceControllerData           = 0x21,
+    KeyboardControllerData                              = 0x60,
+    KeyboardControllerCommand                           = 0x64,
+    SlaveProgrammableInterfaceControllerCommand         = 0xA0,
+    SlaveProgrammableInterfaceControllerData            = 0xA1
+};
+
 template <typename T> class Port;
 
 /**
@@ -30,7 +45,7 @@ public:
      * @brief
      * 
      */
-    Port(u16 num);
+    Port(PortType type);
 
     /**
      * @brief
@@ -71,7 +86,7 @@ public:
      * @brief
      * 
      */
-    Port(u16 num);
+    Port(PortType type);
 
     /**
      * @brief
@@ -106,7 +121,7 @@ public:
      * @brief
      * 
      */
-    Port(u16 num);
+    Port(PortType type);
 
     /**
      * @brief

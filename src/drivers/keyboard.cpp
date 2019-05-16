@@ -10,30 +10,41 @@
 #include "drivers/keyboard.hpp"
 
 using namespace cassio::drivers;
+using namespace cassio::hardware;
 
 void outputs(const char* str);
 
+KeyboardCommandByte KeyboardDriver::readCommandByte() {
+    KeyboardCommandByte status;
+
+    status.byte = data.read();
+    return status;
+}
+
 KeyboardDriver::KeyboardDriver()
-    : Driver(0x21), cmd(0x64), data(0x60) {
+    : Driver(DriverType::KeyboardController), cmd(PortType::KeyboardControllerCommand), data(PortType::KeyboardControllerData) {
 
     // Cleanup keystrokes before OS starts.
     while (cmd.read() & 0x1) {
         data.read();
     }
 
-    // Tells PIC to start sending keyboard interrupts. Or keyboard to communicate through interrupts.
-    cmd.write(0xAE);
+    // Enable communication with the keyboard.
+    cmd.write(KeyboardCommand::EnableKeyboard);
 
-    // Requests current state.
-    cmd.write(0x20);
+    // Requests current command byte.
+    cmd.write(KeyboardCommand::ReadCommand);
 
-    // Set new state to status.
-    u8 status = (data.read() | 1) & ~0x10;
-    cmd.write(0x60);
-    data.write(status);
+    // Set new command byte to status.
+    KeyboardCommandByte status = readCommandByte();
+    status.keyboard_interrupt = true;
+    status.disable_keyboard = false;
 
-    // Activates the keyboard.
-    data.write(0xF4);
+    cmd.write(KeyboardCommand::WriteCommand);
+    data.write(status.byte);
+
+    // ?
+    // data.write(0xF4);
 }
 
 u32 KeyboardDriver::handleInterrupt(u32 esp) {
