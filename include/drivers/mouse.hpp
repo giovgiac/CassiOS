@@ -66,7 +66,13 @@ public:
      * @brief
      * 
      */
-    virtual u32 handleInterrupt(u32 esp);
+    virtual void activate() override;
+
+    /**
+     * @brief
+     * 
+     */
+    virtual u32 handleInterrupt(u32 esp) override;
 
     /** Deleted Methods */
     MouseDriver(const MouseDriver&) = delete;

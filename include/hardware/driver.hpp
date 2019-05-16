@@ -69,6 +69,27 @@ public:
      * @brief
      * 
      */
+    virtual void activate();
+
+    /**
+     * @brief
+     * 
+     */
+    virtual void deactivate();
+
+    /**
+     * @brief Resets the device, so that the state becomes known.
+     * 
+     * Useful for removing hardware from an unknown state, that might have been left
+     * by another operating system or bootloader.
+     * 
+     */
+    virtual i32 reset();
+
+    /**
+     * @brief
+     * 
+     */
     virtual u32 handleInterrupt(u32 esp);
 
     /** Deleted Methods */
@@ -76,6 +97,68 @@ public:
     Driver(Driver&&) = delete;
     Driver& operator=(const Driver&) = delete;
     Driver& operator=(Driver&&) = delete;
+
+};
+
+// Number of drivers to support in the Driver Manager.
+constexpr u32 NUM_DRIVERS = 256;
+
+/**
+ * @brief
+ * 
+ */
+class DriverManager final {
+private:
+    Driver* drivers[NUM_DRIVERS];
+    i32 size;
+
+    static DriverManager instance;
+
+private:
+    /**
+     * @brief
+     * 
+     */
+    DriverManager();
+
+    /**
+     * @brief
+     * 
+     */
+    ~DriverManager() = default;
+
+public:
+    /**
+     * @brief
+     * 
+     */
+    inline static DriverManager& getManager() {
+        return instance;
+    }
+
+    /**
+     * @brief
+     * 
+     */
+    void addDriver(Driver& drv);
+
+    /**
+     * @brief
+     * 
+     */
+    void load();
+
+    /**
+     * @brief
+     * 
+     */
+    void unload();
+
+    /** Deleted Methods */
+    DriverManager(const DriverManager&) = delete;
+    DriverManager(DriverManager&&) = delete;
+    DriverManager& operator=(const DriverManager&) = delete;
+    DriverManager& operator=(DriverManager&&) = delete;
 
 };
 

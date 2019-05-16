@@ -13,7 +13,9 @@ using namespace cassio::drivers;
 using namespace cassio::hardware;
 
 MouseDriver::MouseDriver() 
-    : Driver(DriverType::MouseController), cmd(PortType::KeyboardControllerCommand), data(PortType::KeyboardControllerData) {
+    : Driver(DriverType::MouseController), cmd(PortType::KeyboardControllerCommand), data(PortType::KeyboardControllerData) {}
+
+void MouseDriver::activate() {
     offset = 0;
     button = 0;
 

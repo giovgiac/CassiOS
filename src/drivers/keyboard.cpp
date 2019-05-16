@@ -12,8 +12,6 @@
 using namespace cassio::drivers;
 using namespace cassio::hardware;
 
-void outputs(const char* str);
-
 KeyboardCommandByte KeyboardDriver::readCommandByte() {
     KeyboardCommandByte status;
 
@@ -21,9 +19,21 @@ KeyboardCommandByte KeyboardDriver::readCommandByte() {
     return status;
 }
 
-KeyboardDriver::KeyboardDriver()
-    : Driver(DriverType::KeyboardController), cmd(PortType::KeyboardControllerCommand), data(PortType::KeyboardControllerData) {
+void KeyboardEventHandler::OnKeyDown(KeyCode key) {
+    if (key != KeyCode::Enter)
+        std::cout << static_cast<char>(key);
+    else
+        std::cout << '\n';
+}
 
+void KeyboardEventHandler::OnKeyUp(KeyCode key) {
+
+}
+
+KeyboardDriver::KeyboardDriver(KeyboardEventHandler* han)
+    : Driver(DriverType::KeyboardController), cmd(PortType::KeyboardControllerCommand), data(PortType::KeyboardControllerData), handler(han) {}
+
+void KeyboardDriver::activate() {
     // Cleanup keystrokes before OS starts.
     while (cmd.read() & 0x1) {
         data.read();
@@ -57,155 +67,291 @@ u32 KeyboardDriver::handleInterrupt(u32 esp) {
         // Ignore interrupts about NumLock, State, etc.
         case 0x45: case 0xC5: case 0xFA: break;
         case 0x02:
-            outputs("1");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::One);
+            }
+
             break;
         case 0x03:
-            outputs("2");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Two);
+            }
+
             break;
         case 0x04:
-            outputs("3");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Three);
+            }
+
             break;
         case 0x05:
-            outputs("4");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Four);
+            }
+
             break;
         case 0x06:
-            outputs("5");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Five);
+            }
+
             break;
         case 0x07:
-            outputs("6");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Six);
+            }
+
             break;
         case 0x08:
-            outputs("7");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Seven);
+            }
+
             break;
         case 0x09:
-            outputs("8");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Eight);
+            }
+
             break;
         case 0x0A:
-            outputs("9");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Nine);
+            }
+
             break;
         case 0x0B:
-            outputs("0");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Zero);
+            }
+
             break;
         case 0x0C:
-            outputs("-");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Minus);
+            }
+
+            break;
+        case 0x0D:
+            // TODO: VERIFY
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Equals);
+            }
+            
             break;
         case 0x10:
-            outputs("q");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Q);
+            }
+
             break;
         case 0x11:
-            outputs("w");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::W);
+            }
+
             break;
         case 0x12:
-            outputs("e");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::E);
+            }
+
             break;
         case 0x13:
-            outputs("r");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::R);
+            }
+
             break;
         case 0x14:
-            outputs("t");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::T);
+            }
+
             break;
         case 0x15:
-            outputs("y");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Y);
+            }
+
             break;
         case 0x16:
-            outputs("u");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::U);
+            }
+
             break;
         case 0x17:
-            outputs("i");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::I);
+            }
+
             break;
         case 0x18:
-            outputs("o");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::O);
+            }
+
             break;
         case 0x19:
-            outputs("p");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::P);
+            }
+
             break;
         case 0x1A:
-            outputs("[");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::LeftBracket);
+            }
+
             break;
         case 0x1B:
-            outputs("]");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::RightBracket);
+            }
+
             break;
         case 0x1C:
-            outputs("\n");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Enter);
+            }
+
             break;
         case 0x1E:
-            outputs("a");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::A);
+            }
+
             break;
         case 0x1F:
-            outputs("s");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::S);
+            }
+
             break;
         case 0x20:
-            outputs("d");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::D);
+            }
+
             break;
         case 0x21:
-            outputs("f");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::F);
+            }
+
             break;
         case 0x22:
-            outputs("g");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::G);
+            }
+
             break;
         case 0x23:
-            outputs("h");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::H);
+            }
+
             break;
         case 0x24:
-            outputs("j");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::J);
+            }
+
             break;
         case 0x25:
-            outputs("k");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::K);
+            }
+
             break;
         case 0x26:
-            outputs("l");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::L);
+            }
+
             break;
         case 0x27:
-            outputs(";");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Semicolon);
+            }
+
             break;
         case 0x28:
-            outputs("'");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Quote);
+            }
+
             break;
         case 0x2C:
-            outputs("z");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Z);
+            }
+
             break;
         case 0x2D:
-            outputs("x");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::X);
+            }
+
             break;
         case 0x2E:
-            outputs("c");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::C);
+            }
+
             break;
         case 0x2F:
-            outputs("v");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::V);
+            }
+
             break;
         case 0x30:
-            outputs("b");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::B);
+            }
+
             break;
         case 0x31:
-            outputs("n");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::N);
+            }
+
             break;
         case 0x32:
-            outputs("m");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::M);
+            }
+
             break;
         case 0x33:
-            outputs(",");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Comma);
+            }
+
             break;
         case 0x34:
-            outputs(".");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Period);
+            }
+
             break;
         case 0x35:
-            outputs("/");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Slash);
+            }
+
             break;
         case 0x39:
-            outputs(" ");
+            if (handler) {
+                handler->OnKeyDown(KeyCode::Space);
+            }
+
             break;
-
         default:
-            // Code for acquiring key values.
-            /**
-            char* foo = "KEYBOARD 0x00 ";
-            const char* hex = "0123456789ABCDEF";
-
-            foo[11] = hex[(key >> 4) & 0x0F];
-            foo[12] = hex[key & 0x0F];
-            
-            outputs(foo);
-            */
+            // Code for printing unhandled interrupts.
+            std::cout << "Keyboard " << key << " ";
             break;
         }
     }
