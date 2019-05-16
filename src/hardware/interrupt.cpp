@@ -24,7 +24,10 @@ void InterruptManager::deactivate() {
 }
 
 InterruptManager::InterruptManager()
-    : pic_master_cmd(0x20), pic_master_data(0x21), pic_slave_cmd(0xA0), pic_slave_data(0xA1) {}
+    : pic_master_cmd(PortType::MasterProgrammableInterfaceControllerCommand),
+      pic_master_data(PortType::MasterProgrammableInterfaceControllerData),
+      pic_slave_cmd(PortType::SlaveProgrammableInterfaceControllerCommand),
+      pic_slave_data(PortType::SlaveProgrammableInterfaceControllerData) {}
 
 void InterruptManager::setInterrupt(u8 number, u16 code_offset, void(*handler)(), u8 access, u8 flags) {
     idt[number].handler_low = ((u32)handler) & 0xFFFF;
@@ -46,14 +49,17 @@ void InterruptManager::load(cassio::kernel::GlobalDescriptorTable& gdt) {
     setInterrupt(0x21, code_offset, &handleInterruptRequest0x01, 0, IDT_INTERRUPT_GATE);
     setInterrupt(0x2C, code_offset, &handleInterruptRequest0x0C, 0, IDT_INTERRUPT_GATE);
 
-    /** Tells Master PIC to Add 20 to Interrupts and Slave PIC to Add 28 */
+    /** Remapping of the PICs to avoid conflicts between software and hardware interrupts. */
+
+    // Restarts Master and Slave PICs.
     pic_master_cmd.writeSlow(0x11);
     pic_slave_cmd.writeSlow(0x11);
 
-    pic_master_data.writeSlow(0x20);
-    pic_slave_data.writeSlow(0x28);
+    // Tells Master PIC to start at 20h (32) and Slave PIC to start at 28h (40).
+    pic_master_data.writeSlow(IRQ_OFFSET);
+    pic_slave_data.writeSlow(IRQ_OFFSET + 8);
 
-    /** Configures PIC */
+    // Setup PIC cascading.
     pic_master_data.writeSlow(0x04);
     pic_slave_data.writeSlow(0x02);
 

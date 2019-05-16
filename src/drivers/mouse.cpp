@@ -10,9 +10,10 @@
 #include "drivers/mouse.hpp"
 
 using namespace cassio::drivers;
+using namespace cassio::hardware;
 
 MouseDriver::MouseDriver() 
-    : Driver(0x2C), cmd(0x64), data(0x60) {
+    : Driver(DriverType::MouseController), cmd(PortType::KeyboardControllerCommand), data(PortType::KeyboardControllerData) {
     offset = 0;
     button = 0;
 
@@ -23,17 +24,17 @@ MouseDriver::MouseDriver()
                         ((tty[80 * 12 + 40] & 0x00FF));
 
     // Tells PIC to start sending interrupts.
-    cmd.write(0xA8);
+    cmd.write(MouseCommand::EnableMouse);
 
     // Requests current state.
-    cmd.write(0x20);
+    cmd.write(MouseCommand::ReadCommand);
 
     // Set new state to status.
     u8 status = data.read() | 2;
-    cmd.write(0x60);
+    cmd.write(MouseCommand::WriteCommand);
     data.write(status);
 
-    cmd.write(0xD4);
+    cmd.write(MouseCommand::WriteMouse);
     data.write(0xF4);
     data.read();
 }

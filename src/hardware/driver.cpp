@@ -13,9 +13,9 @@
 
 using namespace cassio::hardware;
 
-Driver::Driver(u8 num) : number(num) {
+Driver::Driver(DriverType type) : number(static_cast<u8>(type)) {
     InterruptManager& im = InterruptManager::getManager();
-    im.drv[num] = this;
+    im.drv[number] = this;
 }
 
 Driver::~Driver() {
