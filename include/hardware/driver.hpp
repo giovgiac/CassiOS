@@ -10,7 +10,7 @@
 #ifndef HARDWARE_DRIVER_HPP_
 #define HARDWARE_DRIVER_HPP_
 
-#include <core/types.hpp>
+#include <common/types.hpp>
 
 namespace cassio {
 namespace hardware {

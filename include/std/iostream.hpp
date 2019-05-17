@@ -10,12 +10,12 @@
 #ifndef STD_IOSTREAM_HPP_
 #define STD_IOSTREAM_HPP_
 
-#include <core/types.hpp>
+#include <common/types.hpp>
 
 namespace std {
 
-constexpr u8 TERMINAL_WIDTH     = 80;
-constexpr u8 TERMINAL_HEIGHT    = 25;
+constexpr cassio::u8 TERMINAL_WIDTH     = 80;
+constexpr cassio::u8 TERMINAL_HEIGHT    = 25;
 
 /**
  * @brief
@@ -32,10 +32,10 @@ public:
 public:
     ostream& operator<<(const char ch);
     ostream& operator<<(const char* str);
-    ostream& operator<<(const u8 byte);
-    ostream& operator<<(const u16 word);
-    ostream& operator<<(const u32 dword);
-    ostream& operator<<(const u64 qword);
+    ostream& operator<<(const cassio::u8 byte);
+    ostream& operator<<(const cassio::u16 word);
+    ostream& operator<<(const cassio::u32 dword);
+    ostream& operator<<(const cassio::u64 qword);
 
     /** Deleted Methods */
     ostream(const ostream&) = delete;

@@ -10,7 +10,7 @@
 #ifndef CORE_GDT_HPP_
 #define CORE_GDT_HPP_
 
-#include <core/types.hpp>
+#include <common/types.hpp>
 
 namespace cassio {
 namespace kernel {

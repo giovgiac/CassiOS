@@ -9,6 +9,7 @@
 
 #include "std/iostream.hpp"
 
+using namespace cassio;
 using namespace std;
 
 static ostream cout;

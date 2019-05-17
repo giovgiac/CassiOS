@@ -9,13 +9,16 @@ LDFLAGS = -melf_i386
 objects = loader.o gdt.o iostream.o driver.o port.o stub.o interrupt.o keyboard.o mouse.o kernel.o
 
 %.o: src/*/%.cpp
-	g++ $(CXXFLAGS) -o bin/$@ -c $< -I./include/
+	mkdir -p obj
+	g++ $(CXXFLAGS) -o obj/$@ -c $< -Iinclude/
 
 %.o: src/*/%.s
-	as $(ASMFLAGS) -o bin/$@ $<
+	mkdir -p obj
+	as $(ASMFLAGS) -o obj/$@ $<
 
 cassio.bin: src/linker.ld $(objects)
-	ld $(LDFLAGS) -T $< -o bin/$@ $(addprefix bin/, $(objects))
+	mkdir -p bin
+	ld $(LDFLAGS) -T $< -o bin/$@ $(addprefix obj/, $(objects))
 
 cassio.iso: cassio.bin
 	mkdir iso
@@ -38,4 +41,4 @@ run: cassio.iso
 
 .PHONY: clean
 clean:
-	rm -rf $(addprefix bin/, $(objects)) bin/cassio.bin bin/cassio.iso
+	rm -rf $(addprefix obj/, $(objects)) bin/cassio.bin bin/cassio.iso

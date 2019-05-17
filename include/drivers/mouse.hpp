@@ -10,7 +10,7 @@
 #ifndef DRIVERS_MOUSE_HPP_
 #define DRIVERS_MOUSE_HPP_
 
-#include <core/types.hpp>
+#include <common/types.hpp>
 #include <hardware/driver.hpp>
 #include <hardware/port.hpp>
 
@@ -40,6 +40,39 @@ namespace MouseCommand {
  * @brief
  * 
  */
+class MouseEventHandler {
+public:
+    MouseEventHandler() = default;
+
+    /**
+     * @brief
+     * 
+     */
+    virtual void OnActivate();
+
+    /**
+     * @brief
+     *
+     */
+    virtual void OnMouseDown(u8 btn);
+
+    /**
+     * @brief
+     * 
+     */
+    virtual void OnMouseUp(u8 btn);
+
+    /**
+     * @brief
+     * 
+     */
+    virtual void OnMouseMove(i8 dx, i8 dy);
+};
+
+/**
+ * @brief
+ * 
+ */
 class MouseDriver : public hardware::Driver {
 private:
     hardware::Port<u8> cmd;
@@ -48,13 +81,15 @@ private:
     u8 buffer[3];
     u8 offset;
     u8 button;
+
+    MouseEventHandler* handler;
     
 public:
     /**
      * @brief
      * 
      */
-    MouseDriver();
+    MouseDriver(MouseEventHandler* han);
 
     /**
      * @brief

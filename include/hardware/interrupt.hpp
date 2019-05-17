@@ -10,8 +10,8 @@
 #ifndef HARDWARE_INTERRUPT_HPP_
 #define HARDWARE_INTERRUPT_HPP_
 
+#include <common/types.hpp>
 #include <core/gdt.hpp>
-#include <core/types.hpp>
 #include <hardware/driver.hpp>
 #include <hardware/port.hpp>
 #include <std/iostream.hpp>
@@ -146,6 +146,6 @@ public:
  * @brief
  *
  */
-extern "C" u32 handleInterrupt(u8 number, u32 esp);
+extern "C" cassio::u32 handleInterrupt(cassio::u8 number, cassio::u32 esp);
 
 #endif // HARDWARE_INTERRUPT_HPP_
