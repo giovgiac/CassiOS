@@ -10,6 +10,8 @@
 #ifndef CORE_TYPES_HPP_
 #define CORE_TYPES_HPP_
 
+namespace cassio {
+
 // Float Types
 typedef     float               f32;
 typedef     double              f64;
@@ -41,5 +43,7 @@ static_assert(sizeof(i64) == 8, "Unexpected size for i64");
 static_assert(sizeof(u64) == 8, "Unexpected size for u64");
 static_assert(sizeof(isize) == 4, "Unexpected size for isize");
 static_assert(sizeof(usize) == 4, "Unexpected size for usize");
+
+}
 
 #endif // CORE_TYPES_HPP_

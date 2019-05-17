@@ -9,6 +9,7 @@
 
 #include "hardware/port.hpp"
 
+using namespace cassio;
 using namespace cassio::hardware;
 
 /** 8-bit Port Methods */

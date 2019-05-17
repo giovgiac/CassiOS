@@ -11,6 +11,7 @@
 
 #include <hardware/interrupt.hpp>
 
+using namespace cassio;
 using namespace cassio::hardware;
 
 DriverManager DriverManager::instance;

@@ -10,8 +10,8 @@
 #ifndef CORE_KERNEL_HPP_
 #define CORE_KERNEL_HPP_
 
+#include <common/types.hpp>
 #include <core/gdt.hpp>
-#include <core/types.hpp>
 #include <drivers/keyboard.hpp>
 #include <drivers/mouse.hpp>
 #include <hardware/interrupt.hpp>
@@ -40,6 +40,6 @@ extern "C" void ctors();
  * @param magic
  *
  */
-extern "C" void start(void* multiboot, u32 magic);
+extern "C" void start(void* multiboot, cassio::u32 magic);
 
 #endif // CORE_KERNEL_HPP_

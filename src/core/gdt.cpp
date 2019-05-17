@@ -9,6 +9,7 @@
 
 #include "core/gdt.hpp"
 
+using namespace cassio;
 using namespace cassio::kernel;
 
 /** Global Descriptor Table Methods */
