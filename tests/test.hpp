@@ -18,7 +18,7 @@ struct TestNode {
 inline TestNode* test_list_head = nullptr;
 
 inline void serial_put_hex(u32 value) {
-    Serial& s = Serial::getSerial();
+    Serial& s = COM1::getSerial();
     const char* hex = "0123456789ABCDEF";
     s.puts("0x");
     for (i32 i = 28; i >= 0; i -= 4) {
@@ -27,7 +27,7 @@ inline void serial_put_hex(u32 value) {
 }
 
 inline void serial_put_location(const char* file, int line) {
-    Serial& s = Serial::getSerial();
+    Serial& s = COM1::getSerial();
     s.puts(" at ");
     s.puts(file);
     s.putchar(':');
@@ -48,7 +48,7 @@ inline void serial_put_location(const char* file, int line) {
 #define ASSERT(expr)                                                              \
     do {                                                                          \
         if (!(expr)) {                                                            \
-            cassio::hardware::Serial& _s = cassio::hardware::Serial::getSerial(); \
+            cassio::hardware::Serial& _s = cassio::hardware::COM1::getSerial(); \
             _s.puts("[FAIL] ");                                                   \
             _s.puts(_test_name);                                                  \
             _s.puts(": assertion failed: \"" #expr "\"");                         \
@@ -64,7 +64,7 @@ inline void serial_put_location(const char* file, int line) {
         auto _a = (a);                                                            \
         auto _b = (b);                                                            \
         if (_a != _b) {                                                           \
-            cassio::hardware::Serial& _s = cassio::hardware::Serial::getSerial(); \
+            cassio::hardware::Serial& _s = cassio::hardware::COM1::getSerial(); \
             _s.puts("[FAIL] ");                                                   \
             _s.puts(_test_name);                                                  \
             _s.puts(": expected ");                                               \

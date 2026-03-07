@@ -17,9 +17,6 @@ using namespace cassio::hardware;
 Port<u8>::Port(PortType type)
     : number(static_cast<u16>(type)) {}
 
-Port<u8>::Port(u16 port)
-    : number(port) {}
-
 u8 Port<u8>::read() {
     u8 result;
     asm volatile("inb   %1, %0": "=a" (result): "Nd" (number));
@@ -39,9 +36,6 @@ void Port<u8>::writeSlow(u8 data) {
 Port<u16>::Port(PortType type)
     : number(static_cast<u16>(type)) {}
 
-Port<u16>::Port(u16 port)
-    : number(port) {}
-
 u16 Port<u16>::read() {
     u16 result;
     asm volatile("inw   %1, %0": "=a" (result): "Nd" (number));
@@ -56,9 +50,6 @@ void Port<u16>::write(u16 data) {
 
 Port<u32>::Port(PortType type)
     : number(static_cast<u16>(type)) {}
-
-Port<u32>::Port(u16 port)
-    : number(port) {}
 
 u32 Port<u32>::read() {
     u32 result;

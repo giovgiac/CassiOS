@@ -12,7 +12,7 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
-    Serial& com1 = Serial::getSerial();
+    Serial& com1 = COM1::getSerial();
 
     u32 passed = 0, failed = 0;
     for (test::TestNode* t = test::test_list_head; t; t = t->next) {
@@ -35,6 +35,6 @@ void start(void* multiboot, u32 magic) {
     com1.puts(" failed\n");
 
     // Exit QEMU: 0x00 -> exit code 1 (pass), 0x01 -> exit code 3 (fail)
-    Port<u8> debug_exit(static_cast<u16>(0xf4));
+    Port<u8> debug_exit(PortType::QemuDebugExit);
     debug_exit.write(failed > 0 ? 0x01 : 0x00);
 }
