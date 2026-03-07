@@ -1,22 +1,17 @@
-#include <common/types.hpp>
+#include <core/kernel.hpp>
 #include <hardware/serial.hpp>
-#include <hardware/port.hpp>
 #include "test.hpp"
 
 using namespace cassio;
 using namespace cassio::hardware;
 
-typedef void (*ctor)();
-extern "C" ctor start_ctors;
-extern "C" ctor end_ctors;
-
-extern "C" void ctors() {
+void ctors() {
     for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
         (*ct)();
     }
 }
 
-extern "C" void start(void* multiboot, u32 magic) {
+void start(void* multiboot, u32 magic) {
     serial_init();
 
     u32 passed = 0, failed = 0;
