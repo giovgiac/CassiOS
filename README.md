@@ -13,6 +13,7 @@ A hobby operating system targeting i386 (32-bit x86), written in C++ and assembl
 ```sh
 make kernel    # compile and link the kernel binary
 make run       # build and launch in QEMU
+make test      # build and run in-kernel tests
 make iso       # build a bootable ISO
 make clean     # remove build artifacts
 ```
