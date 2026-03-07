@@ -27,7 +27,14 @@ enum class PortType : u16 {
     KeyboardControllerData                              = 0x60,
     KeyboardControllerCommand                           = 0x64,
     SlaveProgrammableInterfaceControllerCommand         = 0xA0,
-    SlaveProgrammableInterfaceControllerData            = 0xA1
+    SlaveProgrammableInterfaceControllerData            = 0xA1,
+    SerialCOM1Data                                      = 0x3F8,
+    SerialCOM1InterruptEnable                           = 0x3F9,
+    SerialCOM1FIFOControl                               = 0x3FA,
+    SerialCOM1LineControl                               = 0x3FB,
+    SerialCOM1ModemControl                              = 0x3FC,
+    SerialCOM1LineStatus                                = 0x3FD,
+    QemuDebugExit                                       = 0xF4
 };
 
 template <typename T> class Port;
@@ -46,17 +53,16 @@ public:
      *
      */
     Port(PortType type);
-    Port(u16 port);
 
     /**
      * @brief
-     * 
+     *
      */
     ~Port() = default;
 
     /**
      * @brief
-     * 
+     *
      */
     u8 read();
 
@@ -88,17 +94,16 @@ public:
      *
      */
     Port(PortType type);
-    Port(u16 port);
 
     /**
      * @brief
-     * 
+     *
      */
     ~Port() = default;
 
     /**
      * @brief
-     * 
+     *
      */
     u16 read();
 
@@ -124,17 +129,16 @@ public:
      *
      */
     Port(PortType type);
-    Port(u16 port);
 
     /**
      * @brief
-     * 
+     *
      */
     ~Port() = default;
 
     /**
      * @brief
-     * 
+     *
      */
     u32 read();
 
