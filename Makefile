@@ -6,6 +6,9 @@ ASMFLAGS = --32
 CXXFLAGS = -m32 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector
 LDFLAGS = -melf_i386
 
+KERNEL = bin/cassio.bin
+ISO = bin/cassio.iso
+
 objects = loader.o gdt.o iostream.o driver.o port.o stub.o interrupt.o keyboard.o mouse.o kernel.o
 
 %.o: src/*/%.cpp
@@ -16,15 +19,15 @@ objects = loader.o gdt.o iostream.o driver.o port.o stub.o interrupt.o keyboard.
 	mkdir -p obj
 	as $(ASMFLAGS) -o obj/$@ $<
 
-cassio.bin: src/linker.ld $(objects)
+kernel: src/linker.ld $(objects)
 	mkdir -p bin
-	ld $(LDFLAGS) -T $< -o bin/$@ $(addprefix obj/, $(objects))
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(addprefix obj/, $(objects))
 
-cassio.iso: cassio.bin
+iso: kernel
 	mkdir iso
 	mkdir iso/boot
 	mkdir iso/boot/grub
-	cp bin/$< iso/boot/
+	cp $(KERNEL) iso/boot/
 	echo 'set default=0' > iso/boot/grub/grub.cfg
 	echo 'set timeout=0' >> iso/boot/grub/grub.cfg
 	echo '' >> iso/boot/grub/grub.cfg
@@ -33,12 +36,12 @@ cassio.iso: cassio.bin
 	echo '	boot' >> iso/boot/grub/grub.cfg
 	echo '}' >> iso/boot/grub/grub.cfg
 	echo '' >> iso/boot/grub/grub.cfg
-	grub-mkrescue --output=bin/$@ iso
+	grub-mkrescue --output=$(ISO) iso
 	rm -rf iso
 
-run: cassio.iso
-	VirtualBox --startvm "CassiOS" &
+run: kernel
+	qemu-system-i386 -machine pc -kernel $(KERNEL) -net none
 
-.PHONY: clean
+.PHONY: kernel iso clean run
 clean:
-	rm -rf $(addprefix obj/, $(objects)) bin/cassio.bin bin/cassio.iso
+	rm -rf $(addprefix obj/, $(objects)) $(KERNEL) $(ISO)
