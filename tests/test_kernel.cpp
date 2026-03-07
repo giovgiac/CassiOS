@@ -5,6 +5,10 @@
 using namespace cassio;
 using namespace cassio::hardware;
 
+namespace test {
+    Serial* serial = nullptr;
+}
+
 void ctors() {
     for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
         (*ct)();
@@ -12,27 +16,28 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
-    serial_init();
+    Serial com1;
+    test::serial = &com1;
 
     u32 passed = 0, failed = 0;
     for (test::TestNode* t = test::test_list_head; t; t = t->next) {
         bool test_failed = false;
         t->fn(t->name, test_failed);
         if (!test_failed) {
-            serial_puts("[PASS] ");
-            serial_puts(t->name);
-            serial_putchar('\n');
+            com1.puts("[PASS] ");
+            com1.puts(t->name);
+            com1.putchar('\n');
             passed++;
         } else {
             failed++;
         }
     }
 
-    serial_puts("[DONE] ");
-    serial_put_dec(passed);
-    serial_puts(" passed, ");
-    serial_put_dec(failed);
-    serial_puts(" failed\n");
+    com1.puts("[DONE] ");
+    com1.put_dec(passed);
+    com1.puts(" passed, ");
+    com1.put_dec(failed);
+    com1.puts(" failed\n");
 
     // Exit QEMU: 0x00 -> exit code 1 (pass), 0x01 -> exit code 3 (fail)
     Port<u8> debug_exit(static_cast<u16>(0xf4));

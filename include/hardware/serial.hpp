@@ -2,14 +2,33 @@
 #define HARDWARE_SERIAL_HPP_
 
 #include <common/types.hpp>
+#include <hardware/port.hpp>
 
 namespace cassio {
 namespace hardware {
 
-void serial_init();
-void serial_putchar(char ch);
-void serial_puts(const char* str);
-void serial_put_dec(u32 value);
+class Serial {
+private:
+    Port<u8> data;
+    Port<u8> interrupt_enable;
+    Port<u8> fifo_control;
+    Port<u8> line_control;
+    Port<u8> modem_control;
+    Port<u8> line_status;
+
+public:
+    Serial();
+    ~Serial() = default;
+
+    void putchar(char ch);
+    void puts(const char* str);
+    void put_dec(u32 value);
+
+    Serial(const Serial&) = delete;
+    Serial(Serial&&) = delete;
+    Serial& operator=(const Serial&) = delete;
+    Serial& operator=(Serial&&) = delete;
+};
 
 } // hardware
 } // cassio

@@ -27,7 +27,13 @@ enum class PortType : u16 {
     KeyboardControllerData                              = 0x60,
     KeyboardControllerCommand                           = 0x64,
     SlaveProgrammableInterfaceControllerCommand         = 0xA0,
-    SlaveProgrammableInterfaceControllerData            = 0xA1
+    SlaveProgrammableInterfaceControllerData            = 0xA1,
+    SerialCOM1Data                                      = 0x3F8,
+    SerialCOM1InterruptEnable                           = 0x3F9,
+    SerialCOM1FIFOControl                               = 0x3FA,
+    SerialCOM1LineControl                               = 0x3FB,
+    SerialCOM1ModemControl                              = 0x3FC,
+    SerialCOM1LineStatus                                = 0x3FD
 };
 
 template <typename T> class Port;
