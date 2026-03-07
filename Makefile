@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 ASMFLAGS = --32
-CXXFLAGS = -m32 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore
+CXXFLAGS = -m32 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector
 LDFLAGS = -melf_i386
 
 objects = loader.o gdt.o iostream.o driver.o port.o stub.o interrupt.o keyboard.o mouse.o kernel.o
