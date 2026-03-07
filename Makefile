@@ -9,7 +9,7 @@ LDFLAGS = -melf_i386
 KERNEL = bin/cassio.bin
 ISO = bin/cassio.iso
 
-objects = loader.o gdt.o iostream.o driver.o port.o serial.o stub.o interrupt.o keyboard.o mouse.o kernel.o
+objects = loader.o gdt.o iostream.o driver.o port.o stub.o interrupt.o keyboard.o mouse.o kernel.o
 
 %.o: src/*/%.cpp
 	mkdir -p obj
