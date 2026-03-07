@@ -11,6 +11,8 @@ A hobby operating system targeting i386 (32-bit x86), written in C++ and assembl
 - Assembly uses AT&T syntax
 - Copy/move constructors and assignment operators are explicitly deleted on hardware-bound and singleton classes
 - When issues or bugs are encountered, start by reproducing the issue yourself, determine the root cause and only then attempt to fix. Once applied, verify and prove that the issue is no longer reproducible through testing
+- Testing is done with QEMU: `qemu-system-i386 -machine pc -kernel bin/cassio.bin -net none`
+- For headless/automated testing, use the QEMU monitor with `screendump` to capture VGA screenshots (see `docs/DEBUGGING.md` for the full test script and techniques)
 
 ## Architecture
 
@@ -31,4 +33,6 @@ Never merge a pull request without explicit user approval. After opening a PR, s
 
 ## Working Documentation
 
-All documents for planning, working with and executing this project are in the docs/ directory. Check docs/WORKFLOW.md for instructions on how to use the project tooling, such as GitHub Issues and Git. Check docs/DEBUGGING.md for the methodology to follow when fixing bugs and issues.
+All documents for planning, working with and executing this project are in the docs/ directory. 
+Check @docs/WORKFLOW.md for instructions on how to use the project tooling, such as GitHub Issues and Git. 
+ALWAYS CHECK docs/DEBUGGING.md for the methodology to follow when fixing bugs and issues.
