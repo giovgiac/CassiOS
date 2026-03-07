@@ -43,9 +43,10 @@ private:
 public:
     /**
      * @brief
-     * 
+     *
      */
     Port(PortType type);
+    Port(u16 port);
 
     /**
      * @brief
@@ -84,9 +85,10 @@ private:
 public:
     /**
      * @brief
-     * 
+     *
      */
     Port(PortType type);
+    Port(u16 port);
 
     /**
      * @brief
@@ -119,9 +121,10 @@ private:
 public:
     /**
      * @brief
-     * 
+     *
      */
     Port(PortType type);
+    Port(u16 port);
 
     /**
      * @brief
