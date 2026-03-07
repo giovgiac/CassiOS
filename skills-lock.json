@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "assembly-x86": {
+      "source": "mohitmishra786/low-level-dev-skills",
+      "sourceType": "github",
+      "computedHash": "e26159ed6926f3a838a33c6199b5ab24b7870e4f4fc03c1dd4b54929243a2363"
+    },
+    "brainstorming": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "computedHash": "5cafa1558b0b6bd4d4c71f23d5567b7fcbbcdb4b0a50b0c5f69a80a3cebaf9b8"
+    },
+    "linker-scripts": {
+      "source": "mohitmishra786/low-level-dev-skills",
+      "sourceType": "github",
+      "computedHash": "e0984abb8792362fe653173e15140443c91256097882299f856fe1fd96482a27"
+    }
+  }
+}
