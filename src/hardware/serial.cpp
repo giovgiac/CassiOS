@@ -3,6 +3,8 @@
 using namespace cassio;
 using namespace cassio::hardware;
 
+Serial Serial::instance;
+
 Serial::Serial()
     : data(PortType::SerialCOM1Data)
     , interrupt_enable(PortType::SerialCOM1InterruptEnable)

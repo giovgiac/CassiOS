@@ -5,10 +5,6 @@
 using namespace cassio;
 using namespace cassio::hardware;
 
-namespace test {
-    Serial* serial = nullptr;
-}
-
 void ctors() {
     for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
         (*ct)();
@@ -16,8 +12,7 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
-    Serial com1;
-    test::serial = &com1;
+    Serial& com1 = Serial::getSerial();
 
     u32 passed = 0, failed = 0;
     for (test::TestNode* t = test::test_list_head; t; t = t->next) {

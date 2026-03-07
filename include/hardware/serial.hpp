@@ -7,7 +7,7 @@
 namespace cassio {
 namespace hardware {
 
-class Serial {
+class Serial final {
 private:
     Port<u8> data;
     Port<u8> interrupt_enable;
@@ -16,13 +16,20 @@ private:
     Port<u8> modem_control;
     Port<u8> line_status;
 
-public:
+    static Serial instance;
+
     Serial();
+
+public:
     ~Serial() = default;
 
     void putchar(char ch);
     void puts(const char* str);
     void put_dec(u32 value);
+
+    inline static Serial& getSerial() {
+        return instance;
+    }
 
     Serial(const Serial&) = delete;
     Serial(Serial&&) = delete;
