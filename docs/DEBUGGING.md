@@ -162,3 +162,23 @@ The single most effective technique: **comment out code and re-test.**
 - Keyboard not working? Check if the interrupt fires at all (interrupt log), then check if the handler runs (add a VGA write in the handler).
 
 This is faster and more reliable than reading disassembly or forming theories. **Always narrow the scope before diving deep.**
+
+### Binary layout sensitivity
+
+Adding or removing object files from the link changes the binary layout (section offsets shift). This can cause subtle visual bugs even if the new code is never called.
+
+Example: linking an unused `serial.o` shifted the binary enough to zero out VGA attribute bytes, making text black-on-black (invisible). The fix was to not link `serial.o` into the production kernel.
+
+When debugging display issues after adding new code, check whether the issue persists with the new object file removed from the link. Use `objdump -h bin/cassio.bin` to compare section layouts before and after.
+
+### Comparing binary layouts
+
+Use `objdump -h` to inspect section addresses and sizes:
+
+```
+objdump -h bin/cassio.bin | grep -E "\.text|\.data|\.bss"
+```
+
+Key things to check:
+- `.bss` start and end addresses (start + size) -- ensure they don't overlap VGA (0xB8000) or other memory-mapped regions
+- Whether adding a new object file shifts `.data` or `.bss` in unexpected ways
