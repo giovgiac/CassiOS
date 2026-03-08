@@ -108,6 +108,41 @@ const KeyCode KeyboardDriver::scancode_table[0x59] = {
     /* 0x58 */  KeyCode::F12
 };
 
+KeyCode KeyboardDriver::resolveShift(KeyCode key) {
+    u8 ch = static_cast<u8>(key);
+
+    // Letters: lowercase -> uppercase (subtract 0x20).
+    if (ch >= 0x61 && ch <= 0x7A) {
+        return static_cast<KeyCode>(ch - 0x20);
+    }
+
+    // Number and symbol keys.
+    switch (key) {
+    case KeyCode::One:          return KeyCode::Exclamation;
+    case KeyCode::Two:          return KeyCode::At;
+    case KeyCode::Three:        return KeyCode::Hash;
+    case KeyCode::Four:         return KeyCode::Dollar;
+    case KeyCode::Five:         return KeyCode::Percent;
+    case KeyCode::Six:          return KeyCode::Caret;
+    case KeyCode::Seven:        return KeyCode::Ampersand;
+    case KeyCode::Eight:        return KeyCode::Asterisk;
+    case KeyCode::Nine:         return KeyCode::LeftParenthesis;
+    case KeyCode::Zero:         return KeyCode::RightParenthesis;
+    case KeyCode::Minus:        return KeyCode::Underscore;
+    case KeyCode::Equals:       return KeyCode::Plus;
+    case KeyCode::LeftBracket:  return KeyCode::LeftCurly;
+    case KeyCode::RightBracket: return KeyCode::RightCurly;
+    case KeyCode::BackSlash:    return KeyCode::Pipe;
+    case KeyCode::Semicolon:    return KeyCode::Colon;
+    case KeyCode::Quote:        return KeyCode::DoubleQuote;
+    case KeyCode::Backquote:    return KeyCode::Tilde;
+    case KeyCode::Comma:        return KeyCode::LessThan;
+    case KeyCode::Period:       return KeyCode::GreaterThan;
+    case KeyCode::Slash:        return KeyCode::Question;
+    default:                    return key;
+    }
+}
+
 /** KeyboardEventHandler Methods */
 
 void KeyboardEventHandler::OnKeyDown(KeyCode key) {}
@@ -202,6 +237,15 @@ u32 KeyboardDriver::handleInterrupt(u32 esp) {
     if (scancode < 0x59) {
         KeyCode key = scancode_table[scancode];
         if (static_cast<u8>(key) != 0) {
+            u8 ch = static_cast<u8>(key);
+            bool is_letter = (ch >= 0x61 && ch <= 0x7A);
+
+            // Letters: shift XOR caps_lock produces uppercase.
+            // Symbols/numbers: shift alone produces the shifted variant.
+            if (is_letter ? (shift_held != caps_lock_on) : shift_held) {
+                key = resolveShift(key);
+            }
+
             handler->OnKeyDown(key);
         }
     }
