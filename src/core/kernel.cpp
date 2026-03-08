@@ -22,6 +22,12 @@ public:
 
         if (key == KeyCode::Enter)
             vga.putchar('\n');
+        else if (key == KeyCode::Backspace)
+            vga.putchar('\b');
+        else if (key == KeyCode::Tab)
+            vga.putchar('\t');
+        else if (key == KeyCode::Delete)
+            vga.putchar(0x7F);
         else if (ch >= 0x20 && ch <= 0x7E)
             vga.putchar(static_cast<char>(key));
     }
