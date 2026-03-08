@@ -8,6 +8,7 @@
  */
 
 #include "core/kernel.hpp"
+#include "core/shell.hpp"
 
 using namespace cassio;
 using namespace cassio::drivers;
