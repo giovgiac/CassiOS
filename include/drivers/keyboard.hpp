@@ -13,7 +13,6 @@
 #include <common/types.hpp>
 #include <hardware/driver.hpp>
 #include <hardware/port.hpp>
-#include <std/iostream.hpp>
 
 namespace cassio {
 namespace drivers {

@@ -17,12 +17,13 @@ using namespace cassio::hardware;
 class TestKeyboardEventHandler : public KeyboardEventHandler {
 public:
     virtual void OnKeyDown(KeyCode key) override {
+        VgaTerminal& vga = VgaTerminal::getTerminal();
         u8 ch = static_cast<u8>(key);
 
         if (key == KeyCode::Enter)
-            std::cout << '\n';
+            vga.putchar('\n');
         else if (ch >= 0x20 && ch <= 0x7E)
-            std::cout << static_cast<char>(key);
+            vga.putchar(static_cast<char>(key));
     }
 };
 
@@ -69,8 +70,9 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
-    std::cout.clear();
-    std::cout << "WELCOME TO CASSIO OPERATING SYSTEM!\n";
+    VgaTerminal& vga = VgaTerminal::getTerminal();
+    vga.clear();
+    vga.print("Welcome to CassiOS!\n");
 
     GlobalDescriptorTable gdt;
     InterruptManager& im = InterruptManager::getManager();
@@ -78,7 +80,7 @@ void start(void* multiboot, u32 magic) {
 
     im.load(gdt);
 
-    std::cout << "STARTING UP DRIVERS...\n";
+    vga.print("Starting up drivers...\n");
     
     TestKeyboardEventHandler keyboard_handler;
     TestMouseEventHandler mouse_handler;
@@ -93,7 +95,7 @@ void start(void* multiboot, u32 magic) {
 
     im.activate();
 
-    std::cout << "FINISHED STARTING UP DRIVERS...\n";
+    vga.print("Finished starting up drivers.\n");
 
     while (1);
 
