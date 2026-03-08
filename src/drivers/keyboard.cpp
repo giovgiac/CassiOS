@@ -109,35 +109,12 @@ const KeyCode KeyboardDriver::scancode_table[0x59] = {
 };
 
 KeyCode KeyboardDriver::resolveShift(KeyCode key) {
-    switch (key) {
-    // Letters: lowercase -> uppercase.
-    case KeyCode::a:            return KeyCode::A;
-    case KeyCode::b:            return KeyCode::B;
-    case KeyCode::c:            return KeyCode::C;
-    case KeyCode::d:            return KeyCode::D;
-    case KeyCode::e:            return KeyCode::E;
-    case KeyCode::f:            return KeyCode::F;
-    case KeyCode::g:            return KeyCode::G;
-    case KeyCode::h:            return KeyCode::H;
-    case KeyCode::i:            return KeyCode::I;
-    case KeyCode::j:            return KeyCode::J;
-    case KeyCode::k:            return KeyCode::K;
-    case KeyCode::l:            return KeyCode::L;
-    case KeyCode::m:            return KeyCode::M;
-    case KeyCode::n:            return KeyCode::N;
-    case KeyCode::o:            return KeyCode::O;
-    case KeyCode::p:            return KeyCode::P;
-    case KeyCode::q:            return KeyCode::Q;
-    case KeyCode::r:            return KeyCode::R;
-    case KeyCode::s:            return KeyCode::S;
-    case KeyCode::t:            return KeyCode::T;
-    case KeyCode::u:            return KeyCode::U;
-    case KeyCode::v:            return KeyCode::V;
-    case KeyCode::w:            return KeyCode::W;
-    case KeyCode::x:            return KeyCode::X;
-    case KeyCode::y:            return KeyCode::Y;
-    case KeyCode::z:            return KeyCode::Z;
+    // Letters: lowercase -> uppercase (subtract 0x20).
+    if (key >= KeyCode::a && key <= KeyCode::z) {
+        return static_cast<KeyCode>(static_cast<u8>(key) - 0x20);
+    }
 
+    switch (key) {
     // Number and symbol keys.
     case KeyCode::One:          return KeyCode::Exclamation;
     case KeyCode::Two:          return KeyCode::At;
