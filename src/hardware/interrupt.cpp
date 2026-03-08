@@ -85,7 +85,10 @@ u32 InterruptManager::handleInterrupt(u8 number, u32 esp) {
     }
     else if (number != 0x20) {
         // Print if the interrupt is not a 'timer interrupt' <- interrupt number 0x20.
-        std::cout << "Unhandled Interrupt " << number << " Triggered!\n";
+        VgaTerminal& vga = VgaTerminal::getTerminal();
+        vga.print("Unhandled Interrupt ");
+        vga.print_hex(number);
+        vga.print(" Triggered!\n");
     }
 
     if (0x20 <= number && number < 0x30) {

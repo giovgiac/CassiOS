@@ -16,7 +16,7 @@
 #include <drivers/mouse.hpp>
 #include <hardware/interrupt.hpp>
 #include <hardware/port.hpp>
-#include <std/iostream.hpp>
+#include <hardware/terminal.hpp>
 
 /**
  * @brief Function pointer type for global constructors.

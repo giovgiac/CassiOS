@@ -14,7 +14,7 @@
 #include <core/gdt.hpp>
 #include <hardware/driver.hpp>
 #include <hardware/port.hpp>
-#include <std/iostream.hpp>
+#include <hardware/terminal.hpp>
 
 namespace cassio {
 namespace hardware {

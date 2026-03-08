@@ -19,7 +19,17 @@ VgaTerminal VgaTerminal::instance;
 VgaTerminal::VgaTerminal()
     : buffer(reinterpret_cast<u16*>(0xB8000)),
       x(0),
-      y(0) {}
+      y(0),
+      crtc_index(PortType::VgaCrtcIndex),
+      crtc_data(PortType::VgaCrtcData) {}
+
+void VgaTerminal::updateCursor() {
+    u16 pos = VGA_WIDTH * y + x;
+    crtc_index.write(0x0F);
+    crtc_data.write(static_cast<u8>(pos & 0xFF));
+    crtc_index.write(0x0E);
+    crtc_data.write(static_cast<u8>((pos >> 8) & 0xFF));
+}
 
 VgaTerminal& VgaTerminal::getTerminal() {
     return instance;
@@ -72,6 +82,8 @@ void VgaTerminal::putchar(char ch) {
     if (y >= VGA_HEIGHT) {
         clear();
     }
+
+    updateCursor();
 }
 
 void VgaTerminal::print(const char* str) {
@@ -105,4 +117,5 @@ void VgaTerminal::clear() {
 
     x = 0;
     y = 0;
+    updateCursor();
 }
