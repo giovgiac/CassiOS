@@ -12,6 +12,7 @@
 
 #include <common/types.hpp>
 #include <core/gdt.hpp>
+#include <core/shell.hpp>
 #include <drivers/keyboard.hpp>
 #include <drivers/mouse.hpp>
 #include <hardware/interrupt.hpp>

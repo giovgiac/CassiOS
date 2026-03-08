@@ -35,6 +35,20 @@ VgaTerminal& VgaTerminal::getTerminal() {
     return instance;
 }
 
+u8 VgaTerminal::getCursorX() {
+    return x;
+}
+
+u8 VgaTerminal::getCursorY() {
+    return y;
+}
+
+void VgaTerminal::setCursor(u8 col, u8 row) {
+    x = col;
+    y = row;
+    updateCursor();
+}
+
 void VgaTerminal::putchar(char ch) {
     switch (ch) {
     case '\n':

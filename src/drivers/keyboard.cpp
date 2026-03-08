@@ -167,7 +167,8 @@ KeyboardDriver::KeyboardDriver(KeyboardEventHandler* han)
       shift_held(false),
       ctrl_held(false),
       alt_held(false),
-      caps_lock_on(false) {}
+      caps_lock_on(false),
+      e0_prefix(false) {}
 
 void KeyboardDriver::activate() {
     // Cleanup keystrokes before OS starts.
@@ -200,8 +201,34 @@ u32 KeyboardDriver::handleInterrupt(u32 esp) {
         return esp;
     }
 
+    // Extended scancode prefix -- the next byte carries the actual scancode.
+    if (raw == 0xE0) {
+        e0_prefix = true;
+        return esp;
+    }
+
     bool released = raw & 0x80;
     u8 scancode = raw & 0x7F;
+
+    // Handle extended scancodes (arrow keys).
+    if (e0_prefix) {
+        e0_prefix = false;
+
+        if (!released) {
+            KeyCode key = static_cast<KeyCode>(0);
+            switch (scancode) {
+            case 0x4B: key = KeyCode::LeftArrow;  break;
+            case 0x4D: key = KeyCode::RightArrow; break;
+            default: break;
+            }
+
+            if (static_cast<u8>(key) != 0) {
+                handler->OnKeyDown(key);
+            }
+        }
+
+        return esp;
+    }
 
     // Handle modifier key state changes.
     switch (static_cast<ScanCode>(scancode)) {

@@ -219,7 +219,9 @@ enum class KeyCode : u8 {
     F9                                          = 0x88,
     F10                                         = 0x89,
     F11                                         = 0x8A,
-    F12                                         = 0x8B
+    F12                                         = 0x8B,
+    LeftArrow                                   = 0x8C,
+    RightArrow                                  = 0x8D
 };
 
 /**
@@ -314,6 +316,7 @@ private:
     bool ctrl_held;
     bool alt_held;
     bool caps_lock_on;
+    bool e0_prefix;
 
     // Lookup table mapping scancodes (0x00-0x58) to their default KeyCode.
     // A value of 0x00 means the scancode has no KeyCode mapping.

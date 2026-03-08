@@ -85,6 +85,24 @@ public:
      */
     static VgaTerminal& getTerminal();
 
+    /**
+     * @brief Returns the current cursor column.
+     *
+     */
+    u8 getCursorX();
+
+    /**
+     * @brief Returns the current cursor row.
+     *
+     */
+    u8 getCursorY();
+
+    /**
+     * @brief Moves the cursor to the given column and row.
+     *
+     */
+    void setCursor(u8 col, u8 row);
+
     virtual void putchar(char ch) override;
     virtual void print(const char* str) override;
     virtual void print_hex(u32 value) override;
