@@ -11,6 +11,7 @@
 #define HARDWARE_TERMINAL_HPP_
 
 #include <common/types.hpp>
+#include <hardware/port.hpp>
 
 namespace cassio {
 namespace hardware {
@@ -66,9 +67,14 @@ private:
     u8 x;
     u8 y;
 
+    Port<u8> crtc_index;
+    Port<u8> crtc_data;
+
     static VgaTerminal instance;
 
     VgaTerminal();
+
+    void updateCursor();
 
 public:
     ~VgaTerminal() = default;

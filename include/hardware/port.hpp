@@ -34,7 +34,9 @@ enum class PortType : u16 {
     SerialCOM1LineControl                               = 0x3FB,
     SerialCOM1ModemControl                              = 0x3FC,
     SerialCOM1LineStatus                                = 0x3FD,
-    QemuDebugExit                                       = 0xF4
+    VgaCrtcIndex                                         = 0x3D4,
+    VgaCrtcData                                          = 0x3D5,
+    QemuDebugExit                                        = 0xF4
 };
 
 template <typename T> class Port;
