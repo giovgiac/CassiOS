@@ -77,3 +77,29 @@ TEST(terminal_backspace) {
     vga.putchar('C');
     ASSERT_EQ(static_cast<u32>(buf[1] & 0x00FF), static_cast<u32>('C'));
 }
+
+TEST(terminal_get_cursor) {
+    VgaTerminal& vga = VgaTerminal::getTerminal();
+    vga.clear();
+
+    ASSERT_EQ(static_cast<u32>(vga.getCursorX()), 0u);
+    ASSERT_EQ(static_cast<u32>(vga.getCursorY()), 0u);
+
+    vga.putchar('A');
+    ASSERT_EQ(static_cast<u32>(vga.getCursorX()), 1u);
+    ASSERT_EQ(static_cast<u32>(vga.getCursorY()), 0u);
+}
+
+TEST(terminal_set_cursor) {
+    VgaTerminal& vga = VgaTerminal::getTerminal();
+    vga.clear();
+
+    vga.setCursor(10, 5);
+    ASSERT_EQ(static_cast<u32>(vga.getCursorX()), 10u);
+    ASSERT_EQ(static_cast<u32>(vga.getCursorY()), 5u);
+
+    // Writing at the new position should place the character there.
+    vga.putchar('Q');
+    u16* buf = reinterpret_cast<u16*>(0xB8000);
+    ASSERT_EQ(static_cast<u32>(buf[5 * VGA_WIDTH + 10] & 0x00FF), static_cast<u32>('Q'));
+}

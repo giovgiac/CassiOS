@@ -66,6 +66,7 @@ private:
     u16* buffer;
     u8 x;
     u8 y;
+    u16 color;
 
     Port<u8> crtc_index;
     Port<u8> crtc_data;
@@ -84,6 +85,24 @@ public:
      *
      */
     static VgaTerminal& getTerminal();
+
+    /**
+     * @brief Returns the current cursor column.
+     *
+     */
+    u8 getCursorX();
+
+    /**
+     * @brief Returns the current cursor row.
+     *
+     */
+    u8 getCursorY();
+
+    /**
+     * @brief Moves the cursor to the given column and row.
+     *
+     */
+    void setCursor(u8 col, u8 row);
 
     virtual void putchar(char ch) override;
     virtual void print(const char* str) override;
