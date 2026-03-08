@@ -23,6 +23,26 @@ TEST(keyboard_keycode_values) {
     ASSERT_EQ(static_cast<u32>(KeyCode::Nine), 0x39u);
     ASSERT_EQ(static_cast<u32>(KeyCode::Enter), 0x0Du);
     ASSERT_EQ(static_cast<u32>(KeyCode::Space), 0x20u);
+    ASSERT_EQ(static_cast<u32>(KeyCode::Escape), 0x1Bu);
+}
+
+TEST(keyboard_scancode_values) {
+    ASSERT_EQ(static_cast<u32>(ScanCode::Escape), 0x01u);
+    ASSERT_EQ(static_cast<u32>(ScanCode::One), 0x02u);
+    ASSERT_EQ(static_cast<u32>(ScanCode::Enter), 0x1Cu);
+    ASSERT_EQ(static_cast<u32>(ScanCode::LeftShift), 0x2Au);
+    ASSERT_EQ(static_cast<u32>(ScanCode::RightShift), 0x36u);
+    ASSERT_EQ(static_cast<u32>(ScanCode::LeftCtrl), 0x1Du);
+    ASSERT_EQ(static_cast<u32>(ScanCode::LeftAlt), 0x38u);
+    ASSERT_EQ(static_cast<u32>(ScanCode::CapsLock), 0x3Au);
+    ASSERT_EQ(static_cast<u32>(ScanCode::F1), 0x3Bu);
+    ASSERT_EQ(static_cast<u32>(ScanCode::F12), 0x58u);
+    ASSERT_EQ(static_cast<u32>(ScanCode::Space), 0x39u);
+}
+
+TEST(keyboard_function_key_codes) {
+    ASSERT_EQ(static_cast<u32>(KeyCode::F1), 0x80u);
+    ASSERT_EQ(static_cast<u32>(KeyCode::F12), 0x8Bu);
 }
 
 TEST(keyboard_command_byte_bits) {

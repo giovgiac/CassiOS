@@ -1,6 +1,6 @@
 /**
  * keyboard.hpp
- * 
+ *
  * Copyright (c) 2019 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
@@ -19,18 +19,98 @@ namespace cassio {
 namespace drivers {
 
 /**
- * @brief Enumerates the keycodes and maps them to their ASCII code equivalents.
- * 
- * This enumeration has the purpose of naming the keys appropriatelly as well as mapping
- * them to their correct ASCII codes for ease of printing and manipulating.
- * 
+ * @brief PS/2 scan set 1 scancodes as received from the keyboard hardware.
+ *
+ * @see https://wiki.osdev.org/PS/2_Keyboard#Scan_Code_Set_1
+ *
+ */
+enum class ScanCode : u8 {
+    Escape                                      = 0x01,
+    One                                         = 0x02,
+    Two                                         = 0x03,
+    Three                                       = 0x04,
+    Four                                        = 0x05,
+    Five                                        = 0x06,
+    Six                                         = 0x07,
+    Seven                                       = 0x08,
+    Eight                                       = 0x09,
+    Nine                                        = 0x0A,
+    Zero                                        = 0x0B,
+    Minus                                       = 0x0C,
+    Equals                                      = 0x0D,
+    Backspace                                   = 0x0E,
+    Tab                                         = 0x0F,
+    Q                                           = 0x10,
+    W                                           = 0x11,
+    E                                           = 0x12,
+    R                                           = 0x13,
+    T                                           = 0x14,
+    Y                                           = 0x15,
+    U                                           = 0x16,
+    I                                           = 0x17,
+    O                                           = 0x18,
+    P                                           = 0x19,
+    LeftBracket                                 = 0x1A,
+    RightBracket                                = 0x1B,
+    Enter                                       = 0x1C,
+    LeftCtrl                                    = 0x1D,
+    A                                           = 0x1E,
+    S                                           = 0x1F,
+    D                                           = 0x20,
+    F                                           = 0x21,
+    G                                           = 0x22,
+    H                                           = 0x23,
+    J                                           = 0x24,
+    K                                           = 0x25,
+    L                                           = 0x26,
+    Semicolon                                   = 0x27,
+    Quote                                       = 0x28,
+    Backquote                                   = 0x29,
+    LeftShift                                   = 0x2A,
+    Backslash                                   = 0x2B,
+    Z                                           = 0x2C,
+    X                                           = 0x2D,
+    C                                           = 0x2E,
+    V                                           = 0x2F,
+    B                                           = 0x30,
+    N                                           = 0x31,
+    M                                           = 0x32,
+    Comma                                       = 0x33,
+    Period                                      = 0x34,
+    Slash                                       = 0x35,
+    RightShift                                  = 0x36,
+    LeftAlt                                     = 0x38,
+    Space                                       = 0x39,
+    CapsLock                                    = 0x3A,
+    F1                                          = 0x3B,
+    F2                                          = 0x3C,
+    F3                                          = 0x3D,
+    F4                                          = 0x3E,
+    F5                                          = 0x3F,
+    F6                                          = 0x40,
+    F7                                          = 0x41,
+    F8                                          = 0x42,
+    F9                                          = 0x43,
+    F10                                         = 0x44,
+    NumLock                                     = 0x45,
+    F11                                         = 0x57,
+    F12                                         = 0x58
+};
+
+/**
+ * @brief Resolved key values dispatched to the event handler.
+ *
+ * ASCII-range values (0x00-0x7F) correspond to their ASCII characters.
+ * Non-ASCII keys (modifiers, function keys) use values above 0x7F.
+ *
  * @see https://simple.wikipedia.org/wiki/ASCII#/media/File:ASCII-Table-wide.svg
- * 
+ *
  */
 enum class KeyCode : u8 {
     Backspace                                   = 0x08,
     Tab                                         = 0x09,
     Enter                                       = 0x0D,
+    Escape                                      = 0x1B,
     Space                                       = 0x20,
     DoubleQuote                                 = 0x22,
     Hash                                        = 0x23,
@@ -38,7 +118,7 @@ enum class KeyCode : u8 {
     Percent                                     = 0x25,
     Ampersand                                   = 0x26,
     Quote                                       = 0x27,
-    LeftParethensis                             = 0x28,
+    LeftParenthesis                             = 0x28,
     RightParenthesis                            = 0x29,
     Asterisk                                    = 0x2A,
     Plus                                        = 0x2B,
@@ -99,19 +179,33 @@ enum class KeyCode : u8 {
     Pipe                                        = 0x7C,
     RightCurly                                  = 0x7D,
     Tilde                                       = 0x7E,
-    Delete                                      = 0x7F
+    Delete                                      = 0x7F,
+
+    // Non-ASCII keys.
+    F1                                          = 0x80,
+    F2                                          = 0x81,
+    F3                                          = 0x82,
+    F4                                          = 0x83,
+    F5                                          = 0x84,
+    F6                                          = 0x85,
+    F7                                          = 0x86,
+    F8                                          = 0x87,
+    F9                                          = 0x88,
+    F10                                         = 0x89,
+    F11                                         = 0x8A,
+    F12                                         = 0x8B
 };
 
 /**
  * @brief Defines names for the PS/2 Keyboard commands that can be sent to the controller.
- * 
+ *
  * A namespace which contains constants for the various possible keyboard commands, these
  * include reading and writing to the 'command byte', as well as testing and enabling the
  * keyboard interrupts.
- * 
+ *
  * @see KeyboardCommandByte
  * @see https://www.avrfreaks.net/sites/default/files/PS2%20Keyboard.pdf
- * 
+ *
  */
 namespace KeyboardCommand {
     constexpr u8 ReadCommandByte                = 0x20;
@@ -151,7 +245,7 @@ union KeyboardCommandByte {
         // Unused byte, added for padding.
         bool ignore2 : 1;
     };
-    
+
     u8 byte;
 };
 
@@ -179,6 +273,9 @@ public:
 /**
  * @brief PS/2 keyboard driver that translates scancodes into KeyCode events.
  *
+ * Tracks modifier state (Shift, Ctrl, Alt, Caps Lock) internally and uses
+ * it to resolve scancodes into the correct KeyCode before dispatching.
+ *
  */
 class KeyboardDriver : public hardware::Driver {
 private:
@@ -186,6 +283,15 @@ private:
     hardware::Port<u8> data;
 
     KeyboardEventHandler* handler;
+
+    bool shift_held;
+    bool ctrl_held;
+    bool alt_held;
+    bool caps_lock_on;
+
+    // Lookup table mapping scancodes (0x00-0x58) to their default KeyCode.
+    // A value of 0x00 means the scancode has no KeyCode mapping.
+    static const KeyCode scancode_table[0x59];
 
 private:
     KeyboardCommandByte readCommandByte();
