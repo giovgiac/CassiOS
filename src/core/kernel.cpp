@@ -70,16 +70,15 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
-    VgaTerminal& vga = VgaTerminal::getTerminal();
-    vga.clear();
-    vga.print("Welcome to CassiOS!\n");
-
     GlobalDescriptorTable gdt;
     InterruptManager& im = InterruptManager::getManager();
     DriverManager& dm = DriverManager::getManager();
 
     im.load(gdt);
 
+    VgaTerminal& vga = VgaTerminal::getTerminal();
+    vga.clear();
+    vga.print("Welcome to the Cassio Operating System!\n");
     vga.print("Starting up drivers...\n");
     
     TestKeyboardEventHandler keyboard_handler;

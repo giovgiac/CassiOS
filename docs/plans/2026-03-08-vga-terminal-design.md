@@ -75,8 +75,8 @@ All other characters are written as visible glyphs to VGA memory.
 
 ### kernel.cpp
 
-Boot messages use `VgaTerminal::getTerminal()` with `print()` and `clear()`. Messages changed to normal case:
-- "Welcome to CassiOS!"
+VGA clear and welcome message print after GDT load (VGA isn't properly initialized as a terminal until core hardware is set up). Messages changed to normal case:
+- "Welcome to the Cassio Operating System!"
 - "Starting up drivers..."
 - "Finished starting up drivers."
 
