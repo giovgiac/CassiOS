@@ -35,6 +35,7 @@ private:
     u8 cursor;
     u8 prompt_x;
     u8 prompt_y;
+    bool running;
 
     void printPrompt();
     void redrawLine();
@@ -44,6 +45,12 @@ private:
 
 public:
     Shell();
+
+    /**
+     * @brief Runs the shell loop, sleeping between interrupts until shutdown.
+     *
+     */
+    void run();
 
     virtual void OnKeyDown(drivers::KeyCode key) override;
 

@@ -40,7 +40,7 @@ void start(void* multiboot, u32 magic) {
 
     im.activate();
 
-    while (1);
+    shell.run();
 
     im.deactivate();
 

@@ -30,6 +30,10 @@ TEST(keyboard_keycode_values) {
     ASSERT_EQ(static_cast<u32>(KeyCode::Enter), 0x0Du);
     ASSERT_EQ(static_cast<u32>(KeyCode::Space), 0x20u);
     ASSERT_EQ(static_cast<u32>(KeyCode::Escape), 0x1Bu);
+
+    // Arrow keys (non-ASCII).
+    ASSERT_EQ(static_cast<u32>(KeyCode::LeftArrow), 0x8Cu);
+    ASSERT_EQ(static_cast<u32>(KeyCode::RightArrow), 0x8Du);
 }
 
 TEST(keyboard_scancode_values) {

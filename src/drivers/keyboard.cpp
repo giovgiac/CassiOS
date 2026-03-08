@@ -219,6 +219,7 @@ u32 KeyboardDriver::handleInterrupt(u32 esp) {
             switch (scancode) {
             case 0x4B: key = KeyCode::LeftArrow;  break;
             case 0x4D: key = KeyCode::RightArrow; break;
+            case 0x53: key = KeyCode::Delete;     break;
             default: break;
             }
 

@@ -19,8 +19,16 @@ Shell::Shell()
       length(0),
       cursor(0),
       prompt_x(0),
-      prompt_y(0) {
+      prompt_y(0),
+      running(false) {}
+
+void Shell::run() {
+    running = true;
     printPrompt();
+
+    while (running) {
+        asm volatile("hlt");
+    }
 }
 
 bool Shell::streq(const char* a, const char* b) {
@@ -66,8 +74,7 @@ void Shell::execute() {
 
     if (streq(buffer, "shutdown")) {
         vga.print("Shutting down...\n");
-        asm volatile("cli");
-        asm volatile("hlt");
+        running = false;
         return;
     }
 
