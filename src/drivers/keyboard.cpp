@@ -52,8 +52,10 @@ void KeyboardDriver::activate() {
     cmd.write(KeyboardCommand::WriteCommandByte);
     data.write(status.byte);
 
-    // Enables keyboard.
+    // Enables keyboard and reads the ACK response so it does not remain
+    // in the output buffer where mouse.activate() could consume it.
     data.write(0xF4);
+    data.read();
 }
 
 u32 KeyboardDriver::handleInterrupt(u32 esp) {

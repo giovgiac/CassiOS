@@ -1,8 +1,10 @@
 #include <drivers/keyboard.hpp>
+#include <drivers/mouse.hpp>
 #include "test.hpp"
 
 using namespace cassio;
 using namespace cassio::drivers;
+using namespace cassio::hardware;
 
 TEST(keyboard_command_byte_size) {
     ASSERT_EQ(static_cast<u32>(sizeof(KeyboardCommandByte)), 1u);
@@ -40,4 +42,25 @@ TEST(keyboard_driver_construction) {
     KeyboardDriver kbd(&handler);
     // Construction should not crash; driver self-registers with InterruptManager
     ASSERT(true);
+}
+
+TEST(keyboard_irq_enabled_after_activate) {
+    // Regression: keyboard.activate() must drain the ACK from 0xF4, otherwise
+    // mouse.activate() reads it as the command byte and disables keyboard IRQs.
+    KeyboardEventHandler kbd_handler;
+    MouseEventHandler mouse_handler;
+    KeyboardDriver kbd(&kbd_handler);
+    MouseDriver mouse(&mouse_handler);
+
+    kbd.activate();
+    mouse.activate();
+
+    // Read back the PS/2 controller command byte
+    Port<u8> cmd(PortType::KeyboardControllerCommand);
+    Port<u8> data(PortType::KeyboardControllerData);
+    cmd.write(KeyboardCommand::ReadCommandByte);
+    u8 status = data.read();
+
+    // Keyboard interrupt bit (bit 0) must still be enabled
+    ASSERT(status & 0x01);
 }

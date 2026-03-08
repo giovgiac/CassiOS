@@ -30,6 +30,19 @@ TEST(gdt_segment_descriptor_limit_small) {
     ASSERT_EQ(desc.getLimit(), 65536u);
 }
 
+TEST(gdt_segment_registers_after_load) {
+    GlobalDescriptorTable gdt;
+
+    u16 cs, ds, ss;
+    asm volatile("mov %%cs, %0" : "=r"(cs));
+    asm volatile("mov %%ds, %0" : "=r"(ds));
+    asm volatile("mov %%ss, %0" : "=r"(ss));
+
+    ASSERT_EQ(static_cast<u32>(cs), static_cast<u32>(gdt.getCodeOffset()));
+    ASSERT_EQ(static_cast<u32>(ds), static_cast<u32>(gdt.getDataOffset()));
+    ASSERT_EQ(static_cast<u32>(ss), static_cast<u32>(gdt.getDataOffset()));
+}
+
 TEST(gdt_segment_descriptor_limit_large) {
     // 128 MiB = 128 * 1024 * 1024 = 0x08000000
     // Granularity bit set: limit stored as pages, decoded with | 0xFFF

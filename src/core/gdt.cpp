@@ -21,7 +21,19 @@ GlobalDescriptorTable::GlobalDescriptorTable()
     i[1] = (usize)this;
     i[0] = sizeof(GlobalDescriptorTable) << 16;
 
-    asm volatile("lgdt  (%0)": :"p" ((u8*)i + 2));
+    asm volatile(
+        "lgdt  (%0)\n"
+        "ljmp  $0x08, $1f\n"
+        "1:\n"
+        "mov   $0x10, %%ax\n"
+        "mov   %%ax, %%ds\n"
+        "mov   %%ax, %%es\n"
+        "mov   %%ax, %%fs\n"
+        "mov   %%ax, %%gs\n"
+        "mov   %%ax, %%ss\n"
+        : : "p" ((u8*)i + 2)
+        : "eax"
+    );
 }
 
 GlobalDescriptorTable::~GlobalDescriptorTable() {}
