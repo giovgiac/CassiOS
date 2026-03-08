@@ -71,8 +71,6 @@ void VgaTerminal::putchar(char ch) {
 
     if (y >= VGA_HEIGHT) {
         clear();
-        x = 0;
-        y = 0;
     }
 }
 
@@ -104,4 +102,7 @@ void VgaTerminal::clear() {
             buffer[VGA_WIDTH * row + col] = (buffer[VGA_WIDTH * row + col] & 0xFF00) | ' ';
         }
     }
+
+    x = 0;
+    y = 0;
 }
