@@ -88,7 +88,6 @@ public:
 
 private:
     SegmentDescriptor nullSegment;
-    SegmentDescriptor unusedSegment;
     SegmentDescriptor codeSegment;
     SegmentDescriptor dataSegment;
 };

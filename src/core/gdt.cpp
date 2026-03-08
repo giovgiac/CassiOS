@@ -15,7 +15,7 @@ using namespace cassio::kernel;
 /** Global Descriptor Table Methods */
 
 GlobalDescriptorTable::GlobalDescriptorTable()
-    : nullSegment(0, 0, 0), unusedSegment(0, 0, 0), 
+    : nullSegment(0, 0, 0),
       codeSegment(0, 128 * 1024 * 1024, 0x9A), dataSegment(0, 128 * 1024 * 1024, 0x92) {
     usize i[2];
     i[1] = (usize)this;

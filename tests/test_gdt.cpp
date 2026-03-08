@@ -9,15 +9,15 @@ TEST(gdt_segment_descriptor_size) {
 }
 
 TEST(gdt_code_segment_offset) {
-    // Code segment is the 3rd entry (null, unused, code) -> offset 0x10
-    u32 expected = 2 * sizeof(GlobalDescriptorTable::SegmentDescriptor);
-    ASSERT_EQ(expected, 0x10u);
+    // Code segment is the 2nd entry (null, code) -> offset 0x08
+    u32 expected = 1 * sizeof(GlobalDescriptorTable::SegmentDescriptor);
+    ASSERT_EQ(expected, 0x08u);
 }
 
 TEST(gdt_data_segment_offset) {
-    // Data segment is the 4th entry (null, unused, code, data) -> offset 0x18
-    u32 expected = 3 * sizeof(GlobalDescriptorTable::SegmentDescriptor);
-    ASSERT_EQ(expected, 0x18u);
+    // Data segment is the 3rd entry (null, code, data) -> offset 0x10
+    u32 expected = 2 * sizeof(GlobalDescriptorTable::SegmentDescriptor);
+    ASSERT_EQ(expected, 0x10u);
 }
 
 TEST(gdt_segment_descriptor_base) {
