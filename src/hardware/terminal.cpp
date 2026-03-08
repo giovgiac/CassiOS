@@ -20,6 +20,7 @@ VgaTerminal::VgaTerminal()
     : buffer(reinterpret_cast<u16*>(0xB8000)),
       x(0),
       y(0),
+      color(0x07),
       crtc_index(PortType::VgaCrtcIndex),
       crtc_data(PortType::VgaCrtcData) {}
 
@@ -63,11 +64,11 @@ void VgaTerminal::putchar(char ch) {
             y -= 1;
             x = VGA_WIDTH - 1;
         }
-        buffer[VGA_WIDTH * y + x] = (buffer[VGA_WIDTH * y + x] & 0xFF00) | ' ';
+        buffer[VGA_WIDTH * y + x] = (static_cast<u16>(color) << 8) | ' ';
         break;
 
     case 0x7F: // DEL
-        buffer[VGA_WIDTH * y + x] = (buffer[VGA_WIDTH * y + x] & 0xFF00) | ' ';
+        buffer[VGA_WIDTH * y + x] = (static_cast<u16>(color) << 8) | ' ';
         break;
 
     case '\t': {
@@ -76,14 +77,14 @@ void VgaTerminal::putchar(char ch) {
             next = VGA_WIDTH;
         }
         while (x < next) {
-            buffer[VGA_WIDTH * y + x] = (buffer[VGA_WIDTH * y + x] & 0xFF00) | ' ';
+            buffer[VGA_WIDTH * y + x] = (static_cast<u16>(color) << 8) | ' ';
             x += 1;
         }
         break;
     }
 
     default:
-        buffer[VGA_WIDTH * y + x] = (buffer[VGA_WIDTH * y + x] & 0xFF00) | ch;
+        buffer[VGA_WIDTH * y + x] = (static_cast<u16>(color) << 8) | ch;
         x += 1;
         break;
     }
@@ -125,7 +126,7 @@ void VgaTerminal::print_hex(u32 value) {
 void VgaTerminal::clear() {
     for (u8 row = 0; row < VGA_HEIGHT; ++row) {
         for (u8 col = 0; col < VGA_WIDTH; ++col) {
-            buffer[VGA_WIDTH * row + col] = (buffer[VGA_WIDTH * row + col] & 0xFF00) | ' ';
+            buffer[VGA_WIDTH * row + col] = (static_cast<u16>(color) << 8) | ' ';
         }
     }
 
