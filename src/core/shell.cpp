@@ -78,9 +78,17 @@ void Shell::execute() {
         return;
     }
 
+    if (streq(buffer, "reboot")) {
+        vga.print("Rebooting...\n");
+        Port<u8> cmd(PortType::KeyboardControllerCommand);
+        cmd.write(0xFE);
+        return;
+    }
+
     if (streq(buffer, "help")) {
         vga.print("Available commands:\n");
         vga.print("  shutdown  - Halt the system\n");
+        vga.print("  reboot    - Reboot the system\n");
         vga.print("  help      - Show this message\n");
         vga.print("  clear     - Clear the screen\n");
     } else if (streq(buffer, "clear")) {
