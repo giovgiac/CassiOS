@@ -17,10 +17,12 @@ using namespace cassio::hardware;
 class TestKeyboardEventHandler : public KeyboardEventHandler {
 public:
     virtual void OnKeyDown(KeyCode key) override {
-        if (key != KeyCode::Enter)
-            std::cout << static_cast<char>(key);
-        else
+        u8 ch = static_cast<u8>(key);
+
+        if (key == KeyCode::Enter)
             std::cout << '\n';
+        else if (ch >= 0x20 && ch <= 0x7E)
+            std::cout << static_cast<char>(key);
     }
 };
 
