@@ -14,12 +14,11 @@ using namespace std;
 
 static ostream cout;
 
-void clear() {
+void ostream::clear() {
     static u16* tty = reinterpret_cast<u16*>(0xb8000);
 
     for (u8 y = 0; y < TERMINAL_HEIGHT; ++y) {
         for (u8 x = 0; x < TERMINAL_WIDTH; ++x) {
-            // Copy High-Bits and Merge with New Low-Bits
             tty[TERMINAL_WIDTH * y + x] = (tty[TERMINAL_WIDTH * y + x] & 0xFF00) | ' ';
         }
     }
