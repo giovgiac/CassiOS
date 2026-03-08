@@ -20,8 +20,8 @@ namespace cassio {
 namespace hardware {
 
 /**
- * @brief
- * 
+ * @brief Flag constants used when building IDT gate descriptors.
+ *
  */
 enum InterruptFlags : u8 {
     IDT_DESCRIPTOR_PRESENT = 0x80,
@@ -29,16 +29,16 @@ enum InterruptFlags : u8 {
 };
 
 /**
- * @brief
- * 
+ * @brief Singleton that owns the IDT and PIC, dispatching hardware interrupts to drivers.
+ *
  */
 class InterruptManager final {
 friend class Driver;
 
 private:
     /**
-     * @brief
-     * 
+     * @brief An 8-byte packed IDT entry pointing to an interrupt handler.
+     *
      */
     struct __attribute__((packed)) GateDescriptor {
         u16 handler_low;
@@ -49,8 +49,8 @@ private:
     };
 
     /**
-     * @brief
-     * 
+     * @brief Pointer structure passed to the lidt instruction (size + base address).
+     *
      */
     struct __attribute__((packed)) InterruptDescriptorTable {
         u16 size;
@@ -70,21 +70,21 @@ private:
 
 private:
     /**
-     * @brief
-     * 
+     * @brief Constructs the manager and initializes PIC ports.
+     *
      */
     InterruptManager();
 
     /**
-     * @brief
-     * 
+     * @brief Destroys the interrupt manager.
+     *
      */
     ~InterruptManager() = default;
 
 public:
     /**
-     * @brief
-     * 
+     * @brief Returns the singleton InterruptManager instance.
+     *
      */
     inline static InterruptManager& getManager() {
         return instance;
@@ -96,38 +96,38 @@ public:
     static void handleInterruptRequest0x0C();
 
     /**
-     * @brief
-     * 
+     * @brief Enables hardware interrupts by executing the sti instruction.
+     *
      */
     void activate();
 
     /**
-     * @brief
-     * 
+     * @brief Disables hardware interrupts by executing the cli instruction.
+     *
      */
     void deactivate();
 
     /**
-     * @brief
-     * 
+     * @brief Dispatches an interrupt to the registered driver or prints a warning.
+     *
      */
     u32 handleInterrupt(u8 number, u32 esp);
 
     /**
-     * @brief
-     * 
+     * @brief Writes a gate descriptor entry into the IDT at the given index.
+     *
      */
     void setInterrupt(u8 number, u16 code_offset, void(*handler)(), u8 access, u8 flags);
 
     /**
-     * @brief
-     * 
+     * @brief Populates the IDT, remaps the PICs, and loads the IDT via lidt.
+     *
      */
     void load(cassio::kernel::GlobalDescriptorTable& gdt);
 
     /**
-     * @brief
-     * 
+     * @brief Unloads the interrupt manager.
+     *
      */
     void unload();
 
@@ -143,7 +143,7 @@ public:
 }
 
 /**
- * @brief
+ * @brief C-linkage interrupt handler called from assembly stubs in stub.s.
  *
  */
 extern "C" cassio::u32 handleInterrupt(cassio::u8 number, cassio::u32 esp);

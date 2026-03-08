@@ -44,8 +44,11 @@ enum class DriverType : u8 {
 };
 
 /**
- * @brief
- *  
+ * @brief Base class for hardware drivers that handle IRQ interrupts.
+ *
+ * Registers itself with the InterruptManager on construction using its
+ * DriverType as the interrupt number.
+ *
  */
 class Driver {
 protected:
@@ -53,27 +56,27 @@ protected:
 
 protected:
     /**
-     * @brief
-     * 
+     * @brief Constructs the driver and registers it with the InterruptManager for its IRQ.
+     *
      */
     Driver(DriverType type);
 
     /**
-     * @brief
-     * 
+     * @brief Unregisters the driver from the InterruptManager.
+     *
      */
     ~Driver();
 
 public:
     /**
-     * @brief
-     * 
+     * @brief Activates the driver hardware. Called by DriverManager::load().
+     *
      */
     virtual void activate();
 
     /**
-     * @brief
-     * 
+     * @brief Deactivates the driver hardware. Called by DriverManager::unload().
+     *
      */
     virtual void deactivate();
 
@@ -87,8 +90,8 @@ public:
     virtual i32 reset();
 
     /**
-     * @brief
-     * 
+     * @brief Handles an IRQ interrupt. Returns the (possibly modified) stack pointer.
+     *
      */
     virtual u32 handleInterrupt(u32 esp);
 
@@ -104,8 +107,8 @@ public:
 constexpr u32 NUM_DRIVERS = 256;
 
 /**
- * @brief
- * 
+ * @brief Singleton that holds registered drivers and activates/deactivates them.
+ *
  */
 class DriverManager final {
 private:
@@ -116,41 +119,41 @@ private:
 
 private:
     /**
-     * @brief
-     * 
+     * @brief Constructs the manager with an empty driver list.
+     *
      */
     DriverManager();
 
     /**
-     * @brief
-     * 
+     * @brief Destroys the driver manager.
+     *
      */
     ~DriverManager() = default;
 
 public:
     /**
-     * @brief
-     * 
+     * @brief Returns the singleton DriverManager instance.
+     *
      */
     inline static DriverManager& getManager() {
         return instance;
     }
 
     /**
-     * @brief
-     * 
+     * @brief Adds a driver to the managed list.
+     *
      */
     void addDriver(Driver& drv);
 
     /**
-     * @brief
-     * 
+     * @brief Activates all registered drivers.
+     *
      */
     void load();
 
     /**
-     * @brief
-     * 
+     * @brief Deactivates all registered drivers.
+     *
      */
     void unload();
 
