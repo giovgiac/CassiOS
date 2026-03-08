@@ -46,4 +46,9 @@ void start(void* multiboot, u32 magic) {
 
     dm.unload();
     im.unload();
+
+    // Halt the CPU. Interrupts are already disabled, so this stops execution.
+    while (true) {
+        asm volatile("hlt");
+    }
 }
