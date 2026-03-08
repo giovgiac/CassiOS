@@ -122,9 +122,8 @@ namespace KeyboardCommand {
 }
 
 /**
- * @brief
- * 
- * 
+ * @brief Bitfield layout of the PS/2 controller command byte (port 0x64).
+ *
  */
 union KeyboardCommandByte {
     struct {
@@ -157,29 +156,29 @@ union KeyboardCommandByte {
 };
 
 /**
- * @brief
- * 
+ * @brief Interface for receiving keyboard events from the KeyboardDriver.
+ *
  */
 class KeyboardEventHandler {
 public:
     KeyboardEventHandler() = default;
 
     /**
-     * @brief
+     * @brief Called when a key is pressed. Override to handle key-down events.
      *
      */
     virtual void OnKeyDown(KeyCode key);
 
     /**
-     * @brief
-     * 
+     * @brief Called when a key is released. Override to handle key-up events.
+     *
      */
     virtual void OnKeyUp(KeyCode key);
 };
 
 /**
- * @brief
- * 
+ * @brief PS/2 keyboard driver that translates scancodes into KeyCode events.
+ *
  */
 class KeyboardDriver : public hardware::Driver {
 private:
@@ -193,26 +192,26 @@ private:
 
 public:
     /**
-     * @brief
-     * 
+     * @brief Constructs the keyboard driver with the given event handler.
+     *
      */
     KeyboardDriver(KeyboardEventHandler* han);
 
     /**
-     * @brief
-     * 
+     * @brief Destroys the keyboard driver.
+     *
      */
     ~KeyboardDriver() = default;
 
     /**
-     * @brief
-     * 
+     * @brief Enables keyboard interrupts and clears any pending scancodes.
+     *
      */
     virtual void activate() override;
 
     /**
-     * @brief
-     * 
+     * @brief Reads a scancode from the data port and dispatches it to the event handler.
+     *
      */
     virtual u32 handleInterrupt(u32 esp) override;
 

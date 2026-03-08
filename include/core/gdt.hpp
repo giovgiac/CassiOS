@@ -16,14 +16,20 @@ namespace cassio {
 namespace kernel {
 
 /**
- * @brief 
- * 
+ * @brief Manages the x86 Global Descriptor Table for memory segmentation.
+ *
+ * Contains null, code, and data segment descriptors. Loads the GDT via lgdt
+ * and reloads all segment registers on construction.
+ *
  */
 class GlobalDescriptorTable {
 public:
     /**
-     * @brief 
-     * 
+     * @brief An 8-byte packed entry describing a memory segment in the GDT.
+     *
+     * Encodes base address, limit, and access flags in the format required
+     * by the x86 processor. Handles both 16-bit and page-granularity limits.
+     *
      */
     class __attribute__((packed)) SegmentDescriptor {
     private:
@@ -36,20 +42,20 @@ public:
 
     public:
         /**
-         * @brief
-         * 
+         * @brief Constructs a segment descriptor with the given base, limit, and access flags.
+         *
          */
         SegmentDescriptor(u32 base, u32 limit, u8 flags);
 
         /**
-         * @brief
-         * 
+         * @brief Decodes and returns the 32-bit base address from this descriptor.
+         *
          */
         u32 getBase();
 
         /**
-         * @brief
-         * 
+         * @brief Decodes and returns the segment limit from this descriptor.
+         *
          */
         u32 getLimit();
 
@@ -57,26 +63,26 @@ public:
 
 public:
     /**
-     * @brief
-     * 
+     * @brief Builds the GDT with null, code, and data segments, then loads it via lgdt.
+     *
      */
     GlobalDescriptorTable();
 
     /**
-     * @brief
-     * 
+     * @brief Destroys the GDT.
+     *
      */
     ~GlobalDescriptorTable();
 
     /**
-     * @brief
-     * 
+     * @brief Returns the byte offset of the code segment descriptor within the GDT.
+     *
      */
     u16 getCodeOffset();
 
     /**
-     * @brief
-     * 
+     * @brief Returns the byte offset of the data segment descriptor within the GDT.
+     *
      */
     u16 getDataOffset();
 

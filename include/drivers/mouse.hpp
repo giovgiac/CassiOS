@@ -37,41 +37,41 @@ namespace MouseCommand {
 }
 
 /**
- * @brief
- * 
+ * @brief Interface for receiving mouse events from the MouseDriver.
+ *
  */
 class MouseEventHandler {
 public:
     MouseEventHandler() = default;
 
     /**
-     * @brief
-     * 
+     * @brief Called when the mouse driver is activated. Override to set initial state.
+     *
      */
     virtual void OnActivate();
 
     /**
-     * @brief
+     * @brief Called when a mouse button is pressed.
      *
      */
     virtual void OnMouseDown(u8 btn);
 
     /**
-     * @brief
-     * 
+     * @brief Called when a mouse button is released.
+     *
      */
     virtual void OnMouseUp(u8 btn);
 
     /**
-     * @brief
-     * 
+     * @brief Called when the mouse moves by (dx, dy) units.
+     *
      */
     virtual void OnMouseMove(i8 dx, i8 dy);
 };
 
 /**
- * @brief
- * 
+ * @brief PS/2 mouse driver that reads 3-byte packets and dispatches movement/button events.
+ *
  */
 class MouseDriver : public hardware::Driver {
 private:
@@ -83,29 +83,29 @@ private:
     u8 button;
 
     MouseEventHandler* handler;
-    
+
 public:
     /**
-     * @brief
-     * 
+     * @brief Constructs the mouse driver with the given event handler.
+     *
      */
     MouseDriver(MouseEventHandler* han);
 
     /**
-     * @brief
-     * 
+     * @brief Destroys the mouse driver.
+     *
      */
     ~MouseDriver() = default;
 
     /**
-     * @brief
-     * 
+     * @brief Enables the mouse on the PS/2 controller and starts receiving interrupts.
+     *
      */
     virtual void activate() override;
 
     /**
-     * @brief
-     * 
+     * @brief Reads a byte into the 3-byte packet buffer and dispatches events when complete.
+     *
      */
     virtual u32 handleInterrupt(u32 esp) override;
 

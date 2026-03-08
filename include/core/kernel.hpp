@@ -19,7 +19,7 @@
 #include <std/iostream.hpp>
 
 /**
- * @brief
+ * @brief Function pointer type for global constructors.
  *
  */
 typedef void (*ctor)();
@@ -28,16 +28,16 @@ extern "C" ctor start_ctors;
 extern "C" ctor end_ctors;
 
 /**
- * @brief
+ * @brief Invokes all global constructors between start_ctors and end_ctors.
  *
  */
 extern "C" void ctors();
 
 /**
- * @brief
+ * @brief Kernel entry point called by the bootloader after global constructors.
  *
- * @param multiboot
- * @param magic
+ * @param multiboot Pointer to the Multiboot information structure.
+ * @param magic Multiboot magic number used to verify a valid boot.
  *
  */
 extern "C" void start(void* multiboot, cassio::u32 magic);

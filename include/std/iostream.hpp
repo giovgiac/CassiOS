@@ -18,12 +18,12 @@ constexpr cassio::u8 TERMINAL_WIDTH     = 80;
 constexpr cassio::u8 TERMINAL_HEIGHT    = 25;
 
 /**
- * @brief
- * 
- * Each entry in the terminal is 2 bytes, with the first byte containing color information and the
- * second byte containing the character. Therefore, the function will maintain the color information
- * by ANDing with 0xFF00 and adding the new text information with an OR.
- * 
+ * @brief Output stream that writes directly to the VGA text buffer at 0xB8000.
+ *
+ * Each VGA entry is 2 bytes: the high byte holds color attributes and the low byte
+ * holds the character. Write operations preserve existing attributes by masking with
+ * 0xFF00 and ORing in the new character.
+ *
  */
 class ostream {
 public:
