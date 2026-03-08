@@ -67,6 +67,7 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
+    std::cout.clear();
     std::cout << "WELCOME TO CASSIO OPERATING SYSTEM!\n";
 
     GlobalDescriptorTable gdt;

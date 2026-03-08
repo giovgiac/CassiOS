@@ -37,6 +37,8 @@ public:
     ostream& operator<<(const cassio::u32 dword);
     ostream& operator<<(const cassio::u64 qword);
 
+    void clear();
+
     /** Deleted Methods */
     ostream(const ostream&) = delete;
     ostream(ostream&&) = delete;
