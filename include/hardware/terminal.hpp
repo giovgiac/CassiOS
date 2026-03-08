@@ -66,7 +66,7 @@ private:
     u16* buffer;
     u8 x;
     u8 y;
-    u8 color;
+    u16 color;
 
     Port<u8> crtc_index;
     Port<u8> crtc_data;
