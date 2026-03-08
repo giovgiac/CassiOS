@@ -112,6 +112,7 @@ enum class KeyCode : u8 {
     Enter                                       = 0x0D,
     Escape                                      = 0x1B,
     Space                                       = 0x20,
+    Exclamation                                 = 0x21,
     DoubleQuote                                 = 0x22,
     Hash                                        = 0x23,
     Dollar                                      = 0x24,
@@ -175,6 +176,32 @@ enum class KeyCode : u8 {
     Caret                                       = 0x5E,
     Underscore                                  = 0x5F,
     Backquote                                   = 0x60,
+    a                                           = 0x61,
+    b                                           = 0x62,
+    c                                           = 0x63,
+    d                                           = 0x64,
+    e                                           = 0x65,
+    f                                           = 0x66,
+    g                                           = 0x67,
+    h                                           = 0x68,
+    i                                           = 0x69,
+    j                                           = 0x6A,
+    k                                           = 0x6B,
+    l                                           = 0x6C,
+    m                                           = 0x6D,
+    n                                           = 0x6E,
+    o                                           = 0x6F,
+    p                                           = 0x70,
+    q                                           = 0x71,
+    r                                           = 0x72,
+    s                                           = 0x73,
+    t                                           = 0x74,
+    u                                           = 0x75,
+    v                                           = 0x76,
+    w                                           = 0x77,
+    x                                           = 0x78,
+    y                                           = 0x79,
+    z                                           = 0x7A,
     LeftCurly                                   = 0x7B,
     Pipe                                        = 0x7C,
     RightCurly                                  = 0x7D,
@@ -292,6 +319,9 @@ private:
     // Lookup table mapping scancodes (0x00-0x58) to their default KeyCode.
     // A value of 0x00 means the scancode has no KeyCode mapping.
     static const KeyCode scancode_table[0x59];
+
+    // Returns the shifted variant of a KeyCode (e.g., a -> A, One -> Exclamation).
+    static KeyCode resolveShift(KeyCode key);
 
 private:
     KeyboardCommandByte readCommandByte();

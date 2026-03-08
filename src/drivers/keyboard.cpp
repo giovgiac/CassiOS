@@ -33,41 +33,41 @@ const KeyCode KeyboardDriver::scancode_table[0x59] = {
     /* 0x0D */  KeyCode::Equals,
     /* 0x0E */  KeyCode::Backspace,
     /* 0x0F */  KeyCode::Tab,
-    /* 0x10 */  KeyCode::Q,
-    /* 0x11 */  KeyCode::W,
-    /* 0x12 */  KeyCode::E,
-    /* 0x13 */  KeyCode::R,
-    /* 0x14 */  KeyCode::T,
-    /* 0x15 */  KeyCode::Y,
-    /* 0x16 */  KeyCode::U,
-    /* 0x17 */  KeyCode::I,
-    /* 0x18 */  KeyCode::O,
-    /* 0x19 */  KeyCode::P,
+    /* 0x10 */  KeyCode::q,
+    /* 0x11 */  KeyCode::w,
+    /* 0x12 */  KeyCode::e,
+    /* 0x13 */  KeyCode::r,
+    /* 0x14 */  KeyCode::t,
+    /* 0x15 */  KeyCode::y,
+    /* 0x16 */  KeyCode::u,
+    /* 0x17 */  KeyCode::i,
+    /* 0x18 */  KeyCode::o,
+    /* 0x19 */  KeyCode::p,
     /* 0x1A */  KeyCode::LeftBracket,
     /* 0x1B */  KeyCode::RightBracket,
     /* 0x1C */  KeyCode::Enter,
     /* 0x1D */  static_cast<KeyCode>(0),    // Left Ctrl (modifier)
-    /* 0x1E */  KeyCode::A,
-    /* 0x1F */  KeyCode::S,
-    /* 0x20 */  KeyCode::D,
-    /* 0x21 */  KeyCode::F,
-    /* 0x22 */  KeyCode::G,
-    /* 0x23 */  KeyCode::H,
-    /* 0x24 */  KeyCode::J,
-    /* 0x25 */  KeyCode::K,
-    /* 0x26 */  KeyCode::L,
+    /* 0x1E */  KeyCode::a,
+    /* 0x1F */  KeyCode::s,
+    /* 0x20 */  KeyCode::d,
+    /* 0x21 */  KeyCode::f,
+    /* 0x22 */  KeyCode::g,
+    /* 0x23 */  KeyCode::h,
+    /* 0x24 */  KeyCode::j,
+    /* 0x25 */  KeyCode::k,
+    /* 0x26 */  KeyCode::l,
     /* 0x27 */  KeyCode::Semicolon,
     /* 0x28 */  KeyCode::Quote,
     /* 0x29 */  KeyCode::Backquote,
     /* 0x2A */  static_cast<KeyCode>(0),    // Left Shift (modifier)
     /* 0x2B */  KeyCode::BackSlash,
-    /* 0x2C */  KeyCode::Z,
-    /* 0x2D */  KeyCode::X,
-    /* 0x2E */  KeyCode::C,
-    /* 0x2F */  KeyCode::V,
-    /* 0x30 */  KeyCode::B,
-    /* 0x31 */  KeyCode::N,
-    /* 0x32 */  KeyCode::M,
+    /* 0x2C */  KeyCode::z,
+    /* 0x2D */  KeyCode::x,
+    /* 0x2E */  KeyCode::c,
+    /* 0x2F */  KeyCode::v,
+    /* 0x30 */  KeyCode::b,
+    /* 0x31 */  KeyCode::n,
+    /* 0x32 */  KeyCode::m,
     /* 0x33 */  KeyCode::Comma,
     /* 0x34 */  KeyCode::Period,
     /* 0x35 */  KeyCode::Slash,
@@ -107,6 +107,39 @@ const KeyCode KeyboardDriver::scancode_table[0x59] = {
     /* 0x57 */  KeyCode::F11,
     /* 0x58 */  KeyCode::F12
 };
+
+KeyCode KeyboardDriver::resolveShift(KeyCode key) {
+    // Letters: lowercase -> uppercase (subtract 0x20).
+    if (key >= KeyCode::a && key <= KeyCode::z) {
+        return static_cast<KeyCode>(static_cast<u8>(key) - 0x20);
+    }
+
+    switch (key) {
+    // Number and symbol keys.
+    case KeyCode::One:          return KeyCode::Exclamation;
+    case KeyCode::Two:          return KeyCode::At;
+    case KeyCode::Three:        return KeyCode::Hash;
+    case KeyCode::Four:         return KeyCode::Dollar;
+    case KeyCode::Five:         return KeyCode::Percent;
+    case KeyCode::Six:          return KeyCode::Caret;
+    case KeyCode::Seven:        return KeyCode::Ampersand;
+    case KeyCode::Eight:        return KeyCode::Asterisk;
+    case KeyCode::Nine:         return KeyCode::LeftParenthesis;
+    case KeyCode::Zero:         return KeyCode::RightParenthesis;
+    case KeyCode::Minus:        return KeyCode::Underscore;
+    case KeyCode::Equals:       return KeyCode::Plus;
+    case KeyCode::LeftBracket:  return KeyCode::LeftCurly;
+    case KeyCode::RightBracket: return KeyCode::RightCurly;
+    case KeyCode::BackSlash:    return KeyCode::Pipe;
+    case KeyCode::Semicolon:    return KeyCode::Colon;
+    case KeyCode::Quote:        return KeyCode::DoubleQuote;
+    case KeyCode::Backquote:    return KeyCode::Tilde;
+    case KeyCode::Comma:        return KeyCode::LessThan;
+    case KeyCode::Period:       return KeyCode::GreaterThan;
+    case KeyCode::Slash:        return KeyCode::Question;
+    default:                    return key;
+    }
+}
 
 /** KeyboardEventHandler Methods */
 
@@ -202,6 +235,14 @@ u32 KeyboardDriver::handleInterrupt(u32 esp) {
     if (scancode < 0x59) {
         KeyCode key = scancode_table[scancode];
         if (static_cast<u8>(key) != 0) {
+            bool is_letter = (key >= KeyCode::a && key <= KeyCode::z);
+
+            // Letters: shift XOR caps_lock produces uppercase.
+            // Symbols/numbers: shift alone produces the shifted variant.
+            if (is_letter ? (shift_held != caps_lock_on) : shift_held) {
+                key = resolveShift(key);
+            }
+
             handler->OnKeyDown(key);
         }
     }
