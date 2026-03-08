@@ -33,9 +33,6 @@ public:
     }
 };
 
-class TestMouseEventHandler : public MouseEventHandler {
-};
-
 void ctors() {
     for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
         (*ct)();
@@ -53,15 +50,11 @@ void start(void* multiboot, u32 magic) {
     vga.clear();
     vga.print("Welcome to the Cassio Operating System!\n");
     vga.print("Starting up drivers...\n");
-    
-    TestKeyboardEventHandler keyboard_handler;
-    TestMouseEventHandler mouse_handler;
 
+    TestKeyboardEventHandler keyboard_handler;
     KeyboardDriver keyboard (&keyboard_handler);
-    MouseDriver mouse (&mouse_handler);
 
     dm.addDriver(keyboard);
-    dm.addDriver(mouse);
 
     dm.load();
 
