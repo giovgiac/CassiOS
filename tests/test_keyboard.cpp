@@ -17,8 +17,14 @@ TEST(keyboard_command_constants) {
 }
 
 TEST(keyboard_keycode_values) {
-    ASSERT_EQ(static_cast<u32>(KeyCode::A), 0x61u);
-    ASSERT_EQ(static_cast<u32>(KeyCode::Z), 0x7Au);
+    // Lowercase letters (default).
+    ASSERT_EQ(static_cast<u32>(KeyCode::a), 0x61u);
+    ASSERT_EQ(static_cast<u32>(KeyCode::z), 0x7Au);
+
+    // Uppercase letters (shifted).
+    ASSERT_EQ(static_cast<u32>(KeyCode::A), 0x41u);
+    ASSERT_EQ(static_cast<u32>(KeyCode::Z), 0x5Au);
+
     ASSERT_EQ(static_cast<u32>(KeyCode::Zero), 0x30u);
     ASSERT_EQ(static_cast<u32>(KeyCode::Nine), 0x39u);
     ASSERT_EQ(static_cast<u32>(KeyCode::Enter), 0x0Du);
