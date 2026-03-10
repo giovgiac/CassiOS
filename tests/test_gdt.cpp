@@ -44,11 +44,10 @@ TEST(gdt_segment_registers_after_load) {
 }
 
 TEST(gdt_segment_descriptor_limit_large) {
-    // 128 MiB = 128 * 1024 * 1024 = 0x08000000
+    // 4 GiB - 1 = 0xFFFFFFFF
     // Granularity bit set: limit stored as pages, decoded with | 0xFFF
-    GlobalDescriptorTable::SegmentDescriptor desc(0, 128 * 1024 * 1024, 0x9A);
+    GlobalDescriptorTable::SegmentDescriptor desc(0, 0xFFFFFFFF, 0x9A);
     u32 limit = desc.getLimit();
-    // The limit should round-trip through the page granularity encoding
-    // 128 MiB -> (128*1024*1024 >> 12) - 1 = 0x7FFF pages -> decoded: (0x7FFF << 12) | 0xFFF = 0x07FFFFFF
-    ASSERT_EQ(limit, 0x07FFFFFFu);
+    // 0xFFFFFFFF -> (0xFFFFFFFF >> 12) = 0xFFFFF pages -> decoded: (0xFFFFF << 12) | 0xFFF = 0xFFFFFFFF
+    ASSERT_EQ(limit, 0xFFFFFFFFu);
 }

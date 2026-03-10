@@ -9,11 +9,13 @@
 
 #include "core/kernel.hpp"
 #include "core/shell.hpp"
+#include "memory/physical.hpp"
 
 using namespace cassio;
 using namespace cassio::drivers;
 using namespace cassio::kernel;
 using namespace cassio::hardware;
+using namespace cassio::memory;
 
 void ctors() {
     for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
@@ -27,6 +29,9 @@ void start(void* multiboot, u32 magic) {
     DriverManager& dm = DriverManager::getManager();
 
     im.load(gdt);
+
+    PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
+    pmm.init((MultibootInfo*)multiboot);
 
     VgaTerminal& vga = VgaTerminal::getTerminal();
     vga.clear();
