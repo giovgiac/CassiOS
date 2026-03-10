@@ -10,10 +10,10 @@ KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
 ISO = bin/cassio.iso
 
-objects = loader.o gdt.o shell.o driver.o port.o terminal.o stub.o interrupt.o keyboard.o mouse.o physical.o heap.o operators.o kernel.o
+objects = loader.o gdt.o shell.o driver.o port.o terminal.o stub.o interrupt.o keyboard.o mouse.o physical.o heap.o operators.o paging.o kernel.o
 
 # Shared objects for the test kernel (everything except kernel.o)
-shared_objects = loader.o gdt.o shell.o driver.o port.o serial.o terminal.o stub.o interrupt.o keyboard.o mouse.o physical.o heap.o operators.o
+shared_objects = loader.o gdt.o shell.o driver.o port.o serial.o terminal.o stub.o interrupt.o keyboard.o mouse.o physical.o heap.o operators.o paging.o
 
 # Test objects are discovered from tests/test_*.cpp
 test_sources = $(wildcard tests/test_*.cpp)

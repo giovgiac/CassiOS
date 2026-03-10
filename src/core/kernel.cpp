@@ -10,6 +10,7 @@
 #include "core/kernel.hpp"
 #include "core/shell.hpp"
 #include "memory/heap.hpp"
+#include "memory/paging.hpp"
 #include "memory/physical.hpp"
 
 using namespace cassio;
@@ -35,6 +36,9 @@ void start(void* multiboot, u32 magic) {
     pmm.init((MultibootInfo*)multiboot);
 
     KernelHeap::init();
+
+    PagingManager& paging = PagingManager::getManager();
+    paging.init((MultibootInfo*)multiboot);
 
     VgaTerminal& vga = VgaTerminal::getTerminal();
     vga.clear();
