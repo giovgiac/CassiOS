@@ -1,5 +1,6 @@
 #include <core/kernel.hpp>
 #include <hardware/serial.hpp>
+#include <memory/heap.hpp>
 #include <memory/physical.hpp>
 #include "test.hpp"
 
@@ -16,6 +17,8 @@ void ctors() {
 void start(void* multiboot, u32 magic) {
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
     pmm.init((MultibootInfo*)multiboot);
+
+    KernelHeap::init();
 
     Serial& com1 = COM1::getSerial();
 
