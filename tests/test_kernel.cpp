@@ -1,6 +1,7 @@
 #include <core/kernel.hpp>
 #include <hardware/serial.hpp>
 #include <memory/heap.hpp>
+#include <memory/paging.hpp>
 #include <memory/physical.hpp>
 #include "test.hpp"
 
@@ -19,6 +20,9 @@ void start(void* multiboot, u32 magic) {
     pmm.init((MultibootInfo*)multiboot);
 
     KernelHeap::init();
+
+    PagingManager& paging = PagingManager::getManager();
+    paging.init((MultibootInfo*)multiboot);
 
     Serial& com1 = COM1::getSerial();
 
