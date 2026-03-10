@@ -28,7 +28,7 @@ typedef     unsigned long long  u64;
 
 // Size Types
 typedef     int                 isize;
-typedef     unsigned int        usize;
+typedef     __SIZE_TYPE__       usize;
 
 // Guarantee Expected Sizes
 static_assert(sizeof(f32) == 4, "Unexpected size for f32");

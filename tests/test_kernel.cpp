@@ -18,8 +18,7 @@ void start(void* multiboot, u32 magic) {
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
     pmm.init((MultibootInfo*)multiboot);
 
-    HeapAllocator& heap = HeapAllocator::getAllocator();
-    heap.init();
+    KernelHeap::init();
 
     Serial& com1 = COM1::getSerial();
 

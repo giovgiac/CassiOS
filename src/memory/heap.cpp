@@ -15,27 +15,37 @@ using namespace cassio::memory;
 
 static constexpr u32 MIN_BLOCK_SIZE = sizeof(BlockHeader) + 4;
 
-HeapAllocator HeapAllocator::instance;
-
-HeapAllocator::HeapAllocator()
-    : head(nullptr) {
+// Placement new for in-place construction (normally provided by <new>).
+inline void* operator new(usize, void* ptr) {
+    return ptr;
 }
 
-void HeapAllocator::init() {
+HeapAllocator* KernelHeap::instance = nullptr;
+alignas(HeapAllocator) static u8 kernel_heap_storage[sizeof(HeapAllocator)];
+
+void KernelHeap::init() {
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
 
-    // Allocate contiguous frames for the heap.
     void* base = pmm.allocFrame();
     if (!base) {
         return;
     }
 
-    for (u32 i = 1; i < HEAP_FRAMES; i++) {
+    for (u32 i = 1; i < KERNEL_HEAP_FRAMES; i++) {
         pmm.allocFrame();
     }
 
+    instance = new (kernel_heap_storage) HeapAllocator(base, KERNEL_HEAP_SIZE);
+}
+
+HeapAllocator::HeapAllocator(void* base, u32 size)
+    : head(nullptr) {
+    if (!base || size <= sizeof(BlockHeader)) {
+        return;
+    }
+
     head = (BlockHeader*)base;
-    head->size = HEAP_SIZE - sizeof(BlockHeader);
+    head->size = size - sizeof(BlockHeader);
     head->free = true;
     head->next = nullptr;
 }

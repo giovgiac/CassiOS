@@ -9,29 +9,28 @@
 
 #include "memory/heap.hpp"
 
-using namespace cassio;
 using namespace cassio::memory;
 
-void* operator new(usize size) {
-    return HeapAllocator::getAllocator().allocate(size);
+void* operator new(cassio::usize size) {
+    return KernelHeap::getAllocator().allocate(size);
 }
 
-void* operator new[](usize size) {
-    return HeapAllocator::getAllocator().allocate(size);
+void* operator new[](cassio::usize size) {
+    return KernelHeap::getAllocator().allocate(size);
 }
 
 void operator delete(void* ptr) {
-    HeapAllocator::getAllocator().free(ptr);
+    KernelHeap::getAllocator().free(ptr);
 }
 
 void operator delete[](void* ptr) {
-    HeapAllocator::getAllocator().free(ptr);
+    KernelHeap::getAllocator().free(ptr);
 }
 
-void operator delete(void* ptr, usize) {
-    HeapAllocator::getAllocator().free(ptr);
+void operator delete(void* ptr, cassio::usize) {
+    KernelHeap::getAllocator().free(ptr);
 }
 
-void operator delete[](void* ptr, usize) {
-    HeapAllocator::getAllocator().free(ptr);
+void operator delete[](void* ptr, cassio::usize) {
+    KernelHeap::getAllocator().free(ptr);
 }

@@ -1,0 +1,10 @@
+CompileFlags:
+  Add:
+    - -m32
+    - -Iinclude/
+    - -Itests/
+    - -nostdlib
+    - -fno-builtin
+    - -fno-rtti
+    - -fno-exceptions
+    - --target=i686-pc-none-elf

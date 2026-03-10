@@ -15,9 +15,6 @@
 namespace cassio {
 namespace memory {
 
-static constexpr u32 HEAP_FRAMES = 256;
-static constexpr u32 HEAP_SIZE = HEAP_FRAMES * 4096;
-
 struct BlockHeader {
     u32 size;
     bool free;
@@ -26,11 +23,7 @@ struct BlockHeader {
 
 class HeapAllocator {
 public:
-    inline static HeapAllocator& getAllocator() {
-        return instance;
-    }
-
-    void init();
+    HeapAllocator(void* base, u32 size);
 
     void* allocate(usize size);
     void free(void* ptr);
@@ -41,11 +34,24 @@ public:
     HeapAllocator& operator=(HeapAllocator&&) = delete;
 
 private:
-    HeapAllocator();
-
-    static HeapAllocator instance;
-
     BlockHeader* head;
+};
+
+static constexpr u32 KERNEL_HEAP_FRAMES = 256;
+static constexpr u32 KERNEL_HEAP_SIZE = KERNEL_HEAP_FRAMES * 4096;
+
+class KernelHeap final {
+public:
+    inline static HeapAllocator& getAllocator() {
+        return *instance;
+    }
+
+    static void init();
+
+    KernelHeap() = delete;
+
+private:
+    static HeapAllocator* instance;
 };
 
 } // memory

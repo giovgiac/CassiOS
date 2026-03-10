@@ -5,20 +5,20 @@ using namespace cassio;
 using namespace cassio::memory;
 
 TEST(heap_allocate_returns_non_null) {
-    HeapAllocator& heap = HeapAllocator::getAllocator();
+    HeapAllocator& heap = KernelHeap::getAllocator();
     void* ptr = heap.allocate(64);
     ASSERT(ptr != nullptr);
     heap.free(ptr);
 }
 
 TEST(heap_allocate_zero_returns_null) {
-    HeapAllocator& heap = HeapAllocator::getAllocator();
+    HeapAllocator& heap = KernelHeap::getAllocator();
     void* ptr = heap.allocate(0);
     ASSERT(ptr == nullptr);
 }
 
 TEST(heap_allocate_different_addresses) {
-    HeapAllocator& heap = HeapAllocator::getAllocator();
+    HeapAllocator& heap = KernelHeap::getAllocator();
     void* a = heap.allocate(32);
     void* b = heap.allocate(32);
     ASSERT(a != nullptr);
@@ -29,7 +29,7 @@ TEST(heap_allocate_different_addresses) {
 }
 
 TEST(heap_free_and_realloc) {
-    HeapAllocator& heap = HeapAllocator::getAllocator();
+    HeapAllocator& heap = KernelHeap::getAllocator();
     void* a = heap.allocate(64);
     ASSERT(a != nullptr);
     heap.free(a);
@@ -40,7 +40,7 @@ TEST(heap_free_and_realloc) {
 }
 
 TEST(heap_coalesce_adjacent_free) {
-    HeapAllocator& heap = HeapAllocator::getAllocator();
+    HeapAllocator& heap = KernelHeap::getAllocator();
     void* a = heap.allocate(64);
     void* b = heap.allocate(64);
     ASSERT(a != nullptr);
@@ -54,7 +54,7 @@ TEST(heap_coalesce_adjacent_free) {
 }
 
 TEST(heap_split_block) {
-    HeapAllocator& heap = HeapAllocator::getAllocator();
+    HeapAllocator& heap = KernelHeap::getAllocator();
     void* a = heap.allocate(32);
     void* b = heap.allocate(32);
     ASSERT(a != nullptr);
@@ -67,7 +67,7 @@ TEST(heap_split_block) {
 }
 
 TEST(heap_large_allocation) {
-    HeapAllocator& heap = HeapAllocator::getAllocator();
+    HeapAllocator& heap = KernelHeap::getAllocator();
     void* ptr = heap.allocate(4096);
     ASSERT(ptr != nullptr);
     heap.free(ptr);

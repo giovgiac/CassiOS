@@ -34,8 +34,7 @@ void start(void* multiboot, u32 magic) {
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
     pmm.init((MultibootInfo*)multiboot);
 
-    HeapAllocator& heap = HeapAllocator::getAllocator();
-    heap.init();
+    KernelHeap::init();
 
     VgaTerminal& vga = VgaTerminal::getTerminal();
     vga.clear();
