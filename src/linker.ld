@@ -13,7 +13,8 @@ OUTPUT_ARCH(i386:i386)
 
 SECTIONS {
     . = 0x0100000;
-    .text : 
+    _kernel_start = .;
+    .text :
     {
         *(.multiboot)
         *(.text*)
@@ -30,10 +31,11 @@ SECTIONS {
         *(.data)
     }
 
-    .bss : 
+    .bss :
     {
         *(.bss)
     }
+    _kernel_end = .;
 
     /DISCARD/ : 
     {

@@ -1,9 +1,11 @@
 #include <core/kernel.hpp>
 #include <hardware/serial.hpp>
+#include <memory/physical.hpp>
 #include "test.hpp"
 
 using namespace cassio;
 using namespace cassio::hardware;
+using namespace cassio::memory;
 
 void ctors() {
     for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
@@ -12,6 +14,9 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
+    PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
+    pmm.init((MultibootInfo*)multiboot);
+
     Serial& com1 = COM1::getSerial();
 
     u32 passed = 0, failed = 0;
