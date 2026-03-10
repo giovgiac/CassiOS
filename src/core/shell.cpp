@@ -89,11 +89,11 @@ void Shell::execute() {
 
     if (streq(buffer, "help")) {
         vga.print("Available commands:\n");
-        vga.print("  shutdown  - Halt the system\n");
-        vga.print("  reboot    - Reboot the system\n");
-        vga.print("  help      - Show this message\n");
         vga.print("  clear     - Clear the screen\n");
+        vga.print("  help      - Show this message\n");
         vga.print("  mem       - Show memory statistics\n");
+        vga.print("  reboot    - Reboot the system\n");
+        vga.print("  shutdown  - Halt the system\n");
     } else if (streq(buffer, "mem")) {
         PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
         u32 free = pmm.getFreeFrames();
