@@ -8,11 +8,13 @@
  */
 
 #include "core/shell.hpp"
+#include "memory/physical.hpp"
 
 using namespace cassio;
 using namespace cassio::kernel;
 using namespace cassio::drivers;
 using namespace cassio::hardware;
+using namespace cassio::memory;
 
 Shell::Shell()
     : vga(VgaTerminal::getTerminal()),
@@ -91,6 +93,29 @@ void Shell::execute() {
         vga.print("  reboot    - Reboot the system\n");
         vga.print("  help      - Show this message\n");
         vga.print("  clear     - Clear the screen\n");
+        vga.print("  mem       - Show memory statistics\n");
+    } else if (streq(buffer, "mem")) {
+        PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
+        u32 free = pmm.getFreeFrames();
+        u32 total = pmm.getTotalFrames();
+        u32 used = pmm.getUsedFrames();
+
+        vga.print("Physical memory:\n");
+        vga.print("  Total: ");
+        vga.print_dec(total * 4);
+        vga.print(" KiB (");
+        vga.print_dec(total);
+        vga.print(" frames)\n");
+        vga.print("  Used:  ");
+        vga.print_dec(used * 4);
+        vga.print(" KiB (");
+        vga.print_dec(used);
+        vga.print(" frames)\n");
+        vga.print("  Free:  ");
+        vga.print_dec(free * 4);
+        vga.print(" KiB (");
+        vga.print_dec(free);
+        vga.print(" frames)\n");
     } else if (streq(buffer, "clear")) {
         vga.clear();
     } else {

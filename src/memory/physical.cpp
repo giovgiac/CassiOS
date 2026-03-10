@@ -49,15 +49,7 @@ void PhysicalMemoryManager::init(MultibootInfo* multibootInfo) {
         mmapAddr += entry->size + sizeof(entry->size);
     }
 
-    u32 kernelStart = (u32)&_kernel_start;
-    u32 kernelEnd = (u32)&_kernel_end;
-    markRegionUsed(kernelStart, kernelEnd - kernelStart);
-
-    u32 bitmapAddr = (u32)bitmap;
-    markRegionUsed(bitmapAddr, BITMAP_SIZE);
-
-    markRegionUsed(0, FRAME_SIZE);
-
+    // Count total usable frames (all available RAM reported by multiboot).
     totalFrames = 0;
     for (u32 i = 0; i < BITMAP_SIZE; i++) {
         for (u8 bit = 0; bit < 8; bit++) {
@@ -66,6 +58,16 @@ void PhysicalMemoryManager::init(MultibootInfo* multibootInfo) {
             }
         }
     }
+
+    // Re-mark kernel, bitmap, and null page as used.
+    u32 kernelStart = (u32)&_kernel_start;
+    u32 kernelEnd = (u32)&_kernel_end;
+    markRegionUsed(kernelStart, kernelEnd - kernelStart);
+
+    u32 bitmapAddr = (u32)bitmap;
+    markRegionUsed(bitmapAddr, BITMAP_SIZE);
+
+    markRegionUsed(0, FRAME_SIZE);
 }
 
 void PhysicalMemoryManager::markRegionUsed(u32 base, u32 length) {
@@ -137,18 +139,18 @@ u32 PhysicalMemoryManager::getTotalFrames() const {
     return totalFrames;
 }
 
-u32 PhysicalMemoryManager::getUsedFrames() const {
-    u32 used = 0;
+u32 PhysicalMemoryManager::getFreeFrames() const {
+    u32 free = 0;
     for (u32 i = 0; i < BITMAP_SIZE; i++) {
         for (u8 bit = 0; bit < 8; bit++) {
-            if (bitmap[i] & (1 << bit)) {
-                used++;
+            if (!(bitmap[i] & (1 << bit))) {
+                free++;
             }
         }
     }
-    return used;
+    return free;
 }
 
-u32 PhysicalMemoryManager::getFreeFrames() const {
-    return getTotalFrames() - getUsedFrames();
+u32 PhysicalMemoryManager::getUsedFrames() const {
+    return totalFrames - getFreeFrames();
 }

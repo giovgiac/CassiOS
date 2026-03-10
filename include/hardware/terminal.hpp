@@ -44,6 +44,12 @@ public:
     virtual void print_hex(u32 value) = 0;
 
     /**
+     * @brief Writes a 32-bit unsigned value as a decimal string.
+     *
+     */
+    virtual void print_dec(u32 value) = 0;
+
+    /**
      * @brief Clears the terminal.
      *
      */
@@ -107,6 +113,7 @@ public:
     virtual void putchar(char ch) override;
     virtual void print(const char* str) override;
     virtual void print_hex(u32 value) override;
+    virtual void print_dec(u32 value) override;
     virtual void clear() override;
 
     /** Deleted Methods */

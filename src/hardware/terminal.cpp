@@ -123,6 +123,24 @@ void VgaTerminal::print_hex(u32 value) {
     print(str);
 }
 
+void VgaTerminal::print_dec(u32 value) {
+    if (value == 0) {
+        putchar('0');
+        return;
+    }
+
+    char buf[10];
+    i32 i = 0;
+    while (value > 0) {
+        buf[i++] = '0' + (value % 10);
+        value /= 10;
+    }
+
+    while (--i >= 0) {
+        putchar(buf[i]);
+    }
+}
+
 void VgaTerminal::clear() {
     for (u8 row = 0; row < VGA_HEIGHT; ++row) {
         for (u8 col = 0; col < VGA_WIDTH; ++col) {
