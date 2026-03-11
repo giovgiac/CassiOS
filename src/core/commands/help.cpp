@@ -8,6 +8,7 @@
  */
 
 #include "core/commands/help.hpp"
+#include "common/string.hpp"
 #include "hardware/terminal.hpp"
 
 using namespace cassio;
@@ -29,9 +30,7 @@ bool HelpCommand::execute(const char** args, usize argc) {
         vga.print(cmds[i]->getName());
 
         // Pad to 12 characters for alignment.
-        usize len = 0;
-        const char* n = cmds[i]->getName();
-        while (n[len] != '\0') ++len;
+        usize len = strlen(cmds[i]->getName());
         for (usize j = len; j < 12; ++j) {
             vga.putchar(' ');
         }
