@@ -10,35 +10,40 @@ KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
 ISO = bin/cassio.iso
 
-objects = loader.o gdt.o shell.o driver.o port.o terminal.o stub.o interrupt.o keyboard.o mouse.o physical.o heap.o operators.o paging.o kernel.o
+# Discover all source files automatically.
+cpp_sources = $(shell find src/ -name '*.cpp')
+asm_sources = $(shell find src/ -name '*.s')
+objects = $(patsubst src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst src/%.s, obj/%.o, $(asm_sources))
 
-# Shared objects for the test kernel (everything except kernel.o)
-shared_objects = loader.o gdt.o shell.o driver.o port.o serial.o terminal.o stub.o interrupt.o keyboard.o mouse.o physical.o heap.o operators.o paging.o
+# Shared objects for the test kernel (everything except kernel.o).
+shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 
-# Test objects are discovered from tests/test_*.cpp
+# Test objects are discovered from tests/test_*.cpp.
 test_sources = $(wildcard tests/test_*.cpp)
-test_objects = $(notdir $(test_sources:.cpp=.o))
+test_objects = $(patsubst tests/%.cpp, obj/tests/%.o, $(test_sources))
 
-%.o: src/*/%.cpp
-	mkdir -p obj
-	g++ $(CXXFLAGS) -o obj/$@ -c $< -Iinclude/
+# Compile C++ source files.
+obj/%.o: src/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $< -Iinclude/
 
-%.o: src/*/%.s
-	mkdir -p obj
-	as $(ASMFLAGS) -o obj/$@ $<
+# Compile assembly source files.
+obj/%.o: src/%.s
+	@mkdir -p $(dir $@)
+	as $(ASMFLAGS) -o $@ $<
 
 kernel: src/linker.ld $(objects)
-	mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(addprefix obj/, $(objects))
+	@mkdir -p bin
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects)
 
-# Compile test files from the tests/ directory
-obj/test_%.o: tests/test_%.cpp
-	mkdir -p obj
+# Compile test files from the tests/ directory.
+obj/tests/%.o: tests/%.cpp
+	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $< -Iinclude/ -Itests/
 
-$(TEST_KERNEL): src/linker.ld $(shared_objects) $(addprefix obj/, $(test_objects))
-	mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(addprefix obj/, $(shared_objects)) $(addprefix obj/, $(test_objects))
+$(TEST_KERNEL): src/linker.ld $(shared_objects) $(test_objects)
+	@mkdir -p bin
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects)
 
 test: $(TEST_KERNEL)
 	@qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \

@@ -8,13 +8,12 @@
  */
 
 #include "core/shell.hpp"
-#include "memory/physical.hpp"
+#include "core/commands/command.hpp"
 
 using namespace cassio;
 using namespace cassio::kernel;
 using namespace cassio::drivers;
 using namespace cassio::hardware;
-using namespace cassio::memory;
 
 Shell::Shell()
     : vga(VgaTerminal::getTerminal()),
@@ -31,15 +30,6 @@ void Shell::run() {
     while (running) {
         asm volatile("hlt");
     }
-}
-
-bool Shell::streq(const char* a, const char* b) {
-    u32 i = 0;
-    while (a[i] != '\0' && b[i] != '\0') {
-        if (a[i] != b[i]) return false;
-        ++i;
-    }
-    return a[i] == b[i];
 }
 
 void Shell::printPrompt() {
@@ -74,59 +64,38 @@ void Shell::execute() {
         return;
     }
 
-    if (streq(buffer, "shutdown")) {
-        vga.print("Shutting down...\n");
-        running = false;
-        return;
+    // Split buffer into arguments by replacing spaces with null bytes.
+    const char* args[SHELL_MAX_ARGS];
+    usize argc = 0;
+    bool in_word = false;
+
+    for (u8 i = 0; i <= length; ++i) {
+        if (buffer[i] == ' ' || buffer[i] == '\0') {
+            buffer[i] = '\0';
+            in_word = false;
+        } else if (!in_word) {
+            if (argc < SHELL_MAX_ARGS) {
+                args[argc++] = &buffer[i];
+            }
+            in_word = true;
+        }
     }
 
-    if (streq(buffer, "reboot")) {
-        vga.print("Rebooting...\n");
-        Port<u8> cmd(PortType::KeyboardControllerCommand);
-        cmd.write(0xFE);
-        return;
-    }
-
-    if (streq(buffer, "help")) {
-        vga.print("Available commands:\n");
-        vga.print("  clear     - Clear the screen\n");
-        vga.print("  help      - Show this message\n");
-        vga.print("  mem       - Show memory statistics\n");
-        vga.print("  reboot    - Reboot the system\n");
-        vga.print("  shutdown  - Halt the system\n");
-    } else if (streq(buffer, "mem")) {
-        PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
-        u32 free = pmm.getFreeFrames();
-        u32 total = pmm.getTotalFrames();
-        u32 used = pmm.getUsedFrames();
-
-        vga.print("Physical memory:\n");
-        vga.print("  Total: ");
-        vga.print_dec(total * 4);
-        vga.print(" KiB (");
-        vga.print_dec(total);
-        vga.print(" frames)\n");
-        vga.print("  Used:  ");
-        vga.print_dec(used * 4);
-        vga.print(" KiB (");
-        vga.print_dec(used);
-        vga.print(" frames)\n");
-        vga.print("  Free:  ");
-        vga.print_dec(free * 4);
-        vga.print(" KiB (");
-        vga.print_dec(free);
-        vga.print(" frames)\n");
-    } else if (streq(buffer, "clear")) {
-        vga.clear();
+    Command* cmd = Command::find(args[0]);
+    if (cmd) {
+        running = cmd->execute(args, argc);
     } else {
         vga.print("Unknown command: ");
-        vga.print(buffer);
+        vga.print(args[0]);
         vga.putchar('\n');
     }
 
     length = 0;
     cursor = 0;
-    printPrompt();
+
+    if (running) {
+        printPrompt();
+    }
 }
 
 void Shell::OnKeyDown(KeyCode key) {
