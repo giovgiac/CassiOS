@@ -35,6 +35,7 @@ Never merge a pull request without explicit user approval. After opening a PR, s
 5. Hardware-bound classes use singletons (private constructor, static instance, public getter). General-purpose classes (like `Serial`) take configuration via constructor and are wrapped by singletons for specific instances (like `COM1`).
 6. I/O port addresses go in the `PortType` enum in `port.hpp` -- no magic numbers. Do not add raw `u16` constructors to `Port`.
 7. Functions called from assembly (`ctors`, `start`) must be declared `extern "C"`.
+8. Tests are part of the implementation, not separate work items. Everything testable must be tested within the same issue. Only skip tests when something genuinely can't be tested or the effort is disproportionate -- but make every effort not to skip. Never create separate issues for testing.
 
 ## Working Documentation
 

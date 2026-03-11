@@ -40,7 +40,7 @@ Example: `feature/42-add-main-menu`, `bugfix/15-fix-keyboard-driver`
 
 ## Issue Lifecycle
 
-1. Create an issue in the repo with appropriate labels
+1. Create an issue in the repo with appropriate labels. Everything testable must be tested within the same issue -- only skip when something genuinely can't be tested or the effort is disproportionate. Never create separate issues for testing.
 2. Create branch `<type>/<issue-number>-<description>` from `main`
 3. Work on the branch, commit freely
 4. Push the branch and open a PR with title `#<issue-number>: Description`, linking the issue with `Closes #<issue-number>`

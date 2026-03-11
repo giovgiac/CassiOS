@@ -9,9 +9,9 @@ A hierarchical in-memory filesystem with a refactored command architecture. File
 The filesystem is a tree of nodes. Each node is either a file or a directory, distinguished by a type field.
 
 ```cpp
-enum FileNodeType { FILE, DIRECTORY };
+enum class FileNodeType : u8 { File, Directory };
 
-class FileNode {
+struct FileNode {
     char name[128];
     FileNodeType type;
     FileNode* parent;       // null for root
@@ -128,4 +128,16 @@ include/filesystem/
 
 src/filesystem/
     filesystem.cpp
+
+tests/
+    test_commands.cpp
+    test_filesystem.cpp
 ```
+
+## Testing
+
+Tests are implemented alongside the code they verify, using the existing in-kernel test framework.
+
+- **Command registry tests** (`test_commands.cpp`): command registration, lookup by name, argument parsing, unknown command handling.
+- **Filesystem tests** (`test_filesystem.cpp`): path resolution (absolute, relative, `.`, `..`), file and directory creation/removal, read/write, move, copy, edge cases (non-empty directory removal, duplicate names, invalid paths).
+- **Command tests** (`test_fs_commands.cpp`): test each filesystem command (ls, cd, pwd, mkdir, rmdir, touch, rm, cat, write, mv, cp) by exercising them against the filesystem and verifying the resulting state.
