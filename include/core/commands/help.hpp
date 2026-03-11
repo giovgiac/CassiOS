@@ -18,7 +18,8 @@ namespace kernel {
 class HelpCommand : public Command {
 public:
     HelpCommand();
-    bool execute(const char** args, usize argc) override;
+    bool execute(const char** args, usize argc,
+                 filesystem::FileNode*& cwd) override;
 };
 
 } // kernel

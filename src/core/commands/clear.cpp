@@ -18,7 +18,8 @@ static ClearCommand instance;
 
 ClearCommand::ClearCommand() : Command("clear", "Clear the screen") {}
 
-bool ClearCommand::execute(const char** args, usize argc) {
+bool ClearCommand::execute(const char** args, usize argc,
+                           filesystem::FileNode*& cwd) {
     VgaTerminal::getTerminal().clear();
     return true;
 }

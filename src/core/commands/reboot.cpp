@@ -19,7 +19,8 @@ static RebootCommand instance;
 
 RebootCommand::RebootCommand() : Command("reboot", "Reboot the system") {}
 
-bool RebootCommand::execute(const char** args, usize argc) {
+bool RebootCommand::execute(const char** args, usize argc,
+                            filesystem::FileNode*& cwd) {
     VgaTerminal::getTerminal().print("Rebooting...\n");
     Port<u8> cmd(PortType::KeyboardControllerCommand);
     cmd.write(0xFE);

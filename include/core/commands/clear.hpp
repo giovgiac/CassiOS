@@ -18,7 +18,8 @@ namespace kernel {
 class ClearCommand : public Command {
 public:
     ClearCommand();
-    bool execute(const char** args, usize argc) override;
+    bool execute(const char** args, usize argc,
+                 filesystem::FileNode*& cwd) override;
 };
 
 } // kernel

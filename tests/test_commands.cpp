@@ -9,8 +9,8 @@ TEST(command_registry_has_commands) {
 }
 
 TEST(command_registry_count_matches_expected) {
-    // Five built-in commands: help, clear, mem, reboot, shutdown.
-    ASSERT_EQ(Command::getCount(), 5);
+    // Eight built-in commands: help, clear, mem, reboot, shutdown, ls, cd, pwd.
+    ASSERT_EQ(Command::getCount(), 8);
 }
 
 TEST(command_find_existing) {
@@ -29,6 +29,9 @@ TEST(command_find_each_builtin) {
     ASSERT(Command::find("mem") != nullptr);
     ASSERT(Command::find("reboot") != nullptr);
     ASSERT(Command::find("shutdown") != nullptr);
+    ASSERT(Command::find("ls") != nullptr);
+    ASSERT(Command::find("cd") != nullptr);
+    ASSERT(Command::find("pwd") != nullptr);
 }
 
 TEST(command_name_matches) {

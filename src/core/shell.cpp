@@ -17,6 +17,7 @@ using namespace cassio::hardware;
 
 Shell::Shell()
     : vga(VgaTerminal::getTerminal()),
+      cwd(filesystem::Filesystem::getFilesystem().getRoot()),
       length(0),
       cursor(0),
       prompt_x(0),
@@ -83,7 +84,7 @@ void Shell::execute() {
 
     Command* cmd = Command::find(args[0]);
     if (cmd) {
-        running = cmd->execute(args, argc);
+        running = cmd->execute(args, argc, cwd);
     } else {
         vga.print("Unknown command: ");
         vga.print(args[0]);

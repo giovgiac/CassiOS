@@ -1,5 +1,5 @@
 /**
- * mem.hpp
+ * cd.hpp
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,17 +7,17 @@
  *
  */
 
-#ifndef CORE_COMMANDS_MEM_HPP_
-#define CORE_COMMANDS_MEM_HPP_
+#ifndef CORE_COMMANDS_CD_HPP_
+#define CORE_COMMANDS_CD_HPP_
 
 #include <core/commands/command.hpp>
 
 namespace cassio {
 namespace kernel {
 
-class MemCommand : public Command {
+class CdCommand : public Command {
 public:
-    MemCommand();
+    CdCommand();
     bool execute(const char** args, usize argc,
                  filesystem::FileNode*& cwd) override;
 };
@@ -25,4 +25,4 @@ public:
 } // kernel
 } // cassio
 
-#endif // CORE_COMMANDS_MEM_HPP_
+#endif // CORE_COMMANDS_CD_HPP_

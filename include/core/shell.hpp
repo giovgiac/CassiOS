@@ -12,6 +12,7 @@
 
 #include <common/types.hpp>
 #include <drivers/keyboard.hpp>
+#include <filesystem/filesystem.hpp>
 #include <hardware/terminal.hpp>
 
 namespace cassio {
@@ -31,6 +32,7 @@ constexpr u8 SHELL_MAX_ARGS = 16;
 class Shell : public drivers::KeyboardEventHandler {
 private:
     hardware::VgaTerminal& vga;
+    filesystem::FileNode* cwd;
 
     char buffer[SHELL_MAX_INPUT];
     u8 length;

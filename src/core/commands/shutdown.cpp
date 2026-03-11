@@ -18,7 +18,8 @@ static ShutdownCommand instance;
 
 ShutdownCommand::ShutdownCommand() : Command("shutdown", "Halt the system") {}
 
-bool ShutdownCommand::execute(const char** args, usize argc) {
+bool ShutdownCommand::execute(const char** args, usize argc,
+                              filesystem::FileNode*& cwd) {
     VgaTerminal::getTerminal().print("Shutting down...\n");
     return false;
 }
