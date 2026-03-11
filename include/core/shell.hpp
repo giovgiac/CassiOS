@@ -18,12 +18,14 @@ namespace cassio {
 namespace kernel {
 
 constexpr u8 SHELL_MAX_INPUT = 78;
+constexpr u8 SHELL_MAX_ARGS = 16;
 
 /**
- * @brief Simple command shell that provides a `$ ` prompt and built-in commands.
+ * @brief Simple command shell that provides a `$ ` prompt and dispatches
+ * commands via the Command registry.
  *
  * Handles line editing with cursor movement (left/right arrows, backspace)
- * and dispatches entered commands: shutdown, help, clear.
+ * and splits input into arguments for command execution.
  *
  */
 class Shell : public drivers::KeyboardEventHandler {
@@ -40,8 +42,6 @@ private:
     void printPrompt();
     void redrawLine();
     void execute();
-
-    bool streq(const char* a, const char* b);
 
 public:
     Shell();
