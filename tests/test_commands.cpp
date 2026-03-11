@@ -9,8 +9,8 @@ TEST(command_registry_has_commands) {
 }
 
 TEST(command_registry_count_matches_expected) {
-    // Eight built-in commands: help, clear, mem, reboot, shutdown, ls, cd, pwd.
-    ASSERT_EQ(Command::getCount(), 8);
+    // Twelve built-in commands.
+    ASSERT_EQ(Command::getCount(), 12);
 }
 
 TEST(command_find_existing) {
@@ -32,6 +32,10 @@ TEST(command_find_each_builtin) {
     ASSERT(Command::find("ls") != nullptr);
     ASSERT(Command::find("cd") != nullptr);
     ASSERT(Command::find("pwd") != nullptr);
+    ASSERT(Command::find("mkdir") != nullptr);
+    ASSERT(Command::find("rmdir") != nullptr);
+    ASSERT(Command::find("touch") != nullptr);
+    ASSERT(Command::find("rm") != nullptr);
 }
 
 TEST(command_name_matches) {
