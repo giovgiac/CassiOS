@@ -51,8 +51,6 @@ private:
 
     Filesystem();
 
-    bool streq(const char* a, const char* b);
-    void strcpy(char* dst, const char* src, usize max);
     FileNode* findChild(FileNode* dir, const char* name);
     void addChild(FileNode* dir, FileNode* child);
     void removeChild(FileNode* dir, FileNode* child);

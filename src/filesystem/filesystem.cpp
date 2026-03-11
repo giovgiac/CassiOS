@@ -8,6 +8,7 @@
  */
 
 #include "filesystem/filesystem.hpp"
+#include "common/string.hpp"
 
 using namespace cassio;
 using namespace cassio::filesystem;
@@ -31,24 +32,6 @@ Filesystem& Filesystem::getFilesystem() {
 
 FileNode* Filesystem::getRoot() {
     return &root;
-}
-
-bool Filesystem::streq(const char* a, const char* b) {
-    u32 i = 0;
-    while (a[i] != '\0' && b[i] != '\0') {
-        if (a[i] != b[i]) return false;
-        ++i;
-    }
-    return a[i] == b[i];
-}
-
-void Filesystem::strcpy(char* dst, const char* src, usize max) {
-    usize i = 0;
-    while (i < max - 1 && src[i] != '\0') {
-        dst[i] = src[i];
-        ++i;
-    }
-    dst[i] = '\0';
 }
 
 FileNode* Filesystem::findChild(FileNode* dir, const char* name) {
@@ -190,13 +173,7 @@ static FileNode* resolveParent(Filesystem& fs, const char* path,
         return nullptr;
     }
 
-    // Copy the name out.
-    usize i = 0;
-    while (i < max - 1 && name[i] != '\0') {
-        name_out[i] = name[i];
-        ++i;
-    }
-    name_out[i] = '\0';
+    cassio::strcpy(name_out, name, max);
 
     return parent;
 }

@@ -8,6 +8,7 @@
  */
 
 #include "core/commands/command.hpp"
+#include "common/string.hpp"
 
 using namespace cassio;
 using namespace cassio::kernel;
@@ -32,15 +33,7 @@ const char* Command::getDescription() const {
 
 Command* Command::find(const char* name) {
     for (u8 i = 0; i < count; ++i) {
-        const char* a = name;
-        const char* b = registry[i]->name;
-        bool match = true;
-        u32 j = 0;
-        while (a[j] != '\0' && b[j] != '\0') {
-            if (a[j] != b[j]) { match = false; break; }
-            ++j;
-        }
-        if (match && a[j] == b[j]) {
+        if (streq(name, registry[i]->name)) {
             return registry[i];
         }
     }
