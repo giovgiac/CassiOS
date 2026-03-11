@@ -20,7 +20,8 @@ static MemCommand instance;
 
 MemCommand::MemCommand() : Command("mem", "Show memory statistics") {}
 
-bool MemCommand::execute(const char** args, usize argc) {
+bool MemCommand::execute(const char** args, usize argc,
+                         filesystem::FileNode*& cwd) {
     VgaTerminal& vga = VgaTerminal::getTerminal();
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
     u32 free = pmm.getFreeFrames();

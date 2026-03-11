@@ -18,7 +18,8 @@ namespace kernel {
 class ShutdownCommand : public Command {
 public:
     ShutdownCommand();
-    bool execute(const char** args, usize argc) override;
+    bool execute(const char** args, usize argc,
+                 filesystem::FileNode*& cwd) override;
 };
 
 } // kernel

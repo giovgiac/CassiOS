@@ -13,6 +13,10 @@
 #include <common/types.hpp>
 
 namespace cassio {
+namespace filesystem {
+struct FileNode;
+} // filesystem
+
 namespace kernel {
 
 constexpr u8 MAX_COMMANDS = 32;
@@ -46,7 +50,8 @@ public:
      * @return true if the shell should continue, false to exit.
      *
      */
-    virtual bool execute(const char** args, usize argc) = 0;
+    virtual bool execute(const char** args, usize argc,
+                         filesystem::FileNode*& cwd) = 0;
 
     static Command* find(const char* name);
     static Command** getRegistry();

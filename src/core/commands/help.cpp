@@ -19,7 +19,8 @@ static HelpCommand instance;
 
 HelpCommand::HelpCommand() : Command("help", "Show available commands") {}
 
-bool HelpCommand::execute(const char** args, usize argc) {
+bool HelpCommand::execute(const char** args, usize argc,
+                          filesystem::FileNode*& cwd) {
     VgaTerminal& vga = VgaTerminal::getTerminal();
     vga.print("Available commands:\n");
 
