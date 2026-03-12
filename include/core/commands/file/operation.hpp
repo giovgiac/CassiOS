@@ -1,5 +1,5 @@
 /**
- * mv.hpp
+ * operation.hpp
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef CORE_COMMANDS_MV_HPP_
-#define CORE_COMMANDS_MV_HPP_
+#ifndef CORE_COMMANDS_FILE_OPERATION_HPP_
+#define CORE_COMMANDS_FILE_OPERATION_HPP_
 
 #include <core/commands/command.hpp>
 
@@ -22,7 +22,14 @@ public:
                  filesystem::FileNode*& cwd) override;
 };
 
+class CpCommand : public Command {
+public:
+    CpCommand();
+    bool execute(const char** args, usize argc,
+                 filesystem::FileNode*& cwd) override;
+};
+
 } // kernel
 } // cassio
 
-#endif // CORE_COMMANDS_MV_HPP_
+#endif // CORE_COMMANDS_FILE_OPERATION_HPP_
