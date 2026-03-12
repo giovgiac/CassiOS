@@ -1,5 +1,5 @@
 /**
- * filemanagement.hpp
+ * management.hpp
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef CORE_COMMANDS_FILEMANAGEMENT_HPP_
-#define CORE_COMMANDS_FILEMANAGEMENT_HPP_
+#ifndef CORE_COMMANDS_FILE_MANAGEMENT_HPP_
+#define CORE_COMMANDS_FILE_MANAGEMENT_HPP_
 
 #include <core/commands/command.hpp>
 
@@ -46,4 +46,4 @@ public:
 } // kernel
 } // cassio
 
-#endif // CORE_COMMANDS_FILEMANAGEMENT_HPP_
+#endif // CORE_COMMANDS_FILE_MANAGEMENT_HPP_

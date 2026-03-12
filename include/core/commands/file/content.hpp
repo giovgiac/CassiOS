@@ -1,5 +1,5 @@
 /**
- * fileoperation.hpp
+ * content.hpp
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,24 +7,31 @@
  *
  */
 
-#ifndef CORE_COMMANDS_FILEOPERATION_HPP_
-#define CORE_COMMANDS_FILEOPERATION_HPP_
+#ifndef CORE_COMMANDS_FILE_CONTENT_HPP_
+#define CORE_COMMANDS_FILE_CONTENT_HPP_
 
 #include <core/commands/command.hpp>
 
 namespace cassio {
 namespace kernel {
 
-class MvCommand : public Command {
+class CatCommand : public Command {
 public:
-    MvCommand();
+    CatCommand();
     bool execute(const char** args, usize argc,
                  filesystem::FileNode*& cwd) override;
 };
 
-class CpCommand : public Command {
+class WriteCommand : public Command {
 public:
-    CpCommand();
+    WriteCommand();
+    bool execute(const char** args, usize argc,
+                 filesystem::FileNode*& cwd) override;
+};
+
+class EchoCommand : public Command {
+public:
+    EchoCommand();
     bool execute(const char** args, usize argc,
                  filesystem::FileNode*& cwd) override;
 };
@@ -32,4 +39,4 @@ public:
 } // kernel
 } // cassio
 
-#endif // CORE_COMMANDS_FILEOPERATION_HPP_
+#endif // CORE_COMMANDS_FILE_CONTENT_HPP_

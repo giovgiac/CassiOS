@@ -1,5 +1,5 @@
 /**
- * filemanagement.cpp
+ * management.cpp
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,7 +7,7 @@
  *
  */
 
-#include "core/commands/filemanagement.hpp"
+#include "core/commands/file/management.hpp"
 #include "filesystem/filesystem.hpp"
 #include "hardware/terminal.hpp"
 
