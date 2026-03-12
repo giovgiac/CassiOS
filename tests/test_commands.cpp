@@ -9,8 +9,8 @@ TEST(command_registry_has_commands) {
 }
 
 TEST(command_registry_count_matches_expected) {
-    // Fifteen built-in commands.
-    ASSERT_EQ(Command::getCount(), 15);
+    // Seventeen built-in commands.
+    ASSERT_EQ(Command::getCount(), 17);
 }
 
 TEST(command_find_existing) {
@@ -39,6 +39,8 @@ TEST(command_find_each_builtin) {
     ASSERT(Command::find("cat") != nullptr);
     ASSERT(Command::find("write") != nullptr);
     ASSERT(Command::find("echo") != nullptr);
+    ASSERT(Command::find("mv") != nullptr);
+    ASSERT(Command::find("cp") != nullptr);
 }
 
 TEST(command_name_matches) {
