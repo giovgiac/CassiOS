@@ -82,6 +82,7 @@ private:
     VgaTerminal();
 
     void updateCursor();
+    void scrollUp();
 
 public:
     ~VgaTerminal() = default;

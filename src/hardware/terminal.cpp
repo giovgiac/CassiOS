@@ -95,7 +95,7 @@ void VgaTerminal::putchar(char ch) {
     }
 
     if (y >= VGA_HEIGHT) {
-        clear();
+        scrollUp();
     }
 
     updateCursor();
@@ -139,6 +139,20 @@ void VgaTerminal::print_dec(u32 value) {
     while (--i >= 0) {
         putchar(buf[i]);
     }
+}
+
+void VgaTerminal::scrollUp() {
+    for (u8 row = 1; row < VGA_HEIGHT; ++row) {
+        for (u8 col = 0; col < VGA_WIDTH; ++col) {
+            buffer[VGA_WIDTH * (row - 1) + col] = buffer[VGA_WIDTH * row + col];
+        }
+    }
+
+    for (u8 col = 0; col < VGA_WIDTH; ++col) {
+        buffer[VGA_WIDTH * (VGA_HEIGHT - 1) + col] = color | ' ';
+    }
+
+    y = VGA_HEIGHT - 1;
 }
 
 void VgaTerminal::clear() {
