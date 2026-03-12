@@ -28,7 +28,7 @@ bool CatCommand::execute(const char** args, usize argc,
     VgaTerminal& vga = VgaTerminal::getTerminal();
 
     if (argc < 2) {
-        vga.print("cat: missing operand\n");
+        vga.print("cat: usage: cat <filename>\n");
         return true;
     }
 

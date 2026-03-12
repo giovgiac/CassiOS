@@ -27,7 +27,7 @@ bool MkdirCommand::execute(const char** args, usize argc,
     VgaTerminal& vga = VgaTerminal::getTerminal();
 
     if (argc < 2) {
-        vga.print("mkdir: missing operand\n");
+        vga.print("mkdir: usage: mkdir <path>\n");
         return true;
     }
 
@@ -53,7 +53,7 @@ bool RmdirCommand::execute(const char** args, usize argc,
     VgaTerminal& vga = VgaTerminal::getTerminal();
 
     if (argc < 2) {
-        vga.print("rmdir: missing operand\n");
+        vga.print("rmdir: usage: rmdir <path>\n");
         return true;
     }
 
@@ -93,7 +93,7 @@ bool TouchCommand::execute(const char** args, usize argc,
     VgaTerminal& vga = VgaTerminal::getTerminal();
 
     if (argc < 2) {
-        vga.print("touch: missing operand\n");
+        vga.print("touch: usage: touch <path>\n");
         return true;
     }
 
@@ -119,7 +119,7 @@ bool RmCommand::execute(const char** args, usize argc,
     VgaTerminal& vga = VgaTerminal::getTerminal();
 
     if (argc < 2) {
-        vga.print("rm: missing operand\n");
+        vga.print("rm: usage: rm <path>\n");
         return true;
     }
 
