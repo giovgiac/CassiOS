@@ -18,8 +18,8 @@ objects = $(patsubst src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst src/%.s, obj
 # Shared objects for the test kernel (everything except kernel.o).
 shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 
-# Test objects are discovered from tests/test_*.cpp.
-test_sources = $(wildcard tests/test_*.cpp)
+# Test objects are discovered from tests/**/test_*.cpp.
+test_sources = $(shell find tests/ -name 'test_*.cpp')
 test_objects = $(patsubst tests/%.cpp, obj/tests/%.o, $(test_sources))
 
 # Compile C++ source files.
