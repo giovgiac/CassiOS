@@ -55,7 +55,7 @@ test: $(TEST_KERNEL) $(DISK)
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -drive file=$(DISK),format=raw,if=ide \
-	    -no-reboot -net none; \
+	    -no-reboot; \
 	EXIT_CODE=$$?; \
 	cat /tmp/cassio-test-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
@@ -78,7 +78,7 @@ iso: kernel
 
 run: kernel $(DISK)
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -drive file=$(DISK),format=raw,if=ide -net none
+	    -drive file=$(DISK),format=raw,if=ide
 
 .PHONY: kernel iso clean run test
 clean:
