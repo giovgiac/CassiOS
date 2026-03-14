@@ -22,8 +22,10 @@ namespace hardware {
  *
  */
 enum class PortType : u16 {
-    MasterProgrammableInterfaceControllerCommand        = 0x20,
-    MasterProgrammableInterfaceControllerData           = 0x21,
+    MasterProgrammableInterfaceControllerCommand         = 0x20,
+    MasterProgrammableInterfaceControllerData            = 0x21,
+    PitChannel0Data                                      = 0x40,
+    PitCommand                                           = 0x43,
     KeyboardControllerData                              = 0x60,
     KeyboardControllerCommand                           = 0x64,
     SlaveProgrammableInterfaceControllerCommand         = 0xA0,

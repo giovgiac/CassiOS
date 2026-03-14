@@ -43,6 +43,13 @@ public:
                  filesystem::FileNode*& cwd) override;
 };
 
+class UptimeCommand : public Command {
+public:
+    UptimeCommand();
+    bool execute(const char** args, usize argc,
+                 filesystem::FileNode*& cwd) override;
+};
+
 class ShutdownCommand : public Command {
 public:
     ShutdownCommand();
