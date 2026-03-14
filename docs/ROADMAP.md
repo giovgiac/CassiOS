@@ -2,7 +2,7 @@
 
 ## Current State
 
-CassiOS boots via GRUB (multiboot), runs in 32-bit protected mode with flat segmentation (monolithic kernel, all ring 0). Has a GDT, IDT, interrupt-driven PS/2 keyboard and mouse drivers, a VGA text-mode terminal, a shell with 17 commands, serial output (COM1), an in-kernel test framework, physical/heap memory management with paging, and an in-memory filesystem.
+CassiOS boots via GRUB (multiboot), runs in 32-bit protected mode with flat segmentation (monolithic kernel, all ring 0). Has a GDT, IDT, interrupt-driven PS/2 keyboard and mouse drivers, a VGA text-mode terminal, a shell with 21 commands, serial output (COM1), an in-kernel test framework, physical/heap memory management with paging, an in-memory filesystem, and an ATA PIO block device driver for IDE disk access.
 
 ## Phase 1: Memory Management
 
@@ -30,7 +30,7 @@ Program the Programmable Interval Timer (channel 0, IRQ 0) for periodic ticks. P
 
 ## Phase 4: ATA PIO Driver
 
-**Planning**: Issues only
+**Status**: Complete
 
 ATA PIO block device driver — port I/O to read/write 512-byte sectors from an IDE disk. Test with raw sector read/write shell commands. No filesystem layer yet — just the block device interface.
 

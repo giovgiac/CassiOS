@@ -9,6 +9,7 @@ LDFLAGS = -melf_i386
 KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
 ISO = bin/cassio.iso
+DISK = bin/disk.img
 
 # Discover all source files automatically.
 cpp_sources = $(shell find src/ -name '*.cpp')
@@ -45,10 +46,15 @@ $(TEST_KERNEL): src/linker.ld $(shared_objects) $(test_objects)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects)
 
-test: $(TEST_KERNEL)
+$(DISK):
+	@mkdir -p bin
+	qemu-img create -f raw $(DISK) 1M
+
+test: $(TEST_KERNEL) $(DISK)
 	@qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
+	    -drive file=$(DISK),format=raw,if=ide \
 	    -no-reboot -net none; \
 	EXIT_CODE=$$?; \
 	cat /tmp/cassio-test-results.txt; \
@@ -70,8 +76,9 @@ iso: kernel
 	grub-mkrescue --output=$(ISO) iso
 	rm -rf iso
 
-run: kernel
-	qemu-system-i386 -machine pc -kernel $(KERNEL) -net none
+run: kernel $(DISK)
+	qemu-system-i386 -machine pc -kernel $(KERNEL) \
+	    -drive file=$(DISK),format=raw,if=ide -net none
 
 .PHONY: kernel iso clean run test
 clean:

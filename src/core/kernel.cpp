@@ -9,6 +9,7 @@
 
 #include "core/kernel.hpp"
 #include "core/shell.hpp"
+#include "drivers/ata.hpp"
 #include "drivers/keyboard.hpp"
 #include "drivers/pit.hpp"
 #include "memory/heap.hpp"
@@ -52,9 +53,11 @@ void start(void* multiboot, u32 magic) {
     keyboard.setHandler(&shell);
 
     PitTimer& pit = PitTimer::getTimer();
+    AtaPioDriver& ata = AtaPioDriver::getDriver();
 
     dm.addDriver(pit);
     dm.addDriver(keyboard);
+    dm.addDriver(ata);
 
     dm.load();
 
