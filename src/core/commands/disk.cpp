@@ -104,16 +104,16 @@ bool AtaReadCommand::execute(const char** args, usize argc,
         }
         vga.print(":\n");
 
-        // Hex dump: 8 bytes per line with ASCII sidebar.
+        // Hex dump: 16 bytes per line with ASCII sidebar (79 cols).
         // All-zero rows are skipped; remaining duplicates collapsed with "*".
         const char* hex = "0123456789ABCDEF";
         bool skipping = false;
-        for (u32 row = 0; row < 64; ++row) {
-            u32 offset = row * 8;
+        for (u32 row = 0; row < 32; ++row) {
+            u32 offset = row * 16;
 
             // Skip all-zero rows.
             bool all_zero = true;
-            for (u32 col = 0; col < 8; ++col) {
+            for (u32 col = 0; col < 16; ++col) {
                 if (buffer[offset + col] != 0) {
                     all_zero = false;
                     break;
@@ -130,8 +130,8 @@ bool AtaReadCommand::execute(const char** args, usize argc,
             // Collapse identical consecutive non-zero rows.
             if (row > 0) {
                 bool same = true;
-                for (u32 col = 0; col < 8; ++col) {
-                    if (buffer[offset + col] != buffer[offset - 8 + col]) {
+                for (u32 col = 0; col < 16; ++col) {
+                    if (buffer[offset + col] != buffer[offset - 16 + col]) {
                         same = false;
                         break;
                     }
@@ -148,14 +148,14 @@ bool AtaReadCommand::execute(const char** args, usize argc,
 
             vga.print_hex(offset);
             vga.print("  ");
-            for (u32 col = 0; col < 8; ++col) {
+            for (u32 col = 0; col < 16; ++col) {
                 u8 b = buffer[offset + col];
                 vga.putchar(hex[(b >> 4) & 0xF]);
                 vga.putchar(hex[b & 0xF]);
                 vga.putchar(' ');
             }
-            vga.print(" |");
-            for (u32 col = 0; col < 8; ++col) {
+            vga.putchar('|');
+            for (u32 col = 0; col < 16; ++col) {
                 u8 b = buffer[offset + col];
                 vga.putchar((b >= 0x20 && b < 0x7F) ? static_cast<char>(b) : '.');
             }

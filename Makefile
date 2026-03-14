@@ -50,13 +50,15 @@ $(DISK):
 	@mkdir -p bin
 	qemu-img create -f raw $(DISK) 1M
 
-test: $(TEST_KERNEL) $(DISK)
-	@qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
+test: $(TEST_KERNEL)
+	@qemu-img create -f raw /tmp/cassio-test-disk.img 1M 2>/dev/null; \
+	qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
-	    -drive file=$(DISK),format=raw,if=ide \
+	    -drive file=/tmp/cassio-test-disk.img,format=raw,if=ide \
 	    -no-reboot; \
 	EXIT_CODE=$$?; \
+	rm -f /tmp/cassio-test-disk.img; \
 	cat /tmp/cassio-test-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
