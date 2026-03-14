@@ -40,7 +40,6 @@ void InterruptManager::load(cassio::kernel::GlobalDescriptorTable& gdt) {
     u16 code_offset = gdt.getCodeOffset();
 
     for (u16 i = 0; i < 256; ++i) {
-        drv[i] = nullptr;
         setInterrupt(i, code_offset, &ignoreInterruptRequest, 0, IDT_INTERRUPT_GATE);
     }
 

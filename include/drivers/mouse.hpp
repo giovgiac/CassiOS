@@ -84,18 +84,26 @@ private:
 
     MouseEventHandler* handler;
 
+    static MouseDriver instance;
+
+private:
+    MouseDriver();
+    ~MouseDriver() = default;
+
 public:
     /**
-     * @brief Constructs the mouse driver with the given event handler.
+     * @brief Returns the singleton MouseDriver instance.
      *
      */
-    MouseDriver(MouseEventHandler* han);
+    inline static MouseDriver& getDriver() {
+        return instance;
+    }
 
     /**
-     * @brief Destroys the mouse driver.
+     * @brief Sets the event handler for mouse events.
      *
      */
-    ~MouseDriver() = default;
+    void setHandler(MouseEventHandler* han);
 
     /**
      * @brief Enables the mouse on the PS/2 controller and starts receiving interrupts.

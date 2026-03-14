@@ -25,8 +25,17 @@ void MouseEventHandler::OnMouseMove(i8 dx, i8 dy) {}
 
 /** MouseDriver Methods */
 
-MouseDriver::MouseDriver(MouseEventHandler* han) 
-    : Driver(DriverType::MouseController), cmd(PortType::KeyboardControllerCommand), data(PortType::KeyboardControllerData), handler(han) {}
+MouseDriver MouseDriver::instance;
+
+MouseDriver::MouseDriver()
+    : Driver(DriverType::MouseController),
+      cmd(PortType::KeyboardControllerCommand),
+      data(PortType::KeyboardControllerData),
+      handler(nullptr) {}
+
+void MouseDriver::setHandler(MouseEventHandler* han) {
+    handler = han;
+}
 
 void MouseDriver::activate() {
     offset = 0;

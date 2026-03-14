@@ -9,6 +9,7 @@
 
 #include "core/kernel.hpp"
 #include "core/shell.hpp"
+#include "drivers/keyboard.hpp"
 #include "drivers/pit.hpp"
 #include "memory/heap.hpp"
 #include "memory/paging.hpp"
@@ -45,9 +46,12 @@ void start(void* multiboot, u32 magic) {
     vga.clear();
     vga.print("Welcome to the Cassio Operating System!\n");
 
-    PitTimer pit;
     Shell shell;
-    KeyboardDriver keyboard(&shell);
+
+    KeyboardDriver& keyboard = KeyboardDriver::getDriver();
+    keyboard.setHandler(&shell);
+
+    PitTimer& pit = PitTimer::getTimer();
 
     dm.addDriver(pit);
     dm.addDriver(keyboard);

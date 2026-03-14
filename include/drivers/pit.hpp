@@ -42,17 +42,20 @@ private:
     hardware::Port<u8> command;
     volatile u32 ticks;
 
-    static PitTimer* instance;
+    static PitTimer instance;
 
-public:
+private:
     PitTimer();
     ~PitTimer() = default;
 
+public:
     /**
-     * @brief Returns the PitTimer instance.
+     * @brief Returns the PitTimer singleton instance.
      *
      */
-    static PitTimer& getTimer();
+    inline static PitTimer& getTimer() {
+        return instance;
+    }
 
     /**
      * @brief Programs the PIT for periodic mode at ~100 Hz.

@@ -17,9 +17,8 @@ TEST(mouse_event_handler_construction) {
     ASSERT(true);
 }
 
-TEST(mouse_driver_construction) {
-    MouseEventHandler handler;
-    MouseDriver mouse(&handler);
-    // Construction should not crash; driver self-registers with InterruptManager
-    ASSERT(true);
+TEST(mouse_singleton_access) {
+    MouseDriver& mouse = MouseDriver::getDriver();
+    MouseDriver& mouse2 = MouseDriver::getDriver();
+    ASSERT_EQ(reinterpret_cast<u32>(&mouse), reinterpret_cast<u32>(&mouse2));
 }

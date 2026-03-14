@@ -67,20 +67,18 @@ TEST(keyboard_command_byte_bits) {
     ASSERT_EQ(static_cast<u32>(cb.byte & 0x02), 2u);
 }
 
-TEST(keyboard_driver_construction) {
-    KeyboardEventHandler handler;
-    KeyboardDriver kbd(&handler);
-    // Construction should not crash; driver self-registers with InterruptManager
-    ASSERT(true);
+TEST(keyboard_singleton_access) {
+    KeyboardDriver& kbd = KeyboardDriver::getDriver();
+    // Singleton should be accessible and stable
+    KeyboardDriver& kbd2 = KeyboardDriver::getDriver();
+    ASSERT_EQ(reinterpret_cast<u32>(&kbd), reinterpret_cast<u32>(&kbd2));
 }
 
 TEST(keyboard_irq_enabled_after_activate) {
     // Regression: keyboard.activate() must drain the ACK from 0xF4, otherwise
     // mouse.activate() reads it as the command byte and disables keyboard IRQs.
-    KeyboardEventHandler kbd_handler;
-    MouseEventHandler mouse_handler;
-    KeyboardDriver kbd(&kbd_handler);
-    MouseDriver mouse(&mouse_handler);
+    KeyboardDriver& kbd = KeyboardDriver::getDriver();
+    MouseDriver& mouse = MouseDriver::getDriver();
 
     kbd.activate();
     mouse.activate();
