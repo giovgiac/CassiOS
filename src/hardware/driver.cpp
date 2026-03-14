@@ -29,14 +29,6 @@ Driver::~Driver() {
     }
 }
 
-void Driver::activate() {
-
-}
-
-void Driver::deactivate() {
-
-}
-
 i32 Driver::reset() {
     return 0;
 }

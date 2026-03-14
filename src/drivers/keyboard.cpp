@@ -176,6 +176,8 @@ void KeyboardDriver::setHandler(KeyboardEventHandler* han) {
     handler = han;
 }
 
+void KeyboardDriver::deactivate() {}
+
 void KeyboardDriver::activate() {
     // Cleanup keystrokes before OS starts.
     while (cmd.read() & 0x1) {

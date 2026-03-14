@@ -21,6 +21,8 @@ PitTimer::PitTimer()
       command(PortType::PitCommand),
       ticks(0) {}
 
+void PitTimer::deactivate() {}
+
 void PitTimer::activate() {
     command.write(PIT_CMD_CHANNEL0_MODE2);
     channel0.write(static_cast<u8>(PIT_DIVISOR & 0xFF));

@@ -110,6 +110,7 @@ public:
      *
      */
     virtual void activate() override;
+    virtual void deactivate() override;
 
     /**
      * @brief Reads a byte into the 3-byte packet buffer and dispatches events when complete.

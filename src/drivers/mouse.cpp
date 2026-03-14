@@ -37,6 +37,8 @@ void MouseDriver::setHandler(MouseEventHandler* han) {
     handler = han;
 }
 
+void MouseDriver::deactivate() {}
+
 void MouseDriver::activate() {
     offset = 0;
     button = 0;

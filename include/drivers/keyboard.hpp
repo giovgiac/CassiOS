@@ -353,6 +353,7 @@ public:
      *
      */
     virtual void activate() override;
+    virtual void deactivate() override;
 
     /**
      * @brief Reads a scancode from the data port and dispatches it to the event handler.
