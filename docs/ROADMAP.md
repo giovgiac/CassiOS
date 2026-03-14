@@ -24,7 +24,7 @@ Simple custom filesystem in RAM to exercise the memory management layer. Flat di
 
 ## Phase 3: PIT Timer
 
-**Planning**: Issues only
+**Status**: Complete
 
 Program the Programmable Interval Timer (channel 0, IRQ 0) for periodic ticks. Provides a system tick counter and a `sleep()` primitive. Needed later for preemptive scheduling, but useful immediately for timing and debugging.
 
