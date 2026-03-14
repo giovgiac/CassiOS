@@ -13,19 +13,15 @@ using namespace cassio;
 using namespace cassio::drivers;
 using namespace cassio::hardware;
 
-PitTimer* PitTimer::instance = nullptr;
+PitTimer PitTimer::instance;
 
 PitTimer::PitTimer()
     : Driver(DriverType::SystemTimer),
       channel0(PortType::PitChannel0Data),
       command(PortType::PitCommand),
-      ticks(0) {
-    instance = this;
-}
+      ticks(0) {}
 
-PitTimer& PitTimer::getTimer() {
-    return *instance;
-}
+void PitTimer::deactivate() {}
 
 void PitTimer::activate() {
     command.write(PIT_CMD_CHANNEL0_MODE2);

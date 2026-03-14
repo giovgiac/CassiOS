@@ -20,7 +20,7 @@ TEST(pit_constants) {
 }
 
 TEST(pit_ticks_increment) {
-    PitTimer pit;
+    PitTimer& pit = PitTimer::getTimer();
     u32 before = pit.getTicks();
     pit.handleInterrupt(0);
     u32 after = pit.getTicks();

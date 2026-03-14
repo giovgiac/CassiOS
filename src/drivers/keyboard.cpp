@@ -159,16 +159,24 @@ KeyboardCommandByte KeyboardDriver::readCommandByte() {
     return status;
 }
 
-KeyboardDriver::KeyboardDriver(KeyboardEventHandler* han)
+KeyboardDriver KeyboardDriver::instance;
+
+KeyboardDriver::KeyboardDriver()
     : Driver(DriverType::KeyboardController),
       cmd(PortType::KeyboardControllerCommand),
       data(PortType::KeyboardControllerData),
-      handler(han),
+      handler(nullptr),
       shift_held(false),
       ctrl_held(false),
       alt_held(false),
       caps_lock_on(false),
       e0_prefix(false) {}
+
+void KeyboardDriver::setHandler(KeyboardEventHandler* han) {
+    handler = han;
+}
+
+void KeyboardDriver::deactivate() {}
 
 void KeyboardDriver::activate() {
     // Cleanup keystrokes before OS starts.

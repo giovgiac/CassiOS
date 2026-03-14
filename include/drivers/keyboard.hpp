@@ -325,27 +325,35 @@ private:
     // Returns the shifted variant of a KeyCode (e.g., a -> A, One -> Exclamation).
     static KeyCode resolveShift(KeyCode key);
 
+    static KeyboardDriver instance;
+
 private:
+    KeyboardDriver();
+    ~KeyboardDriver() = default;
+
     KeyboardCommandByte readCommandByte();
 
 public:
     /**
-     * @brief Constructs the keyboard driver with the given event handler.
+     * @brief Returns the singleton KeyboardDriver instance.
      *
      */
-    KeyboardDriver(KeyboardEventHandler* han);
+    inline static KeyboardDriver& getDriver() {
+        return instance;
+    }
 
     /**
-     * @brief Destroys the keyboard driver.
+     * @brief Sets the event handler for keyboard events.
      *
      */
-    ~KeyboardDriver() = default;
+    void setHandler(KeyboardEventHandler* han);
 
     /**
      * @brief Enables keyboard interrupts and clears any pending scancodes.
      *
      */
     virtual void activate() override;
+    virtual void deactivate() override;
 
     /**
      * @brief Reads a scancode from the data port and dispatches it to the event handler.

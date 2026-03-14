@@ -72,13 +72,13 @@ public:
      * @brief Activates the driver hardware. Called by DriverManager::load().
      *
      */
-    virtual void activate();
+    virtual void activate() = 0;
 
     /**
      * @brief Deactivates the driver hardware. Called by DriverManager::unload().
      *
      */
-    virtual void deactivate();
+    virtual void deactivate() = 0;
 
     /**
      * @brief Resets the device, so that the state becomes known.
