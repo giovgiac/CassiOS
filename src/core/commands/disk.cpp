@@ -105,9 +105,8 @@ bool AtaReadCommand::execute(const char** args, usize argc,
         vga.print(":\n");
 
         // Hex dump: 16 bytes per line with ASCII sidebar (79 cols).
-        // All-zero rows are skipped; remaining duplicates collapsed with "*".
+        // All-zero and duplicate rows are silently skipped.
         const char* hex = "0123456789ABCDEF";
-        bool skipping = false;
         for (u32 row = 0; row < 32; ++row) {
             u32 offset = row * 16;
 
@@ -119,15 +118,9 @@ bool AtaReadCommand::execute(const char** args, usize argc,
                     break;
                 }
             }
-            if (all_zero) {
-                if (!skipping) {
-                    vga.print("*\n");
-                    skipping = true;
-                }
-                continue;
-            }
+            if (all_zero) continue;
 
-            // Collapse identical consecutive non-zero rows.
+            // Skip rows identical to the previous one.
             if (row > 0) {
                 bool same = true;
                 for (u32 col = 0; col < 16; ++col) {
@@ -136,15 +129,8 @@ bool AtaReadCommand::execute(const char** args, usize argc,
                         break;
                     }
                 }
-                if (same) {
-                    if (!skipping) {
-                        vga.print("*\n");
-                        skipping = true;
-                    }
-                    continue;
-                }
+                if (same) continue;
             }
-            skipping = false;
 
             vga.print_hex(offset);
             vga.print("  ");
