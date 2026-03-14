@@ -94,19 +94,47 @@ bool AtaReadCommand::execute(const char** args, usize argc,
         vga.print_dec(lba + s);
         vga.print(":\n");
 
-        // Hex dump: 16 bytes per line, 32 lines = 512 bytes.
+        // Hex dump: 16 bytes per line with ASCII sidebar.
+        // Identical consecutive rows are collapsed with a "*" marker.
+        const char* hex = "0123456789ABCDEF";
+        bool skipping = false;
         for (u32 row = 0; row < 32; ++row) {
-            vga.print_hex(row * 16);
+            u32 offset = row * 16;
+
+            // Check if this row is identical to the previous one.
+            if (row > 0) {
+                bool same = true;
+                for (u32 col = 0; col < 16; ++col) {
+                    if (buffer[offset + col] != buffer[offset - 16 + col]) {
+                        same = false;
+                        break;
+                    }
+                }
+                if (same) {
+                    if (!skipping) {
+                        vga.print("*\n");
+                        skipping = true;
+                    }
+                    continue;
+                }
+            }
+            skipping = false;
+
+            vga.print_hex(offset);
             vga.print("  ");
             for (u32 col = 0; col < 16; ++col) {
-                u8 b = buffer[row * 16 + col];
-                // Print two hex digits.
-                const char* hex = "0123456789ABCDEF";
+                u8 b = buffer[offset + col];
                 vga.putchar(hex[(b >> 4) & 0xF]);
                 vga.putchar(hex[b & 0xF]);
                 vga.putchar(' ');
+                if (col == 7) vga.putchar(' ');
             }
-            vga.putchar('\n');
+            vga.print(" |");
+            for (u32 col = 0; col < 16; ++col) {
+                u8 b = buffer[offset + col];
+                vga.putchar((b >= 0x20 && b < 0x7F) ? static_cast<char>(b) : '.');
+            }
+            vga.print("|\n");
         }
     }
 
