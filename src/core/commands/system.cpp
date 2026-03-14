@@ -9,11 +9,13 @@
 
 #include "core/commands/system.hpp"
 #include "common/string.hpp"
+#include "drivers/pit.hpp"
 #include "hardware/port.hpp"
 #include "hardware/terminal.hpp"
 #include "memory/physical.hpp"
 
 using namespace cassio;
+using namespace cassio::drivers;
 using namespace cassio::kernel;
 using namespace cassio::filesystem;
 using namespace cassio::hardware;
@@ -92,6 +94,34 @@ bool MemCommand::execute(const char** args, usize argc,
     vga.print(" KiB (");
     vga.print_dec(free);
     vga.print(" frames)\n");
+
+    return true;
+}
+
+// --- uptime ---
+
+static UptimeCommand uptimeInstance;
+
+UptimeCommand::UptimeCommand() : Command("uptime", "Show time since boot") {}
+
+bool UptimeCommand::execute(const char** args, usize argc,
+                            FileNode*& cwd) {
+    VgaTerminal& vga = VgaTerminal::getTerminal();
+    PitTimer& pit = PitTimer::getTimer();
+    u32 ticks = pit.getTicks();
+    u32 total_ms = (ticks * 1000) / PIT_FREQUENCY;
+    u32 seconds = total_ms / 1000;
+    u32 ms = total_ms % 1000;
+
+    vga.print("Up ");
+    vga.print_dec(seconds);
+    vga.putchar('.');
+
+    // Print milliseconds with leading zeros (3 digits).
+    if (ms < 100) vga.putchar('0');
+    if (ms < 10) vga.putchar('0');
+    vga.print_dec(ms);
+    vga.print("s\n");
 
     return true;
 }

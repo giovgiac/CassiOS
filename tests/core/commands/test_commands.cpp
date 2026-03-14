@@ -9,8 +9,8 @@ TEST(command_registry_has_commands) {
 }
 
 TEST(command_registry_count_matches_expected) {
-    // Seventeen built-in commands.
-    ASSERT_EQ(Command::getCount(), 17);
+    // Eighteen built-in commands.
+    ASSERT_EQ(Command::getCount(), 18);
 }
 
 TEST(command_find_existing) {
