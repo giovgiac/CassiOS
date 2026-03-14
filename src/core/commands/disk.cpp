@@ -90,28 +90,37 @@ bool AtaReadCommand::execute(const char** args, usize argc,
             return true;
         }
 
+        // Check if sector is entirely zero.
+        bool empty = true;
+        for (u32 i = 0; i < ATA_SECTOR_SIZE; ++i) {
+            if (buffer[i] != 0) { empty = false; break; }
+        }
+
         vga.print("Sector ");
         vga.print_dec(lba + s);
+        if (empty) {
+            vga.print(": empty\n");
+            continue;
+        }
         vga.print(":\n");
 
-        // Hex dump: 16 bytes per line with ASCII sidebar.
-        // All-zero rows are skipped; remaining duplicates are collapsed with "*".
+        // Hex dump: 8 bytes per line with ASCII sidebar.
+        // All-zero rows are skipped; remaining duplicates collapsed with "*".
         const char* hex = "0123456789ABCDEF";
         bool skipping = false;
-        bool printed_any = false;
-        for (u32 row = 0; row < 32; ++row) {
-            u32 offset = row * 16;
+        for (u32 row = 0; row < 64; ++row) {
+            u32 offset = row * 8;
 
             // Skip all-zero rows.
             bool all_zero = true;
-            for (u32 col = 0; col < 16; ++col) {
+            for (u32 col = 0; col < 8; ++col) {
                 if (buffer[offset + col] != 0) {
                     all_zero = false;
                     break;
                 }
             }
             if (all_zero) {
-                if (printed_any && !skipping) {
+                if (!skipping) {
                     vga.print("*\n");
                     skipping = true;
                 }
@@ -119,10 +128,10 @@ bool AtaReadCommand::execute(const char** args, usize argc,
             }
 
             // Collapse identical consecutive non-zero rows.
-            if (printed_any && row > 0) {
+            if (row > 0) {
                 bool same = true;
-                for (u32 col = 0; col < 16; ++col) {
-                    if (buffer[offset + col] != buffer[offset - 16 + col]) {
+                for (u32 col = 0; col < 8; ++col) {
+                    if (buffer[offset + col] != buffer[offset - 8 + col]) {
                         same = false;
                         break;
                     }
@@ -136,26 +145,21 @@ bool AtaReadCommand::execute(const char** args, usize argc,
                 }
             }
             skipping = false;
-            printed_any = true;
 
             vga.print_hex(offset);
             vga.print("  ");
-            for (u32 col = 0; col < 16; ++col) {
+            for (u32 col = 0; col < 8; ++col) {
                 u8 b = buffer[offset + col];
                 vga.putchar(hex[(b >> 4) & 0xF]);
                 vga.putchar(hex[b & 0xF]);
                 vga.putchar(' ');
-                if (col == 7) vga.putchar(' ');
             }
             vga.print(" |");
-            for (u32 col = 0; col < 16; ++col) {
+            for (u32 col = 0; col < 8; ++col) {
                 u8 b = buffer[offset + col];
                 vga.putchar((b >= 0x20 && b < 0x7F) ? static_cast<char>(b) : '.');
             }
             vga.print("|\n");
-        }
-        if (!printed_any) {
-            vga.print("(empty)\n");
         }
     }
 
