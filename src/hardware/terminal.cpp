@@ -8,6 +8,7 @@
  */
 
 #include "hardware/terminal.hpp"
+#include "memory/virtual.hpp"
 
 using namespace cassio;
 using namespace cassio::hardware;
@@ -17,7 +18,7 @@ using namespace cassio::hardware;
 VgaTerminal VgaTerminal::instance;
 
 VgaTerminal::VgaTerminal()
-    : buffer(reinterpret_cast<u16*>(0xB8000)),
+    : buffer(reinterpret_cast<u16*>(KERNEL_VBASE + 0xB8000)),
       x(0),
       y(0),
       color(0x0700),

@@ -36,7 +36,7 @@ interrupt:
     pushl    %esp
     push    (number)
     call    handleInterrupt
-    add     %esp, 6
+    add     $8, %esp
     mov     %eax, %esp
 
     pop    %gs

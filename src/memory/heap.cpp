@@ -9,6 +9,7 @@
 
 #include "memory/heap.hpp"
 #include "memory/physical.hpp"
+#include "memory/virtual.hpp"
 
 using namespace cassio;
 using namespace cassio::memory;
@@ -26,8 +27,10 @@ alignas(HeapAllocator) static u8 kernel_heap_storage[sizeof(HeapAllocator)];
 void KernelHeap::init() {
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
 
-    void* base = pmm.allocFrame();
-    if (!base) {
+    // allocFrame() returns a physical address; add KERNEL_VBASE to get
+    // the virtual address in the direct map.
+    void* base = (void*)((u32)pmm.allocFrame() + KERNEL_VBASE);
+    if (base == (void*)KERNEL_VBASE) {
         return;
     }
 

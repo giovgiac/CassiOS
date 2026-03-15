@@ -9,6 +9,7 @@
 
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
+#include "memory/virtual.hpp"
 
 using namespace cassio;
 using namespace cassio::memory;
@@ -28,8 +29,9 @@ void PagingManager::init(MultibootInfo* multibootInfo) {
 
     u16 flags = PAGE_PRESENT | PAGE_READWRITE;
 
-    // Identity-map all available memory regions from the multiboot memory map.
-    u32 mmapAddr = multibootInfo->mmap_addr;
+    // The mmap_addr field is a physical address written by GRUB.
+    // Add KERNEL_VBASE to get the virtual address in the direct map.
+    u32 mmapAddr = multibootInfo->mmap_addr + KERNEL_VBASE;
     u32 mmapEnd = mmapAddr + multibootInfo->mmap_length;
 
     while (mmapAddr < mmapEnd) {
@@ -48,27 +50,24 @@ void PagingManager::init(MultibootInfo* multibootInfo) {
             base &= 0xFFFFF000;
             end = (end + FRAME_SIZE - 1) & 0xFFFFF000;
 
+            // Direct-map: physical address P -> virtual address P + KERNEL_VBASE.
             for (u32 addr = base; addr < end; addr += FRAME_SIZE) {
-                mapPage(addr, addr, flags);
+                mapPage(addr + KERNEL_VBASE, addr, flags);
             }
         }
 
         mmapAddr += entry->size + sizeof(entry->size);
     }
 
-    // Map VGA memory (0xB8000 - 0xBFFFF).
+    // Map VGA memory (physical 0xB8000 - 0xBFFFF) into the direct map.
     for (u32 addr = 0xB8000; addr < 0xC0000; addr += FRAME_SIZE) {
-        mapPage(addr, addr, flags);
+        mapPage(addr + KERNEL_VBASE, addr, flags);
     }
 
-    // Load page directory into CR3 and enable paging in CR0.
-    u32 pd = (u32)pageDirectory;
+    // Load page directory into CR3. pageDirectory is a virtual address;
+    // CR3 needs the physical address.
+    u32 pd = (u32)pageDirectory - KERNEL_VBASE;
     asm volatile("mov %0, %%cr3" :: "r"(pd));
-
-    u32 cr0;
-    asm volatile("mov %%cr0, %0" : "=r"(cr0));
-    cr0 |= 0x80000000;
-    asm volatile("mov %0, %%cr0" :: "r"(cr0));
 }
 
 void PagingManager::mapPage(u32 virtualAddr, u32 physicalAddr, u16 flags) {
@@ -83,16 +82,19 @@ void PagingManager::mapPage(u32 virtualAddr, u32 physicalAddr, u16 flags) {
             return;
         }
 
-        // Zero the new page table.
-        u32* pageTable = (u32*)frame;
+        // Zero the new page table. allocFrame() returns a physical address;
+        // add KERNEL_VBASE to get a dereferenceable virtual pointer.
+        u32* pageTable = (u32*)((u32)frame + KERNEL_VBASE);
         for (u32 i = 0; i < 1024; i++) {
             pageTable[i] = 0;
         }
 
+        // Store the physical address in the PDE (hardware requirement).
         pageDirectory[pdIndex] = (u32)frame | PAGE_PRESENT | PAGE_READWRITE;
     }
 
-    u32* pageTable = (u32*)(pageDirectory[pdIndex] & 0xFFFFF000);
+    // Read the physical address from the PDE, add KERNEL_VBASE to dereference.
+    u32* pageTable = (u32*)((pageDirectory[pdIndex] & 0xFFFFF000) + KERNEL_VBASE);
     pageTable[ptIndex] = (physicalAddr & 0xFFFFF000) | (flags & 0xFFF);
 }
 
@@ -104,7 +106,7 @@ void PagingManager::unmapPage(u32 virtualAddr) {
         return;
     }
 
-    u32* pageTable = (u32*)(pageDirectory[pdIndex] & 0xFFFFF000);
+    u32* pageTable = (u32*)((pageDirectory[pdIndex] & 0xFFFFF000) + KERNEL_VBASE);
     pageTable[ptIndex] = 0;
 
     flushTLB(virtualAddr);
