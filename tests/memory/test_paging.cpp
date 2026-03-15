@@ -62,9 +62,44 @@ TEST(paging_map_unmap_page) {
 }
 
 extern "C" u32 _kernel_start;
+extern "C" u32 _kernel_end;
 
 TEST(paging_kernel_symbols_above_vbase) {
     // Kernel symbols should be linked above KERNEL_VBASE.
-    u32 addr = (u32)&_kernel_start;
-    ASSERT(addr >= KERNEL_VBASE);
+    u32 start = (u32)&_kernel_start;
+    u32 end = (u32)&_kernel_end;
+    ASSERT(start >= KERNEL_VBASE);
+    ASSERT(end > start);
+}
+
+TEST(paging_cr3_holds_physical_address) {
+    // CR3 should contain a physical address (below KERNEL_VBASE).
+    u32 cr3;
+    asm volatile("mov %%cr3, %0" : "=r"(cr3));
+    ASSERT(cr3 < KERNEL_VBASE);
+    ASSERT(cr3 != 0);
+}
+
+TEST(paging_heap_pointers_above_vbase) {
+    // Heap allocations should return virtual addresses in the direct map.
+    int* p = new int;
+    ASSERT(p != nullptr);
+    ASSERT((u32)p >= KERNEL_VBASE);
+    delete p;
+}
+
+TEST(paging_stack_above_vbase) {
+    // The stack pointer should be in the higher half.
+    u32 esp;
+    asm volatile("mov %%esp, %0" : "=r"(esp));
+    ASSERT(esp >= KERNEL_VBASE);
+}
+
+TEST(paging_pmm_returns_physical_addresses) {
+    // allocFrame() should return physical addresses (below KERNEL_VBASE).
+    PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
+    void* frame = pmm.allocFrame();
+    ASSERT(frame != nullptr);
+    ASSERT((u32)frame < KERNEL_VBASE);
+    pmm.freeFrame(frame);
 }
