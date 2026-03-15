@@ -21,25 +21,25 @@ namespace drivers {
  * @brief ATA status register bit flags, used with bitwise operations.
  *
  */
-enum AtaStatus : u8 {
-    ATA_STATUS_ERR  = 0x01,
-    ATA_STATUS_DRQ  = 0x08,
-    ATA_STATUS_SRV  = 0x10,
-    ATA_STATUS_DF   = 0x20,
-    ATA_STATUS_RDY  = 0x40,
-    ATA_STATUS_BSY  = 0x80
-};
+namespace AtaStatus {
+    constexpr u8 Err                            = 0x01;
+    constexpr u8 Drq                            = 0x08;
+    constexpr u8 Srv                            = 0x10;
+    constexpr u8 Df                             = 0x20;
+    constexpr u8 Rdy                            = 0x40;
+    constexpr u8 Bsy                            = 0x80;
+}
 
 /**
  * @brief ATA command bytes sent to the command register.
  *
  */
-enum class AtaCommand : u8 {
-    ReadSectors     = 0x20,
-    WriteSectors    = 0x30,
-    CacheFlush      = 0xE7,
-    Identify        = 0xEC
-};
+namespace AtaCommand {
+    constexpr u8 ReadSectors                    = 0x20;
+    constexpr u8 WriteSectors                   = 0x30;
+    constexpr u8 CacheFlush                     = 0xE7;
+    constexpr u8 Identify                       = 0xEC;
+}
 
 // Bytes per sector.
 constexpr u32 ATA_SECTOR_SIZE = 512;

@@ -153,7 +153,7 @@ KeyboardCommandByte KeyboardDriver::readCommandByte() {
     KeyboardCommandByte status;
 
     // Requests current command byte.
-    cmd.write(static_cast<u8>(KeyboardCommand::ReadCommandByte));
+    cmd.write(KeyboardCommand::ReadCommandByte);
 
     status.byte = data.read();
     return status;
@@ -185,7 +185,7 @@ void KeyboardDriver::activate() {
     }
 
     // Enable communication with the keyboard.
-    cmd.write(static_cast<u8>(KeyboardCommand::EnableKeyboardInterface));
+    cmd.write(KeyboardCommand::EnableKeyboardInterface);
 
     // Read and modify current command byte.
     KeyboardCommandByte status = readCommandByte();
@@ -193,7 +193,7 @@ void KeyboardDriver::activate() {
     status.disable_keyboard = false;
 
     // Set modified command byte to be the new one.
-    cmd.write(static_cast<u8>(KeyboardCommand::WriteCommandByte));
+    cmd.write(KeyboardCommand::WriteCommandByte);
     data.write(status.byte);
 
     // Enables keyboard and reads the ACK response so it does not remain

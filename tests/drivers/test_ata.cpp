@@ -26,6 +26,9 @@ TEST(ata_constants) {
     ASSERT_EQ(static_cast<u32>(AtaCommand::WriteSectors), 0x30u);
     ASSERT_EQ(static_cast<u32>(AtaCommand::CacheFlush), 0xE7u);
     ASSERT_EQ(static_cast<u32>(AtaCommand::Identify), 0xECu);
+    ASSERT_EQ(static_cast<u32>(AtaStatus::Bsy), 0x80u);
+    ASSERT_EQ(static_cast<u32>(AtaStatus::Drq), 0x08u);
+    ASSERT_EQ(static_cast<u32>(AtaStatus::Err), 0x01u);
     ASSERT_EQ(static_cast<u32>(ATA_SECTOR_SIZE), 512u);
 }
 

@@ -23,14 +23,14 @@ namespace drivers {
  * @see https://www.avrfreaks.net/sites/default/files/PS2%20Keyboard.pdf
  *
  */
-enum class MouseCommand : u8 {
-    ReadCommand                                 = 0x20,
-    WriteCommand                                = 0x60,
-    GetVersionNumber                            = 0xA1,
-    EnableMouse                                 = 0xA8,
-    TestMouse                                   = 0xA9,
-    WriteMouse                                  = 0xD4
-};
+namespace MouseCommand {
+    constexpr u8 ReadCommand                    = 0x20;
+    constexpr u8 WriteCommand                   = 0x60;
+    constexpr u8 GetVersionNumber               = 0xA1;
+    constexpr u8 EnableMouse                    = 0xA8;
+    constexpr u8 TestMouse                      = 0xA9;
+    constexpr u8 WriteMouse                     = 0xD4;
+}
 
 /**
  * @brief Interface for receiving mouse events from the MouseDriver.
