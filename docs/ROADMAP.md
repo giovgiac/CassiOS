@@ -48,6 +48,8 @@ Design: `docs/plans/2026-03-15-higher-half-kernel-design.md`
 
 Implement `int 0x80` dispatch with a syscall table. Start with a few trivial syscalls (e.g., `write` to the terminal) while still in a flat kernel. This separates the syscall plumbing from the complexity of ring 3 transitions and scheduling. Design decisions here (calling convention, table layout) affect everything after it.
 
+Design: `docs/plans/2026-03-15-syscall-interface-design.md`
+
 ## Phase 7: Userspace and Process Management
 
 **Planning**: Brainstorm + design doc
@@ -56,6 +58,7 @@ Implement `int 0x80` dispatch with a syscall table. Start with a few trivial sys
 2. **ELF loader** — parse and load ELF binaries into per-process address spaces
 3. **Scheduler** — preemptive round-robin using the PIT timer, context switching (save/restore registers + page directory)
 4. **Per-process address spaces** — separate page directories, copy-on-write or simple cloning for fork-like semantics
+5. **Interrupt subsystem refactor** — split InterruptManager into IDT owner, ExceptionHandler, IrqManager, and SyscallHandler once the number of vectors and categories justifies it
 
 ## Phase 8: IPC and Microkernel Transition
 
