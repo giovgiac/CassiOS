@@ -18,8 +18,8 @@ namespace kernel {
 /**
  * @brief Manages the x86 Global Descriptor Table for memory segmentation.
  *
- * Contains null, code, and data segment descriptors. Loads the GDT via lgdt
- * and reloads all segment registers on construction.
+ * Contains null, kernel, user, and TSS segment descriptors. Loads the GDT
+ * via lgdt, reloads segment registers, and loads the TSS on construction.
  *
  */
 class GlobalDescriptorTable {
@@ -61,9 +61,47 @@ public:
 
     };
 
+    /**
+     * @brief The 104-byte Task State Segment read by the CPU on privilege transitions.
+     *
+     * Only esp0 and ss0 are used -- the CPU loads SS:ESP from these fields when
+     * an interrupt or syscall transitions from ring 3 to ring 0.
+     *
+     */
+    struct __attribute__((packed)) TaskStateSegment {
+        u32 prev_tss;
+        u32 esp0;
+        u32 ss0;
+        u32 esp1;
+        u32 ss1;
+        u32 esp2;
+        u32 ss2;
+        u32 cr3;
+        u32 eip;
+        u32 eflags;
+        u32 eax;
+        u32 ecx;
+        u32 edx;
+        u32 ebx;
+        u32 esp;
+        u32 ebp;
+        u32 esi;
+        u32 edi;
+        u32 es;
+        u32 cs;
+        u32 ss;
+        u32 ds;
+        u32 fs;
+        u32 gs;
+        u32 ldt;
+        u16 trap;
+        u16 iomap_base;
+    };
+
 public:
     /**
-     * @brief Builds the GDT with null, code, and data segments, then loads it via lgdt.
+     * @brief Builds the GDT with null, kernel, user, and TSS segments,
+     *        then loads it via lgdt and the TSS via ltr.
      *
      */
     GlobalDescriptorTable();
@@ -75,16 +113,40 @@ public:
     ~GlobalDescriptorTable();
 
     /**
-     * @brief Returns the byte offset of the code segment descriptor within the GDT.
+     * @brief Returns the byte offset of the kernel code segment descriptor.
      *
      */
     u16 getCodeOffset();
 
     /**
-     * @brief Returns the byte offset of the data segment descriptor within the GDT.
+     * @brief Returns the byte offset of the kernel data segment descriptor.
      *
      */
     u16 getDataOffset();
+
+    /**
+     * @brief Returns the byte offset of the user code segment descriptor.
+     *
+     */
+    u16 getUserCodeOffset();
+
+    /**
+     * @brief Returns the byte offset of the user data segment descriptor.
+     *
+     */
+    u16 getUserDataOffset();
+
+    /**
+     * @brief Returns the byte offset of the TSS descriptor.
+     *
+     */
+    u16 getTssOffset();
+
+    /**
+     * @brief Updates TSS.esp0, the kernel stack pointer used on ring 3 to ring 0 transitions.
+     *
+     */
+    void setTssEsp0(u32 esp0);
 
     /** Deleted Methods */
     GlobalDescriptorTable(const GlobalDescriptorTable&) = delete;
@@ -96,6 +158,11 @@ private:
     SegmentDescriptor nullSegment;
     SegmentDescriptor codeSegment;
     SegmentDescriptor dataSegment;
+    SegmentDescriptor userCodeSegment;
+    SegmentDescriptor userDataSegment;
+    SegmentDescriptor tssDescriptor;
+
+    TaskStateSegment tss;
 };
 
 } // kernel

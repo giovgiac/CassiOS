@@ -16,10 +16,28 @@ using namespace cassio::kernel;
 
 GlobalDescriptorTable::GlobalDescriptorTable()
     : nullSegment(0, 0, 0),
-      codeSegment(0, 0xFFFFFFFF, 0x9A), dataSegment(0, 0xFFFFFFFF, 0x92) {
-    usize i[2];
-    i[1] = (usize)this;
-    i[0] = sizeof(GlobalDescriptorTable) << 16;
+      codeSegment(0, 0xFFFFFFFF, 0x9A),
+      dataSegment(0, 0xFFFFFFFF, 0x92),
+      userCodeSegment(0, 0xFFFFFFFF, 0xFA),
+      userDataSegment(0, 0xFFFFFFFF, 0xF2),
+      tssDescriptor((u32)&tss, sizeof(TaskStateSegment) - 1, 0x89) {
+    // Fix TSS descriptor: SegmentDescriptor sets D/B=1 (0x40) for small limits,
+    // but TSS descriptors must have D/B=0.
+    u8* tssBytes = (u8*)&tssDescriptor;
+    tssBytes[6] &= 0x0F;
+
+    // Initialize TSS: zero all fields, then set the kernel stack segment.
+    u8* tssData = (u8*)&tss;
+    for (usize j = 0; j < sizeof(TaskStateSegment); j++) {
+        tssData[j] = 0;
+    }
+    tss.ss0 = 0x10;
+    tss.iomap_base = sizeof(TaskStateSegment);
+
+    // Load GDT (limit covers only the 6 descriptors, not the TSS struct).
+    usize gdtr[2];
+    gdtr[1] = (usize)this;
+    gdtr[0] = (6 * sizeof(SegmentDescriptor)) << 16;
 
     asm volatile(
         "lgdt  (%0)\n"
@@ -31,8 +49,15 @@ GlobalDescriptorTable::GlobalDescriptorTable()
         "mov   %%ax, %%fs\n"
         "mov   %%ax, %%gs\n"
         "mov   %%ax, %%ss\n"
-        : : "p" ((u8*)i + 2)
+        : : "p" ((u8*)gdtr + 2)
         : "eax"
+    );
+
+    // Load TSS.
+    asm volatile(
+        "mov   $0x28, %%ax\n"
+        "ltr   %%ax\n"
+        : : : "eax"
     );
 }
 
@@ -44,6 +69,22 @@ u16 GlobalDescriptorTable::getCodeOffset() {
 
 u16 GlobalDescriptorTable::getDataOffset() {
     return (u8*)&dataSegment - (u8*)this;
+}
+
+u16 GlobalDescriptorTable::getUserCodeOffset() {
+    return (u8*)&userCodeSegment - (u8*)this;
+}
+
+u16 GlobalDescriptorTable::getUserDataOffset() {
+    return (u8*)&userDataSegment - (u8*)this;
+}
+
+u16 GlobalDescriptorTable::getTssOffset() {
+    return (u8*)&tssDescriptor - (u8*)this;
+}
+
+void GlobalDescriptorTable::setTssEsp0(u32 esp0) {
+    tss.esp0 = esp0;
 }
 
 /** Segment Descriptor Methods */
