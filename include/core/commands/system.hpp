@@ -57,6 +57,13 @@ public:
                  filesystem::FileNode*& cwd) override;
 };
 
+class SyscallCommand : public Command {
+public:
+    SyscallCommand();
+    bool execute(const char** args, usize argc,
+                 filesystem::FileNode*& cwd) override;
+};
+
 } // kernel
 } // cassio
 
