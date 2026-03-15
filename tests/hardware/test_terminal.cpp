@@ -1,8 +1,11 @@
 #include <hardware/terminal.hpp>
+#include <memory/virtual.hpp>
 #include "test.hpp"
 
 using namespace cassio;
 using namespace cassio::hardware;
+
+static constexpr u32 VGA_BUF = KERNEL_VBASE + 0xB8000;
 
 TEST(terminal_putchar) {
     VgaTerminal& vga = VgaTerminal::getTerminal();
@@ -10,7 +13,7 @@ TEST(terminal_putchar) {
 
     vga.putchar('X');
 
-    u16* buf = reinterpret_cast<u16*>(0xB8000);
+    u16* buf = reinterpret_cast<u16*>(VGA_BUF);
     ASSERT_EQ(static_cast<u32>(buf[0] & 0x00FF), static_cast<u32>('X'));
 }
 
@@ -18,7 +21,7 @@ TEST(terminal_preserves_attribute) {
     VgaTerminal& vga = VgaTerminal::getTerminal();
     vga.clear();
 
-    u16* buf = reinterpret_cast<u16*>(0xB8000);
+    u16* buf = reinterpret_cast<u16*>(VGA_BUF);
     u16 attr_before = buf[0] & 0xFF00;
 
     vga.putchar('A');
@@ -36,7 +39,7 @@ TEST(terminal_clear) {
 
     vga.clear();
 
-    u16* buf = reinterpret_cast<u16*>(0xB8000);
+    u16* buf = reinterpret_cast<u16*>(VGA_BUF);
 
     // First few cells should be spaces.
     for (u32 i = 0; i < 10; ++i) {
@@ -57,7 +60,7 @@ TEST(terminal_newline) {
     // Cursor should be at row 1, col 0. Next char goes to buf[80].
     vga.putchar('N');
 
-    u16* buf = reinterpret_cast<u16*>(0xB8000);
+    u16* buf = reinterpret_cast<u16*>(VGA_BUF);
     ASSERT_EQ(static_cast<u32>(buf[VGA_WIDTH] & 0x00FF), static_cast<u32>('N'));
 }
 
@@ -70,7 +73,7 @@ TEST(terminal_backspace) {
     vga.putchar('\b');
 
     // Backspace should have erased 'B' (replaced with space) and moved cursor back.
-    u16* buf = reinterpret_cast<u16*>(0xB8000);
+    u16* buf = reinterpret_cast<u16*>(VGA_BUF);
     ASSERT_EQ(static_cast<u32>(buf[1] & 0x00FF), static_cast<u32>(' '));
 
     // Next char should overwrite position 1.
@@ -94,7 +97,7 @@ TEST(terminal_scroll) {
     VgaTerminal& vga = VgaTerminal::getTerminal();
     vga.clear();
 
-    u16* buf = reinterpret_cast<u16*>(0xB8000);
+    u16* buf = reinterpret_cast<u16*>(VGA_BUF);
 
     // Place 'Z' on row 1, then trigger a scroll from the last row.
     vga.setCursor(0, 1);
@@ -123,6 +126,6 @@ TEST(terminal_set_cursor) {
 
     // Writing at the new position should place the character there.
     vga.putchar('Q');
-    u16* buf = reinterpret_cast<u16*>(0xB8000);
+    u16* buf = reinterpret_cast<u16*>(VGA_BUF);
     ASSERT_EQ(static_cast<u32>(buf[5 * VGA_WIDTH + 10] & 0x00FF), static_cast<u32>('Q'));
 }

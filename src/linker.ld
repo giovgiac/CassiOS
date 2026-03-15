@@ -11,17 +11,21 @@ ENTRY(loader)
 OUTPUT_FORMAT(elf32-i386)
 OUTPUT_ARCH(i386:i386)
 
+KERNEL_VBASE = 0xC0000000;
+KERNEL_LMA   = 0x0100000;
+KERNEL_VMA   = KERNEL_VBASE + KERNEL_LMA;
+
 SECTIONS {
-    . = 0x0100000;
+    . = KERNEL_VMA;
     _kernel_start = .;
-    .text :
+    .text : AT(ADDR(.text) - KERNEL_VBASE)
     {
         *(.multiboot)
         *(.text*)
         *(.rodata)
     }
 
-    .data : 
+    .data : AT(ADDR(.data) - KERNEL_VBASE)
     {
         start_ctors = .;
         KEEP(*(.init_array));
@@ -31,13 +35,13 @@ SECTIONS {
         *(.data)
     }
 
-    .bss :
+    .bss : AT(ADDR(.bss) - KERNEL_VBASE)
     {
         *(.bss)
     }
     _kernel_end = .;
 
-    /DISCARD/ : 
+    /DISCARD/ :
     {
         *(.fini_array*)
         *(.comment)

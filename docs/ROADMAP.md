@@ -36,9 +36,11 @@ ATA PIO block device driver — port I/O to read/write 512-byte sectors from an 
 
 ## Phase 5: Higher-Half Kernel
 
-**Planning**: Brainstorm + design doc
+**Status**: In progress
 
 Remap the kernel to 0xC0000000+ (upper 1 GiB). The lower 3 GiB becomes available for userspace. Requires updating the bootloader handoff, page tables, GDT, and all hardcoded addresses. Prerequisite for user/kernel address space separation. Small in code but high risk of subtle bugs (triple faults from mapping errors) — needs upfront planning.
+
+Design: `docs/plans/2026-03-15-higher-half-kernel-design.md`
 
 ## Phase 6: Syscall Interface
 

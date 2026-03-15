@@ -8,6 +8,7 @@
  */
 
 #include "memory/physical.hpp"
+#include "memory/virtual.hpp"
 
 using namespace cassio;
 using namespace cassio::memory;
@@ -29,7 +30,9 @@ void PhysicalMemoryManager::init(MultibootInfo* multibootInfo) {
         return;
     }
 
-    u32 mmapAddr = multibootInfo->mmap_addr;
+    // mmap_addr is a physical address written by GRUB; add KERNEL_VBASE
+    // to get the virtual address in the direct map.
+    u32 mmapAddr = multibootInfo->mmap_addr + KERNEL_VBASE;
     u32 mmapEnd = mmapAddr + multibootInfo->mmap_length;
 
     while (mmapAddr < mmapEnd) {
@@ -60,11 +63,14 @@ void PhysicalMemoryManager::init(MultibootInfo* multibootInfo) {
     }
 
     // Re-mark kernel, bitmap, and null page as used.
-    u32 kernelStart = (u32)&_kernel_start;
-    u32 kernelEnd = (u32)&_kernel_end;
+    // _kernel_start/_kernel_end are virtual addresses; subtract KERNEL_VBASE
+    // to get physical addresses for the bitmap.
+    u32 kernelStart = (u32)&_kernel_start - KERNEL_VBASE;
+    u32 kernelEnd = (u32)&_kernel_end - KERNEL_VBASE;
     markRegionUsed(kernelStart, kernelEnd - kernelStart);
 
-    u32 bitmapAddr = (u32)bitmap;
+    // bitmap is in kernel .bss (virtual address); subtract KERNEL_VBASE.
+    u32 bitmapAddr = (u32)bitmap - KERNEL_VBASE;
     markRegionUsed(bitmapAddr, BITMAP_SIZE);
 
     markRegionUsed(0, FRAME_SIZE);
