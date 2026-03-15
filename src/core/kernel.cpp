@@ -8,6 +8,8 @@
  */
 
 #include "core/kernel.hpp"
+#include "core/process.hpp"
+#include "core/scheduler.hpp"
 #include "core/shell.hpp"
 #include "core/syscall.hpp"
 #include "drivers/ata.hpp"
@@ -62,6 +64,18 @@ void start(void* multiboot, u32 magic) {
     dm.addDriver(pit);
     dm.addDriver(keyboard);
     dm.addDriver(ata);
+
+    // Initialize scheduler and register kernel task.
+    Scheduler& scheduler = Scheduler::getScheduler();
+    scheduler.init(gdt);
+
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* kernelTask = pm.current();
+    kernelTask->state = ProcessState::Running;
+    kernelTask->cs = 0x08;
+    kernelTask->ds = 0x10;
+    kernelTask->pageDirectory = 0;
+    scheduler.addProcess(kernelTask);
 
     dm.load();
 
