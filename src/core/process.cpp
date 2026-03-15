@@ -1,0 +1,71 @@
+/**
+ * process.cpp
+ *
+ * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
+ * Use of this source code is governed by a MIT-style
+ * license that can be found in the LICENSE file.
+ *
+ */
+
+#include "core/process.hpp"
+
+using namespace cassio;
+using namespace cassio::kernel;
+
+ProcessManager ProcessManager::instance;
+
+ProcessManager::ProcessManager()
+    : currentPid(0), nextPid(1) {
+    for (u32 i = 0; i < MAX_PROCESSES; i++) {
+        processes[i].pid = 0;
+        processes[i].state = ProcessState::Empty;
+    }
+}
+
+Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirectory) {
+    for (u32 i = 1; i < MAX_PROCESSES; i++) {
+        if (processes[i].state == ProcessState::Empty) {
+            Process& p = processes[i];
+            p.pid = nextPid++;
+            p.state = ProcessState::Ready;
+            p.eip = eip;
+            p.esp = esp;
+            p.cs = cs;
+            p.ds = ds;
+            p.eax = 0;
+            p.ebx = 0;
+            p.ecx = 0;
+            p.edx = 0;
+            p.esi = 0;
+            p.edi = 0;
+            p.ebp = 0;
+            p.eflags = 0x202;
+            p.pageDirectory = pageDirectory;
+            p.kernelEsp = 0;
+            return &p;
+        }
+    }
+    return nullptr;
+}
+
+void ProcessManager::destroy(u32 pid) {
+    for (u32 i = 1; i < MAX_PROCESSES; i++) {
+        if (processes[i].pid == pid && processes[i].state != ProcessState::Empty) {
+            processes[i].state = ProcessState::Empty;
+            return;
+        }
+    }
+}
+
+Process* ProcessManager::current() {
+    return &processes[currentPid];
+}
+
+Process* ProcessManager::get(u32 pid) {
+    for (u32 i = 0; i < MAX_PROCESSES; i++) {
+        if (processes[i].pid == pid && processes[i].state != ProcessState::Empty) {
+            return &processes[i];
+        }
+    }
+    return nullptr;
+}
