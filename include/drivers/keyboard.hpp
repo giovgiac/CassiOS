@@ -301,6 +301,8 @@ public:
  * it to resolve scancodes into the correct KeyCode before dispatching.
  *
  */
+constexpr u16 KEYBOARD_BUFFER_SIZE = 256;
+
 class KeyboardDriver : public hardware::Driver {
 private:
     hardware::Port<u8> cmd;
@@ -313,6 +315,11 @@ private:
     bool alt_held;
     bool caps_lock_on;
     bool e0_prefix;
+
+    // Ring buffer for buffering typed characters for syscall read().
+    char ring[KEYBOARD_BUFFER_SIZE];
+    u16 ring_head;
+    u16 ring_tail;
 
     // Lookup table mapping scancodes (0x00-0x58) to their default KeyCode.
     // A value of 0x00 means the scancode has no KeyCode mapping.
@@ -343,6 +350,14 @@ public:
      *
      */
     void setHandler(KeyboardEventHandler* han);
+
+    /**
+     * @brief Reads and removes one character from the input buffer.
+     *
+     * @return The character, or '\0' if the buffer is empty.
+     *
+     */
+    char readBuffer();
 
     /**
      * @brief Enables keyboard interrupts and clears any pending scancodes.

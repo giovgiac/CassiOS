@@ -31,16 +31,17 @@ TEST(gdt_segment_descriptor_limit_small) {
 }
 
 TEST(gdt_segment_registers_after_load) {
-    GlobalDescriptorTable gdt;
-
+    // Verify against known offsets (code=0x08, data=0x10) rather than
+    // constructing a new GDT on the stack, which would leave the GDTR
+    // pointing at dead stack memory after the test returns.
     u16 cs, ds, ss;
     asm volatile("mov %%cs, %0" : "=r"(cs));
     asm volatile("mov %%ds, %0" : "=r"(ds));
     asm volatile("mov %%ss, %0" : "=r"(ss));
 
-    ASSERT_EQ(static_cast<u32>(cs), static_cast<u32>(gdt.getCodeOffset()));
-    ASSERT_EQ(static_cast<u32>(ds), static_cast<u32>(gdt.getDataOffset()));
-    ASSERT_EQ(static_cast<u32>(ss), static_cast<u32>(gdt.getDataOffset()));
+    ASSERT_EQ(static_cast<u32>(cs), 0x08u);
+    ASSERT_EQ(static_cast<u32>(ds), 0x10u);
+    ASSERT_EQ(static_cast<u32>(ss), 0x10u);
 }
 
 TEST(gdt_segment_descriptor_limit_large) {

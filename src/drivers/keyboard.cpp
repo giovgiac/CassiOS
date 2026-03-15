@@ -170,10 +170,21 @@ KeyboardDriver::KeyboardDriver()
       ctrl_held(false),
       alt_held(false),
       caps_lock_on(false),
-      e0_prefix(false) {}
+      e0_prefix(false),
+      ring_head(0),
+      ring_tail(0) {}
 
 void KeyboardDriver::setHandler(KeyboardEventHandler* han) {
     handler = han;
+}
+
+char KeyboardDriver::readBuffer() {
+    if (ring_head == ring_tail) {
+        return '\0';
+    }
+    char ch = ring[ring_tail];
+    ring_tail = (ring_tail + 1) % KEYBOARD_BUFFER_SIZE;
+    return ch;
 }
 
 void KeyboardDriver::deactivate() {}
@@ -205,10 +216,6 @@ void KeyboardDriver::activate() {
 u32 KeyboardDriver::handleInterrupt(u32 esp) {
     u8 raw = data.read();
 
-    if (!handler) {
-        return esp;
-    }
-
     // Extended scancode prefix -- the next byte carries the actual scancode.
     if (raw == 0xE0) {
         e0_prefix = true;
@@ -231,7 +238,7 @@ u32 KeyboardDriver::handleInterrupt(u32 esp) {
             default: break;
             }
 
-            if (static_cast<u8>(key) != 0) {
+            if (static_cast<u8>(key) != 0 && handler) {
                 handler->OnKeyDown(key);
             }
         }
@@ -279,7 +286,20 @@ u32 KeyboardDriver::handleInterrupt(u32 esp) {
                 key = resolveShift(key);
             }
 
-            handler->OnKeyDown(key);
+            // Buffer printable characters and Enter for syscall read().
+            u8 ch = static_cast<u8>(key);
+            if ((ch >= 0x20 && ch <= 0x7E) || key == KeyCode::Enter) {
+                char c = (key == KeyCode::Enter) ? '\n' : static_cast<char>(ch);
+                u16 next = (ring_head + 1) % KEYBOARD_BUFFER_SIZE;
+                if (next != ring_tail) {
+                    ring[ring_head] = c;
+                    ring_head = next;
+                }
+            }
+
+            if (handler) {
+                handler->OnKeyDown(key);
+            }
         }
     }
 

@@ -36,6 +36,10 @@ void InterruptManager::setInterrupt(u8 number, u16 code_offset, void(*handler)()
     idt[number].reserved = 0;
 }
 
+void InterruptManager::setGate(u8 vector, void(*handler)(), u8 dpl) {
+    setInterrupt(vector, 0x08, handler, dpl, IDT_TRAP_GATE);
+}
+
 void InterruptManager::load(cassio::kernel::GlobalDescriptorTable& gdt) {
     u16 code_offset = gdt.getCodeOffset();
 

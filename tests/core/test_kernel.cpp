@@ -1,4 +1,7 @@
+#include <core/gdt.hpp>
 #include <core/kernel.hpp>
+#include <core/syscall.hpp>
+#include <hardware/interrupt.hpp>
 #include <hardware/serial.hpp>
 #include <memory/heap.hpp>
 #include <memory/paging.hpp>
@@ -6,6 +9,7 @@
 #include "test.hpp"
 
 using namespace cassio;
+using namespace cassio::kernel;
 using namespace cassio::hardware;
 using namespace cassio::memory;
 
@@ -15,7 +19,16 @@ void ctors() {
     }
 }
 
+GlobalDescriptorTable test_gdt;
+
 void start(void* multiboot, u32 magic) {
+    GlobalDescriptorTable& gdt = test_gdt;
+    InterruptManager& im = InterruptManager::getManager();
+    im.load(gdt);
+
+    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
+    sh.load();
+
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
     pmm.init((MultibootInfo*)multiboot);
 

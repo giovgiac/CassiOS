@@ -17,6 +17,7 @@ namespace cassio {
 bool streq(const char* a, const char* b);
 void strcpy(char* dst, const char* src, usize max);
 usize strlen(const char* str);
+u32 strtou32(const char* str);
 
 } // cassio
 
