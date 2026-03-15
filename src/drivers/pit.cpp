@@ -8,6 +8,7 @@
  */
 
 #include "drivers/pit.hpp"
+#include "core/scheduler.hpp"
 
 using namespace cassio;
 using namespace cassio::drivers;
@@ -31,7 +32,7 @@ void PitTimer::activate() {
 
 u32 PitTimer::handleInterrupt(u32 esp) {
     ticks += 1;
-    return esp;
+    return kernel::Scheduler::getScheduler().schedule(esp);
 }
 
 u32 PitTimer::getTicks() {

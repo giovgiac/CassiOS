@@ -69,3 +69,12 @@ Process* ProcessManager::get(u32 pid) {
     }
     return nullptr;
 }
+
+void ProcessManager::setCurrent(Process* process) {
+    for (u32 i = 0; i < MAX_PROCESSES; i++) {
+        if (&processes[i] == process) {
+            currentPid = i;
+            return;
+        }
+    }
+}

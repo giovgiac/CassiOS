@@ -76,6 +76,12 @@ public:
      */
     Process* get(u32 pid);
 
+    /**
+     * @brief Sets the given process as the current one.
+     *
+     */
+    void setCurrent(Process* process);
+
     /** Deleted Methods */
     ProcessManager(const ProcessManager&) = delete;
     ProcessManager(ProcessManager&&) = delete;
