@@ -2,7 +2,7 @@
 
 ## Current State
 
-CassiOS boots via GRUB (multiboot), runs in 32-bit protected mode with flat segmentation (monolithic kernel, all ring 0). Has a GDT, IDT, interrupt-driven PS/2 keyboard and mouse drivers, a VGA text-mode terminal, a shell with 22 commands, serial output (COM1), an in-kernel test framework, physical/heap memory management with paging, an in-memory filesystem, an ATA PIO block device driver for IDE disk access, and a syscall interface via int 0x80.
+CassiOS boots via GRUB (multiboot), runs in 32-bit protected mode with a GDT (kernel + user segments + TSS), IDT, interrupt-driven PS/2 keyboard and mouse drivers, a VGA text-mode terminal, a shell with 22 commands, serial output (COM1), an in-kernel test framework, physical/heap memory management with paging, an in-memory filesystem, an ATA PIO block device driver, a syscall interface via int 0x80, preemptive round-robin scheduling, per-process address spaces, an ELF loader, and a ring 3 init process running alongside the kernel shell.
 
 ## Phase 1: Memory Management
 
@@ -52,7 +52,7 @@ Design: `docs/plans/2026-03-15-syscall-interface-design.md`
 
 ## Phase 7: Userspace and Process Management
 
-**Status**: Design complete
+**Status**: Complete
 
 Add ring 3 execution, an ELF loader, preemptive scheduling, and per-process address spaces. A single init process loaded from a GRUB multiboot module runs alongside the existing kernel shell.
 
