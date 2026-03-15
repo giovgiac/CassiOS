@@ -25,42 +25,6 @@ using namespace cassio::kernel;
 using namespace cassio::hardware;
 using namespace cassio::memory;
 
-static u8 taskAStack[4096] __attribute__((aligned(16)));
-static u8 taskBStack[4096] __attribute__((aligned(16)));
-
-static void taskA() {
-    VgaTerminal& vga = VgaTerminal::getTerminal();
-    PitTimer& pit = PitTimer::getTimer();
-    while (true) {
-        vga.print("[A]");
-        pit.sleep(1000);
-    }
-}
-
-static void taskB() {
-    VgaTerminal& vga = VgaTerminal::getTerminal();
-    PitTimer& pit = PitTimer::getTimer();
-    while (true) {
-        vga.print("[B]");
-        pit.sleep(1000);
-    }
-}
-
-static u32 buildInterruptFrame(u8* stackTop, u32 eip) {
-    u32* sp = (u32*)stackTop;
-    *(--sp) = 0x202;    // eflags (IF=1)
-    *(--sp) = 0x08;     // cs (kernel code)
-    *(--sp) = eip;      // eip
-    // pusha order: eax, ecx, edx, ebx, esp, ebp, esi, edi
-    for (i32 i = 0; i < 8; i++) *(--sp) = 0;
-    // segment registers: ds, es, fs, gs
-    *(--sp) = 0x10;     // ds
-    *(--sp) = 0x10;     // es
-    *(--sp) = 0x10;     // fs
-    *(--sp) = 0x10;     // gs
-    return (u32)sp;
-}
-
 void ctors() {
     for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
         (*ct)();
@@ -112,15 +76,6 @@ void start(void* multiboot, u32 magic) {
     kernelTask->ds = 0x10;
     kernelTask->pageDirectory = 0;
     scheduler.addProcess(kernelTask);
-
-    // Create two demo kernel tasks for manual scheduling verification.
-    u32 espA = buildInterruptFrame(taskAStack + sizeof(taskAStack), (u32)taskA);
-    Process* pA = pm.create((u32)taskA, espA, 0x08, 0x10, 0);
-    scheduler.addProcess(pA);
-
-    u32 espB = buildInterruptFrame(taskBStack + sizeof(taskBStack), (u32)taskB);
-    Process* pB = pm.create((u32)taskB, espB, 0x08, 0x10, 0);
-    scheduler.addProcess(pB);
 
     dm.load();
 
