@@ -103,3 +103,62 @@ TEST(paging_pmm_returns_physical_addresses) {
     ASSERT((u32)frame < KERNEL_VBASE);
     pmm.freeFrame(frame);
 }
+
+TEST(paging_create_address_space_returns_physical) {
+    PagingManager& pm = PagingManager::getManager();
+    u32 pd = pm.createAddressSpace();
+    ASSERT(pd != 0);
+    ASSERT(pd < KERNEL_VBASE);
+
+    pm.destroyAddressSpace(pd);
+}
+
+TEST(paging_create_address_space_shares_kernel_pdes) {
+    PagingManager& pm = PagingManager::getManager();
+    u32 pd = pm.createAddressSpace();
+    ASSERT(pd != 0);
+
+    // Read current kernel CR3 to get the kernel page directory physical address.
+    u32 cr3;
+    asm volatile("mov %%cr3, %0" : "=r"(cr3));
+    u32* kernelPd = (u32*)(cr3 + KERNEL_VBASE);
+    u32* newPd = (u32*)(pd + KERNEL_VBASE);
+
+    // Kernel PDEs (768-1023) must be identical.
+    for (u32 i = 768; i < 1024; i++) {
+        ASSERT_EQ(newPd[i], kernelPd[i]);
+    }
+
+    // User PDEs (0-767) must be zeroed.
+    for (u32 i = 0; i < 768; i++) {
+        ASSERT_EQ(newPd[i], 0u);
+    }
+
+    pm.destroyAddressSpace(pd);
+}
+
+TEST(paging_map_user_page_creates_mapping) {
+    PagingManager& pm = PagingManager::getManager();
+    PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
+
+    u32 pd = pm.createAddressSpace();
+    ASSERT(pd != 0);
+
+    void* frame = pmm.allocFrame();
+    ASSERT(frame != nullptr);
+
+    u32 userVirt = 0x00400000;
+    pm.mapUserPage(pd, userVirt, (u32)frame, PAGE_PRESENT | PAGE_READWRITE | PAGE_USER);
+
+    // Verify the PTE was created by reading the page table.
+    u32* pdPtr = (u32*)(pd + KERNEL_VBASE);
+    u32 pdIndex = userVirt >> 22;
+    ASSERT(pdPtr[pdIndex] & PAGE_PRESENT);
+
+    u32* pt = (u32*)((pdPtr[pdIndex] & 0xFFFFF000) + KERNEL_VBASE);
+    u32 ptIndex = (userVirt >> 12) & 0x3FF;
+    ASSERT(pt[ptIndex] & PAGE_PRESENT);
+    ASSERT_EQ(pt[ptIndex] & 0xFFFFF000, (u32)frame);
+
+    pm.destroyAddressSpace(pd);
+}

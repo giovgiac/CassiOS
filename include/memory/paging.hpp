@@ -32,6 +32,30 @@ public:
     void unmapPage(u32 virtualAddr);
     void flushTLB(u32 virtualAddr);
 
+    /**
+     * @brief Creates a new address space with shared kernel mappings.
+     *
+     * Allocates a page directory frame, copies kernel PDEs (768-1023)
+     * from the kernel page directory, and zeroes user PDEs (0-767).
+     * Returns the physical address of the new page directory, or 0 on failure.
+     *
+     */
+    u32 createAddressSpace();
+
+    /**
+     * @brief Maps a page in an arbitrary page directory.
+     *
+     * Accesses the target page directory and page tables via phys + KERNEL_VBASE.
+     *
+     */
+    void mapUserPage(u32 pdPhysical, u32 virtualAddr, u32 physicalAddr, u16 flags);
+
+    /**
+     * @brief Frees all user page tables, mapped user frames, and the page directory.
+     *
+     */
+    void destroyAddressSpace(u32 pdPhysical);
+
     PagingManager(const PagingManager&) = delete;
     PagingManager(PagingManager&&) = delete;
     PagingManager& operator=(const PagingManager&) = delete;

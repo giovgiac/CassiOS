@@ -115,3 +115,78 @@ void PagingManager::unmapPage(u32 virtualAddr) {
 void PagingManager::flushTLB(u32 virtualAddr) {
     asm volatile("invlpg (%0)" :: "r"(virtualAddr) : "memory");
 }
+
+u32 PagingManager::createAddressSpace() {
+    PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
+    void* frame = pmm.allocFrame();
+    if (!frame) {
+        return 0;
+    }
+
+    u32* newPd = (u32*)((u32)frame + KERNEL_VBASE);
+
+    // Zero user PDEs (0-767).
+    for (u32 i = 0; i < 768; i++) {
+        newPd[i] = 0;
+    }
+
+    // Copy kernel PDEs (768-1023) so kernel mappings are shared.
+    for (u32 i = 768; i < 1024; i++) {
+        newPd[i] = pageDirectory[i];
+    }
+
+    return (u32)frame;
+}
+
+void PagingManager::mapUserPage(u32 pdPhysical, u32 virtualAddr, u32 physicalAddr, u16 flags) {
+    u32* pd = (u32*)(pdPhysical + KERNEL_VBASE);
+    u32 pdIndex = virtualAddr >> 22;
+    u32 ptIndex = (virtualAddr >> 12) & 0x3FF;
+
+    // Allocate a page table if this directory entry is empty.
+    if (!(pd[pdIndex] & PAGE_PRESENT)) {
+        PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
+        void* ptFrame = pmm.allocFrame();
+        if (!ptFrame) {
+            return;
+        }
+
+        u32* pageTable = (u32*)((u32)ptFrame + KERNEL_VBASE);
+        for (u32 i = 0; i < 1024; i++) {
+            pageTable[i] = 0;
+        }
+
+        pd[pdIndex] = (u32)ptFrame | PAGE_PRESENT | PAGE_READWRITE | PAGE_USER;
+    }
+
+    u32* pageTable = (u32*)((pd[pdIndex] & 0xFFFFF000) + KERNEL_VBASE);
+    pageTable[ptIndex] = (physicalAddr & 0xFFFFF000) | (flags & 0xFFF);
+}
+
+void PagingManager::destroyAddressSpace(u32 pdPhysical) {
+    PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
+    u32* pd = (u32*)(pdPhysical + KERNEL_VBASE);
+
+    // Walk user PDEs only (0-767). Kernel PDEs (768-1023) are shared.
+    for (u32 i = 0; i < 768; i++) {
+        if (!(pd[i] & PAGE_PRESENT)) {
+            continue;
+        }
+
+        u32 ptPhysical = pd[i] & 0xFFFFF000;
+        u32* pageTable = (u32*)(ptPhysical + KERNEL_VBASE);
+
+        // Free all mapped user frames in this page table.
+        for (u32 j = 0; j < 1024; j++) {
+            if (pageTable[j] & PAGE_PRESENT) {
+                pmm.freeFrame((void*)(pageTable[j] & 0xFFFFF000));
+            }
+        }
+
+        // Free the page table frame itself.
+        pmm.freeFrame((void*)ptPhysical);
+    }
+
+    // Free the page directory frame.
+    pmm.freeFrame((void*)pdPhysical);
+}
