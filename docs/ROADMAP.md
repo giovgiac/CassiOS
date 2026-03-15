@@ -52,13 +52,19 @@ Design: `docs/plans/2026-03-15-syscall-interface-design.md`
 
 ## Phase 7: Userspace and Process Management
 
-**Planning**: Brainstorm + design doc
+**Status**: Design complete
 
-1. **Ring 3 execution** — TSS setup, user-mode code/data segments in the GDT, transition to ring 3
-2. **ELF loader** — parse and load ELF binaries into per-process address spaces
-3. **Scheduler** — preemptive round-robin using the PIT timer, context switching (save/restore registers + page directory)
-4. **Per-process address spaces** — separate page directories, copy-on-write or simple cloning for fork-like semantics
-5. **Interrupt subsystem refactor** — split InterruptManager into IDT owner, ExceptionHandler, IrqManager, and SyscallHandler once the number of vectors and categories justifies it
+Add ring 3 execution, an ELF loader, preemptive scheduling, and per-process address spaces. A single init process loaded from a GRUB multiboot module runs alongside the existing kernel shell.
+
+1. **GDT + TSS** — user code/data segments, Task State Segment for ring 0 stack on privilege transitions
+2. **Process management** — Process struct, fixed-size process table (16 slots), ProcessManager singleton
+3. **Scheduler** — preemptive round-robin via PIT timer, context switching by swapping saved ESP, single kernel stack with state saved to PCB
+4. **Per-process address spaces** — separate page directories with shared kernel mappings, user pages in lower 3 GiB
+5. **ELF loader** — parse ELF32 from multiboot modules, load PT_LOAD segments into user address spaces
+6. **Ring 3 entry** — fake interrupt frame for initial iret to userspace, TSS.esp0 updates on context switch
+7. **Init process** — separate userspace binary (`userspace/init/`), prints uptime every 5 seconds via syscalls
+
+Design: `docs/plans/2026-03-16-userspace-process-management-design.md`
 
 ## Phase 8: IPC and Microkernel Transition
 
@@ -66,10 +72,11 @@ Design: `docs/plans/2026-03-15-syscall-interface-design.md`
 
 Migrate from monolithic to microkernel architecture. The kernel shrinks to: IPC, scheduling, memory management, and interrupt routing. Everything else moves to userspace services.
 
-1. **IPC mechanism** — synchronous message passing (send/receive/reply). This is the critical path for performance.
-2. **IRQ forwarding** — kernel routes hardware interrupts to registered userspace driver processes via IPC
-3. **Service migration** — move drivers (keyboard, mouse), filesystem, and shell out of the kernel into separate userspace processes
-4. **Nameserver** — simple service for processes to find each other by name (e.g., shell looks up "vfs" to find the filesystem service)
+1. **Interrupt subsystem refactor** — split InterruptManager into IDT owner, ExceptionHandler, IrqManager, and SyscallHandler (deferred from Phase 7 — justified now by IRQ forwarding and growing vector count)
+2. **IPC mechanism** — synchronous message passing (send/receive/reply). This is the critical path for performance.
+3. **IRQ forwarding** — kernel routes hardware interrupts to registered userspace driver processes via IPC
+4. **Service migration** — move drivers (keyboard, mouse), filesystem, and shell out of the kernel into separate userspace processes
+5. **Nameserver** — simple service for processes to find each other by name (e.g., shell looks up "vfs" to find the filesystem service)
 
 ## Phase 9: FAT32 Filesystem
 
