@@ -25,7 +25,8 @@ namespace hardware {
  */
 enum InterruptFlags : u8 {
     IDT_DESCRIPTOR_PRESENT = 0x80,
-    IDT_INTERRUPT_GATE = 0xE
+    IDT_INTERRUPT_GATE = 0xE,
+    IDT_TRAP_GATE = 0xF
 };
 
 /**
@@ -119,6 +120,12 @@ public:
      *
      */
     void setInterrupt(u8 number, u16 code_offset, void(*handler)(), u8 access, u8 flags);
+
+    /**
+     * @brief Registers a non-IRQ interrupt gate at the given vector with the specified DPL.
+     *
+     */
+    void setGate(u8 vector, void(*handler)(), u8 dpl);
 
     /**
      * @brief Populates the IDT, remaps the PICs, and loads the IDT via lidt.

@@ -28,10 +28,13 @@ TEST(interrupt_driver_type_timer) {
     ASSERT_EQ(static_cast<u32>(DriverType::SystemTimer), 0x20u);
 }
 
+extern cassio::kernel::GlobalDescriptorTable test_gdt;
+
 TEST(interrupt_idt_entry_after_load) {
-    GlobalDescriptorTable gdt;
-    InterruptManager& im = InterruptManager::getManager();
-    im.load(gdt);
+    GlobalDescriptorTable& gdt = test_gdt;
+
+    // IDT is already loaded by test kernel's start() -- do not call
+    // im.load() here as it resets all 256 entries, wiping the syscall gate.
 
     // Retrieve IDT base via sidt
     struct __attribute__((packed)) { u16 limit; u32 base; } idtr;

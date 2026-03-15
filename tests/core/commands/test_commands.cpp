@@ -9,8 +9,8 @@ TEST(command_registry_has_commands) {
 }
 
 TEST(command_registry_count_matches_expected) {
-    // Twenty-one built-in commands (18 original + atainfo, ataread, atawrite).
-    ASSERT_EQ(Command::getCount(), 21);
+    // Twenty-two built-in commands (18 original + atainfo, ataread, atawrite, syscall).
+    ASSERT_EQ(Command::getCount(), 22);
 }
 
 TEST(command_find_existing) {
