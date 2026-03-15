@@ -52,3 +52,52 @@ TEST(gdt_segment_descriptor_limit_large) {
     // 0xFFFFFFFF -> (0xFFFFFFFF >> 12) = 0xFFFFF pages -> decoded: (0xFFFFF << 12) | 0xFFF = 0xFFFFFFFF
     ASSERT_EQ(limit, 0xFFFFFFFFu);
 }
+
+TEST(gdt_user_code_segment_offset) {
+    // User code segment is the 4th entry -> offset 0x18
+    u32 expected = 3 * sizeof(GlobalDescriptorTable::SegmentDescriptor);
+    ASSERT_EQ(expected, 0x18u);
+}
+
+TEST(gdt_user_data_segment_offset) {
+    // User data segment is the 5th entry -> offset 0x20
+    u32 expected = 4 * sizeof(GlobalDescriptorTable::SegmentDescriptor);
+    ASSERT_EQ(expected, 0x20u);
+}
+
+TEST(gdt_tss_offset) {
+    // TSS descriptor is the 6th entry -> offset 0x28
+    u32 expected = 5 * sizeof(GlobalDescriptorTable::SegmentDescriptor);
+    ASSERT_EQ(expected, 0x28u);
+}
+
+TEST(gdt_tss_struct_size) {
+    ASSERT_EQ(static_cast<u32>(sizeof(GlobalDescriptorTable::TaskStateSegment)), 104u);
+}
+
+TEST(gdt_tss_loaded) {
+    // Verify the task register holds the TSS selector (0x28).
+    u16 tr;
+    asm volatile("str %0" : "=r"(tr));
+    ASSERT_EQ(static_cast<u32>(tr), 0x28u);
+}
+
+TEST(gdt_set_tss_esp0) {
+    // Write a known value to TSS.esp0 via the GDT API, then verify by
+    // reading through the hardware: SGDT -> TSS descriptor -> TSS.esp0.
+    extern GlobalDescriptorTable test_gdt;
+    test_gdt.setTssEsp0(0xDEADBEEF);
+
+    // Read GDT base via SGDT.
+    u8 gdtr[6];
+    asm volatile("sgdt %0" : "=m"(gdtr));
+    u32 gdtBase = *(u32*)(gdtr + 2);
+
+    // TSS descriptor is at offset 0x28. Decode its base address.
+    u8* tssDesc = (u8*)(gdtBase + 0x28);
+    u32 tssBase = tssDesc[2] | (tssDesc[3] << 8) | (tssDesc[4] << 16) | (tssDesc[7] << 24);
+
+    // esp0 is at offset 4 in the TSS struct.
+    u32 esp0 = *(u32*)(tssBase + 4);
+    ASSERT_EQ(esp0, 0xDEADBEEFu);
+}
