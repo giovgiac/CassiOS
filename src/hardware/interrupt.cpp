@@ -46,6 +46,7 @@ void InterruptManager::load(cassio::kernel::GlobalDescriptorTable& gdt) {
     setInterrupt(0x20, code_offset, &handleInterruptRequest0x00, 0, IDT_INTERRUPT_GATE);
     setInterrupt(0x21, code_offset, &handleInterruptRequest0x01, 0, IDT_INTERRUPT_GATE);
     setInterrupt(0x2C, code_offset, &handleInterruptRequest0x0C, 0, IDT_INTERRUPT_GATE);
+    setInterrupt(0x2E, code_offset, &handleInterruptRequest0x0E, 0, IDT_INTERRUPT_GATE);
 
     /** Remapping of the PICs to avoid conflicts between software and hardware interrupts. */
 

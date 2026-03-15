@@ -9,8 +9,8 @@ TEST(command_registry_has_commands) {
 }
 
 TEST(command_registry_count_matches_expected) {
-    // Eighteen built-in commands.
-    ASSERT_EQ(Command::getCount(), 18);
+    // Twenty-one built-in commands (18 original + atainfo, ataread, atawrite).
+    ASSERT_EQ(Command::getCount(), 21);
 }
 
 TEST(command_find_existing) {
@@ -41,6 +41,9 @@ TEST(command_find_each_builtin) {
     ASSERT(Command::find("echo") != nullptr);
     ASSERT(Command::find("mv") != nullptr);
     ASSERT(Command::find("cp") != nullptr);
+    ASSERT(Command::find("atainfo") != nullptr);
+    ASSERT(Command::find("ataread") != nullptr);
+    ASSERT(Command::find("atawrite") != nullptr);
 }
 
 TEST(command_name_matches) {

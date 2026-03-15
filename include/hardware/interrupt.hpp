@@ -94,6 +94,7 @@ public:
     static void handleInterruptRequest0x00();
     static void handleInterruptRequest0x01();
     static void handleInterruptRequest0x0C();
+    static void handleInterruptRequest0x0E();
 
     /**
      * @brief Enables hardware interrupts by executing the sti instruction.
