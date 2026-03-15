@@ -8,8 +8,11 @@ LDFLAGS = -melf_i386
 
 KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
+INIT = bin/init.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
+
+INIT_CXXFLAGS = -m32 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector
 
 # Discover all source files automatically.
 cpp_sources = $(shell find src/ -name '*.cpp')
@@ -36,6 +39,11 @@ obj/%.o: src/%.s
 kernel: src/linker.ld $(objects)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects)
+
+$(INIT): userspace/init/main.cpp userspace/init/linker.ld
+	@mkdir -p bin obj/userspace/init
+	g++ $(INIT_CXXFLAGS) -o obj/userspace/init/main.o -c userspace/init/main.cpp
+	ld $(LDFLAGS) -T userspace/init/linker.ld -o $(INIT) obj/userspace/init/main.o
 
 # Compile test files from the tests/ directory.
 obj/tests/%.o: tests/%.cpp
@@ -78,10 +86,11 @@ iso: kernel
 	grub-mkrescue --output=$(ISO) iso
 	rm -rf iso
 
-run: kernel $(DISK)
+run: kernel $(INIT) $(DISK)
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
+	    -initrd $(INIT) \
 	    -drive file=$(DISK),format=raw,if=ide
 
-.PHONY: kernel iso clean run test
+.PHONY: kernel iso clean run test init
 clean:
 	rm -rf obj/ bin/
