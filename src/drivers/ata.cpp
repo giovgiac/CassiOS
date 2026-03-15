@@ -70,7 +70,7 @@ void AtaPioDriver::activate() {
     lba_high.write(0);
 
     // Send IDENTIFY command.
-    command_status.write(ATA_CMD_IDENTIFY);
+    command_status.write(static_cast<u8>(AtaCommand::Identify));
     delay400ns();
 
     // Check if drive exists.
@@ -165,7 +165,7 @@ bool AtaPioDriver::readSector(u32 lba, u8* buffer) {
     lba_mid.write(static_cast<u8>(lba >> 8));
     lba_high.write(static_cast<u8>(lba >> 16));
 
-    command_status.write(ATA_CMD_READ_SECTORS);
+    command_status.write(static_cast<u8>(AtaCommand::ReadSectors));
 
     delay400ns();
 
@@ -193,7 +193,7 @@ bool AtaPioDriver::writeSector(u32 lba, const u8* buffer) {
     lba_mid.write(static_cast<u8>(lba >> 8));
     lba_high.write(static_cast<u8>(lba >> 16));
 
-    command_status.write(ATA_CMD_WRITE_SECTORS);
+    command_status.write(static_cast<u8>(AtaCommand::WriteSectors));
 
     delay400ns();
 
@@ -206,7 +206,7 @@ bool AtaPioDriver::writeSector(u32 lba, const u8* buffer) {
     }
 
     // Flush the write cache.
-    command_status.write(ATA_CMD_CACHE_FLUSH);
+    command_status.write(static_cast<u8>(AtaCommand::CacheFlush));
     poll();
 
     return true;

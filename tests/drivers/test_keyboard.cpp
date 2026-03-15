@@ -86,7 +86,7 @@ TEST(keyboard_irq_enabled_after_activate) {
     // Read back the PS/2 controller command byte
     Port<u8> cmd(PortType::KeyboardControllerCommand);
     Port<u8> data(PortType::KeyboardControllerData);
-    cmd.write(KeyboardCommand::ReadCommandByte);
+    cmd.write(static_cast<u8>(KeyboardCommand::ReadCommandByte));
     u8 status = data.read();
 
     // Keyboard interrupt bit (bit 0) must still be enabled

@@ -18,23 +18,19 @@ namespace cassio {
 namespace drivers {
 
 /**
- * @brief Defines names for the PS/2 Mouse commands that can be sent to the controller.
- * 
- * A namespace which contains constants for the various possible mouse commands, these
- * include reading and writing to the 'command byte', as well as testing and enabling the
- * mouse interrupts.
- * 
+ * @brief PS/2 controller commands for mouse operation, sent to the command port (0x64).
+ *
  * @see https://www.avrfreaks.net/sites/default/files/PS2%20Keyboard.pdf
- * 
+ *
  */
-namespace MouseCommand {
-    constexpr u8 ReadCommand        = 0x20;
-    constexpr u8 WriteCommand       = 0x60;
-    constexpr u8 GetVersionNumber   = 0xA1;
-    constexpr u8 EnableMouse        = 0xA8;
-    constexpr u8 TestMouse          = 0xA9;
-    constexpr u8 WriteMouse         = 0xD4;
-}
+enum class MouseCommand : u8 {
+    ReadCommand                                 = 0x20,
+    WriteCommand                                = 0x60,
+    GetVersionNumber                            = 0xA1,
+    EnableMouse                                 = 0xA8,
+    TestMouse                                   = 0xA9,
+    WriteMouse                                  = 0xD4
+};
 
 /**
  * @brief Interface for receiving mouse events from the MouseDriver.

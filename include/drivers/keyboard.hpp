@@ -225,23 +225,19 @@ enum class KeyCode : u8 {
 };
 
 /**
- * @brief Defines names for the PS/2 Keyboard commands that can be sent to the controller.
- *
- * A namespace which contains constants for the various possible keyboard commands, these
- * include reading and writing to the 'command byte', as well as testing and enabling the
- * keyboard interrupts.
+ * @brief PS/2 controller commands sent to the command port (0x64).
  *
  * @see KeyboardCommandByte
  * @see https://www.avrfreaks.net/sites/default/files/PS2%20Keyboard.pdf
  *
  */
-namespace KeyboardCommand {
-    constexpr u8 ReadCommandByte                = 0x20;
-    constexpr u8 WriteCommandByte               = 0x60;
-    constexpr u8 GetVersionNumber               = 0xA1;
-    constexpr u8 TestKeyboardInterface          = 0xAB;
-    constexpr u8 EnableKeyboardInterface        = 0xAE;
-}
+enum class KeyboardCommand : u8 {
+    ReadCommandByte                             = 0x20,
+    WriteCommandByte                            = 0x60,
+    GetVersionNumber                            = 0xA1,
+    TestKeyboardInterface                       = 0xAB,
+    EnableKeyboardInterface                     = 0xAE
+};
 
 /**
  * @brief Bitfield layout of the PS/2 controller command byte (port 0x64).

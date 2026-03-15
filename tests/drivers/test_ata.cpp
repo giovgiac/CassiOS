@@ -22,10 +22,10 @@ TEST(ata_driver_type) {
 }
 
 TEST(ata_constants) {
-    ASSERT_EQ(static_cast<u32>(ATA_CMD_READ_SECTORS), 0x20u);
-    ASSERT_EQ(static_cast<u32>(ATA_CMD_WRITE_SECTORS), 0x30u);
-    ASSERT_EQ(static_cast<u32>(ATA_CMD_CACHE_FLUSH), 0xE7u);
-    ASSERT_EQ(static_cast<u32>(ATA_CMD_IDENTIFY), 0xECu);
+    ASSERT_EQ(static_cast<u32>(AtaCommand::ReadSectors), 0x20u);
+    ASSERT_EQ(static_cast<u32>(AtaCommand::WriteSectors), 0x30u);
+    ASSERT_EQ(static_cast<u32>(AtaCommand::CacheFlush), 0xE7u);
+    ASSERT_EQ(static_cast<u32>(AtaCommand::Identify), 0xECu);
     ASSERT_EQ(static_cast<u32>(ATA_SECTOR_SIZE), 512u);
 }
 

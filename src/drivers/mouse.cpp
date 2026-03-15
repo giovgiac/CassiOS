@@ -49,17 +49,17 @@ void MouseDriver::activate() {
     }
 
     // Tells PIC to start sending interrupts.
-    cmd.write(MouseCommand::EnableMouse);
+    cmd.write(static_cast<u8>(MouseCommand::EnableMouse));
 
     // Requests current state.
-    cmd.write(MouseCommand::ReadCommand);
+    cmd.write(static_cast<u8>(MouseCommand::ReadCommand));
 
     // Set new state to status.
     u8 status = data.read() | 2;
-    cmd.write(MouseCommand::WriteCommand);
+    cmd.write(static_cast<u8>(MouseCommand::WriteCommand));
     data.write(status);
 
-    cmd.write(MouseCommand::WriteMouse);
+    cmd.write(static_cast<u8>(MouseCommand::WriteMouse));
     data.write(0xF4);
     data.read();
 }
