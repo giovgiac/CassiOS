@@ -35,6 +35,14 @@ struct __attribute__((packed)) MultibootMmapEntry {
     u32 type;
 };
 
+struct __attribute__((packed)) MultibootModule {
+    u32 mod_start;
+    u32 mod_end;
+    u32 string;
+    u32 reserved;
+};
+
+static constexpr u32 MULTIBOOT_FLAG_MODS = (1 << 3);
 static constexpr u32 MULTIBOOT_FLAG_MMAP = (1 << 6);
 static constexpr u32 MULTIBOOT_MMAP_AVAILABLE = 1;
 
