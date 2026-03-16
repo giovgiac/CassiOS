@@ -11,12 +11,7 @@ OUTPUT   = $(BINDIR)/$(SERVICE).elf
 LIBCOMMON = $(ROOT)/lib/libcommon.a
 
 # Test runner.
-RUNNER_SOURCES = src/main.cpp
-RUNNER_OBJECTS = $(patsubst src/%.cpp, $(OBJDIR)/%.o, $(RUNNER_SOURCES))
-
-# Local tests (framework validation).
-LOCAL_TEST_SOURCES = $(wildcard tests/test_*.cpp)
-LOCAL_TEST_OBJECTS = $(patsubst tests/%.cpp, $(OBJDIR)/tests/%.o, $(LOCAL_TEST_SOURCES))
+RUNNER_OBJECTS = $(OBJDIR)/main.o
 
 # Nameserver tests and implementation (compiled from ns/).
 NS_TEST_SOURCES = $(wildcard $(NS_DIR)/tests/test_*.cpp)
@@ -24,17 +19,13 @@ NS_IMPL_SOURCES = $(NS_DIR)/src/table.cpp
 NS_TEST_OBJECTS = $(patsubst $(NS_DIR)/tests/%.cpp, $(OBJDIR)/ns/tests/%.o, $(NS_TEST_SOURCES))
 NS_IMPL_OBJECTS = $(patsubst $(NS_DIR)/src/%.cpp, $(OBJDIR)/ns/src/%.o, $(NS_IMPL_SOURCES))
 
-OBJECTS = $(RUNNER_OBJECTS) $(LOCAL_TEST_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS)
+OBJECTS = $(RUNNER_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS)
 
 $(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON)
 	@mkdir -p $(BINDIR)
 	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBCOMMON)
 
-$(OBJDIR)/%.o: src/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $<
-
-$(OBJDIR)/tests/%.o: tests/%.cpp
+$(OBJDIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $<
 
