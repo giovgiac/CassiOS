@@ -50,6 +50,7 @@ private:
     void reboot();
     void shutdown();
     void exit(u32 code);
+    i32 mapDevice(u32 physical, u32 virt, u32 pages);
 
 public:
     /**

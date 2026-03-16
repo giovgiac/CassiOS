@@ -177,9 +177,14 @@ void PagingManager::destroyAddressSpace(u32 pdPhysical) {
         u32* pageTable = (u32*)(ptPhysical + KERNEL_VBASE);
 
         // Free all mapped user frames in this page table.
+        // Skip device memory (physical < 0x100000) since it is not
+        // managed by the frame allocator.
         for (u32 j = 0; j < 1024; j++) {
             if (pageTable[j] & PAGE_PRESENT) {
-                pmm.freeFrame((void*)(pageTable[j] & 0xFFFFF000));
+                u32 frame = pageTable[j] & 0xFFFFF000;
+                if (frame >= 0x100000) {
+                    pmm.freeFrame((void*)frame);
+                }
             }
         }
 

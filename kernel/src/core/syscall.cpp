@@ -15,7 +15,7 @@
 #include "hardware/irq.hpp"
 #include "hardware/port.hpp"
 #include "hardware/serial.hpp"
-#include "hardware/terminal.hpp"
+#include "memory/paging.hpp"
 
 using namespace cassio;
 using namespace cassio::kernel;
@@ -149,14 +149,6 @@ i32 SyscallHandler::reply(u32 targetPid, Message* msg) {
 i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
     const char* str = reinterpret_cast<const char*>(buf);
 
-    if (fd == 1) {
-        VgaTerminal& vga = VgaTerminal::getTerminal();
-        for (u32 i = 0; i < len; ++i) {
-            vga.putchar(str[i]);
-        }
-        return static_cast<i32>(len);
-    }
-
     if (fd == 2) {
         Serial& serial = COM1::getSerial();
         for (u32 i = 0; i < len; ++i) {
@@ -166,6 +158,27 @@ i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
     }
 
     return -1;
+}
+
+i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* caller = pm.current();
+
+    if (!caller || caller->pageDirectory == 0) {
+        return -1;
+    }
+
+    memory::PagingManager& paging = memory::PagingManager::getManager();
+    u16 flags = memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER;
+
+    for (u32 i = 0; i < pages; ++i) {
+        paging.mapUserPage(caller->pageDirectory,
+                           virt + i * 0x1000,
+                           physical + i * 0x1000,
+                           flags);
+    }
+
+    return 0;
 }
 
 i32 SyscallHandler::sleep(u32 ms) {
@@ -251,6 +264,9 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     case SyscallNumber::Exit:
         exit(frame->ebx);
+        return esp;
+    case SyscallNumber::MapDevice:
+        frame->eax = static_cast<u32>(mapDevice(frame->ebx, frame->ecx, frame->edx));
         return esp;
     default:
         frame->eax = static_cast<u32>(-1);

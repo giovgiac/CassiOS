@@ -33,12 +33,20 @@ TEST(syscall_sleep_returns_zero) {
     ASSERT_EQ(after, before);
 }
 
-TEST(syscall_write_returns_length) {
+TEST(syscall_write_serial_returns_length) {
     const char* msg = "test";
     i32 result;
     asm volatile("int $0x80" : "=a"(result)
-                 : "a"(SyscallNumber::Write), "b"(1u), "c"((u32)msg), "d"(4u));
+                 : "a"(SyscallNumber::Write), "b"(2u), "c"((u32)msg), "d"(4u));
     ASSERT_EQ(result, 4);
+}
+
+TEST(syscall_write_vga_removed) {
+    const char* msg = "x";
+    i32 result;
+    asm volatile("int $0x80" : "=a"(result)
+                 : "a"(SyscallNumber::Write), "b"(1u), "c"((u32)msg), "d"(1u));
+    ASSERT_EQ(result, static_cast<i32>(-1));
 }
 
 TEST(syscall_write_invalid_fd) {
