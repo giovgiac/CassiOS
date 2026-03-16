@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 ASMFLAGS = --32
-CXXFLAGS = -m32 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector
 LDFLAGS = -melf_i386
 
 KERNEL = bin/cassio.bin
@@ -28,7 +28,7 @@ test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 # Compile C++ source files.
 obj/%.o: kernel/src/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Ishared/
 
 # Compile assembly source files.
 obj/%.o: kernel/src/%.s
@@ -45,7 +45,7 @@ $(INIT):
 # Compile test files from the kernel/tests/ directory.
 obj/tests/%.o: kernel/tests/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Ikernel/tests/
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Ishared/ -Ikernel/tests/
 
 $(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects)
 	@mkdir -p bin

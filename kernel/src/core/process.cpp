@@ -22,6 +22,26 @@ ProcessManager::ProcessManager()
     }
 }
 
+bool Process::sendQueuePush(u32 senderPid) {
+    if (sendQueueCount >= SEND_QUEUE_SIZE) {
+        return false;
+    }
+    u32 idx = (sendQueueHead + sendQueueCount) % SEND_QUEUE_SIZE;
+    sendQueue[idx] = senderPid;
+    sendQueueCount++;
+    return true;
+}
+
+u32 Process::sendQueuePop() {
+    if (sendQueueCount == 0) {
+        return 0;
+    }
+    u32 pid = sendQueue[sendQueueHead];
+    sendQueueHead = (sendQueueHead + 1) % SEND_QUEUE_SIZE;
+    sendQueueCount--;
+    return pid;
+}
+
 Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirectory) {
     for (u32 i = 1; i < MAX_PROCESSES; i++) {
         if (processes[i].state == ProcessState::Empty) {
@@ -42,6 +62,13 @@ Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirect
             p.eflags = 0x202;
             p.pageDirectory = pageDirectory;
             p.kernelEsp = 0;
+            p.msg = {};
+            p.msgPtr = 0;
+            p.sendQueueHead = 0;
+            p.sendQueueCount = 0;
+            for (u32 j = 0; j < Process::SEND_QUEUE_SIZE; j++) {
+                p.sendQueue[j] = 0;
+            }
             return &p;
         }
     }

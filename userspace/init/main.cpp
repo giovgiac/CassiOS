@@ -9,6 +9,8 @@
  *
  */
 
+#include <syscall.hpp>
+
 using u32 = unsigned int;
 using i32 = int;
 
@@ -24,15 +26,15 @@ static inline i32 syscall(u32 number, u32 arg1 = 0, u32 arg2 = 0, u32 arg3 = 0) 
 }
 
 static i32 sys_write(u32 fd, const char* buf, u32 len) {
-    return syscall(0, fd, (u32)buf, len);
+    return syscall(SyscallNumber::Write, fd, (u32)buf, len);
 }
 
 static i32 sys_sleep(u32 ms) {
-    return syscall(2, ms);
+    return syscall(SyscallNumber::Sleep, ms);
 }
 
 static i32 sys_uptime() {
-    return syscall(3);
+    return syscall(SyscallNumber::Uptime);
 }
 
 static u32 strlen(const char* s) {

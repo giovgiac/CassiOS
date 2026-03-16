@@ -2,7 +2,7 @@
 # Each service Makefile sets SERVICE and SOURCES, then includes this file.
 
 ROOT     = $(dir $(lastword $(MAKEFILE_LIST)))..
-CXXFLAGS = -m32 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/shared/ -I$(ROOT)/userspace/lib/
 LDFLAGS  = -melf_i386
 
 OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
