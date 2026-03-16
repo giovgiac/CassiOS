@@ -10,7 +10,7 @@
 #ifndef CORE_SHELL_HPP_
 #define CORE_SHELL_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <drivers/keyboard.hpp>
 #include <filesystem/filesystem.hpp>
 #include <hardware/terminal.hpp>

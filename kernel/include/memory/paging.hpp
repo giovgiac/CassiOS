@@ -10,7 +10,7 @@
 #ifndef MEMORY_PAGING_HPP_
 #define MEMORY_PAGING_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <memory/multiboot.hpp>
 
 namespace cassio {

@@ -8,7 +8,7 @@
  */
 
 #include "core/commands/command.hpp"
-#include "common/string.hpp"
+#include <string.hpp>
 
 using namespace cassio;
 using namespace cassio::kernel;

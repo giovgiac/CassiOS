@@ -8,7 +8,7 @@
  */
 
 #include "core/commands/system.hpp"
-#include "common/string.hpp"
+#include <string.hpp>
 #include "core/syscall.hpp"
 #include "drivers/pit.hpp"
 #include "hardware/port.hpp"

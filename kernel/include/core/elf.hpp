@@ -10,7 +10,7 @@
 #ifndef CORE_ELF_HPP_
 #define CORE_ELF_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 
 namespace cassio {
 namespace kernel {

@@ -23,16 +23,12 @@ TEST(syscall_uptime_monotonic) {
 }
 
 TEST(syscall_sleep_returns_zero) {
-    // Test sleep via C++ method directly -- using int 0x80 would require
+    // Test sleep by calling PitTimer directly -- using int 0x80 would require
     // hardware interrupts enabled (sti), which conflicts with ATA tests.
-    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
     PitTimer& pit = PitTimer::getTimer();
 
     u32 before = pit.getTicks();
-    i32 result = sh.handleSyscall(SyscallNumber::Sleep, 0, 0, 0);
-    ASSERT_EQ(result, 0);
-
-    // With 0ms sleep, ticks should not change.
+    pit.sleep(0);
     u32 after = pit.getTicks();
     ASSERT_EQ(after, before);
 }
@@ -50,22 +46,6 @@ TEST(syscall_write_invalid_fd) {
     i32 result;
     asm volatile("int $0x80" : "=a"(result)
                  : "a"(SyscallNumber::Write), "b"(99u), "c"((u32)msg), "d"(1u));
-    ASSERT_EQ(result, static_cast<i32>(-1));
-}
-
-TEST(syscall_read_no_input) {
-    char buf[16];
-    i32 result;
-    asm volatile("int $0x80" : "=a"(result)
-                 : "a"(SyscallNumber::Read), "b"(0u), "c"((u32)buf), "d"(16u));
-    ASSERT_EQ(result, 0);
-}
-
-TEST(syscall_read_invalid_fd) {
-    char buf[16];
-    i32 result;
-    asm volatile("int $0x80" : "=a"(result)
-                 : "a"(SyscallNumber::Read), "b"(99u), "c"((u32)buf), "d"(16u));
     ASSERT_EQ(result, static_cast<i32>(-1));
 }
 

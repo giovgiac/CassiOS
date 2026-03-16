@@ -10,7 +10,8 @@
 #ifndef CORE_PROCESS_HPP_
 #define CORE_PROCESS_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
+#include <message.hpp>
 
 namespace cassio {
 namespace kernel {
@@ -19,6 +20,8 @@ enum class ProcessState : u8 {
     Empty,
     Ready,
     Running,
+    SendBlocked,
+    ReceiveBlocked,
 };
 
 struct Process {
@@ -33,6 +36,19 @@ struct Process {
 
     u32 pageDirectory;
     u32 kernelEsp;
+
+    // IPC state.
+    Message msg;        // Outgoing message (sender) or staging buffer.
+    u32 msgPtr;         // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
+
+    // Send queue: PIDs of processes waiting to send to this process.
+    static constexpr u32 SEND_QUEUE_SIZE = 15;
+    u32 sendQueue[SEND_QUEUE_SIZE];
+    u32 sendQueueHead;
+    u32 sendQueueCount;
+
+    bool sendQueuePush(u32 senderPid);
+    u32 sendQueuePop();
 };
 
 /**

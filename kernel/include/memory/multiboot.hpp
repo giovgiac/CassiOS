@@ -10,7 +10,7 @@
 #ifndef MEMORY_MULTIBOOT_HPP_
 #define MEMORY_MULTIBOOT_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 
 namespace cassio {
 namespace memory {

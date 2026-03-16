@@ -10,7 +10,7 @@
 #ifndef COMMON_STRING_HPP_
 #define COMMON_STRING_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 
 namespace cassio {
 

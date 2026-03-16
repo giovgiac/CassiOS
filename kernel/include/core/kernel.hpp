@@ -10,7 +10,7 @@
 #ifndef CORE_KERNEL_HPP_
 #define CORE_KERNEL_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <core/gdt.hpp>
 #include <drivers/keyboard.hpp>
 #include <drivers/mouse.hpp>

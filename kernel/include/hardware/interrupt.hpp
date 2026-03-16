@@ -10,7 +10,7 @@
 #ifndef HARDWARE_INTERRUPT_HPP_
 #define HARDWARE_INTERRUPT_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <core/gdt.hpp>
 #include <hardware/port.hpp>
 

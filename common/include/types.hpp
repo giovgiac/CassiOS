@@ -1,14 +1,14 @@
 /**
  * types.hpp
- * 
+ *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
  */
 
-#ifndef CORE_TYPES_HPP_
-#define CORE_TYPES_HPP_
+#ifndef COMMON_TYPES_HPP_
+#define COMMON_TYPES_HPP_
 
 namespace cassio {
 
@@ -46,4 +46,4 @@ static_assert(sizeof(usize) == 4, "Unexpected size for usize");
 
 }
 
-#endif // CORE_TYPES_HPP_
+#endif // COMMON_TYPES_HPP_

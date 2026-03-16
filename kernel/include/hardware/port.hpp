@@ -10,7 +10,7 @@
 #ifndef CORE_PORT_HPP_
 #define CORE_PORT_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 
 namespace cassio {
 namespace hardware {

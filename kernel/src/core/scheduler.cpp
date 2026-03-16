@@ -32,30 +32,8 @@ void Scheduler::addProcess(Process* process) {
     }
 }
 
-u32 Scheduler::schedule(u32 currentEsp) {
-    if (numProcesses <= 1) {
-        return currentEsp;
-    }
-
-    tickCount++;
-    if (tickCount < timeSlice) {
-        return currentEsp;
-    }
-    tickCount = 0;
-
-    // Save current state.
-    Process* current = processes[currentIndex];
+u32 Scheduler::switchTo(u32 nextIndex, Process* current, u32 currentEsp) {
     current->esp = currentEsp;
-    current->state = ProcessState::Ready;
-
-    // Find next Ready process (round-robin).
-    u32 nextIndex = currentIndex;
-    for (u32 i = 0; i < numProcesses; i++) {
-        nextIndex = (nextIndex + 1) % numProcesses;
-        if (processes[nextIndex]->state == ProcessState::Ready) {
-            break;
-        }
-    }
 
     Process* next = processes[nextIndex];
     next->state = ProcessState::Running;
@@ -75,6 +53,53 @@ u32 Scheduler::schedule(u32 currentEsp) {
     ProcessManager::getManager().setCurrent(next);
 
     return next->esp;
+}
+
+u32 Scheduler::findNextReady(u32 fromIndex) {
+    u32 nextIndex = fromIndex;
+    for (u32 i = 0; i < numProcesses; i++) {
+        nextIndex = (nextIndex + 1) % numProcesses;
+        if (processes[nextIndex]->state == ProcessState::Ready) {
+            return nextIndex;
+        }
+    }
+    // No Ready process found; stay on current.
+    return fromIndex;
+}
+
+u32 Scheduler::schedule(u32 currentEsp) {
+    if (numProcesses <= 1) {
+        return currentEsp;
+    }
+
+    tickCount++;
+    if (tickCount < timeSlice) {
+        return currentEsp;
+    }
+    tickCount = 0;
+
+    Process* current = processes[currentIndex];
+
+    // Only demote Running -> Ready. Leave SendBlocked/ReceiveBlocked alone.
+    if (current->state == ProcessState::Running) {
+        current->state = ProcessState::Ready;
+    }
+
+    u32 nextIndex = findNextReady(currentIndex);
+    return switchTo(nextIndex, current, currentEsp);
+}
+
+u32 Scheduler::reschedule(u32 currentEsp) {
+    if (numProcesses <= 1) {
+        return currentEsp;
+    }
+
+    Process* current = processes[currentIndex];
+    // State already set by caller (SendBlocked/ReceiveBlocked).
+
+    u32 nextIndex = findNextReady(currentIndex);
+    tickCount = 0;
+    return switchTo(nextIndex, current, currentEsp);
 }
 
 void Scheduler::reset() {

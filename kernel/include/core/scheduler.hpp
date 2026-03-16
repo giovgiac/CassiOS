@@ -10,7 +10,7 @@
 #ifndef CORE_SCHEDULER_HPP_
 #define CORE_SCHEDULER_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <core/gdt.hpp>
 #include <core/process.hpp>
 
@@ -55,6 +55,17 @@ public:
     void addProcess(Process* process);
 
     /**
+     * @brief Immediate context switch without waiting for the time slice.
+     *
+     * Used by blocking syscalls (IPC send/receive) to yield the CPU.
+     * Saves currentEsp into the current process and picks the next
+     * Ready process. Does NOT change the current process's state --
+     * the caller must set it (e.g. SendBlocked) before calling.
+     *
+     */
+    u32 reschedule(u32 currentEsp);
+
+    /**
      * @brief Resets scheduler state. Used by the test framework.
      *
      */
@@ -68,6 +79,9 @@ public:
 
 private:
     Scheduler();
+
+    u32 findNextReady(u32 fromIndex);
+    u32 switchTo(u32 nextIndex, Process* current, u32 currentEsp);
 
     static Scheduler instance;
 

@@ -10,7 +10,7 @@
 #ifndef HARDWARE_TERMINAL_HPP_
 #define HARDWARE_TERMINAL_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <hardware/port.hpp>
 
 namespace cassio {
