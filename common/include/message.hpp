@@ -24,10 +24,14 @@ struct Message {
 };
 
 namespace MessageType {
-    constexpr u32 IrqNotify  = 1;
-    constexpr u32 NsRegister = 2;
-    constexpr u32 NsLookup   = 3;
-    constexpr u32 KbdRead    = 4;
+    constexpr u32 IrqNotify    = 1;
+    constexpr u32 NsRegister   = 2;
+    constexpr u32 NsLookup     = 3;
+    constexpr u32 KbdRead      = 4;
+    constexpr u32 VgaPutchar   = 5;
+    constexpr u32 VgaWrite     = 6;
+    constexpr u32 VgaClear     = 7;
+    constexpr u32 VgaSetCursor = 8;
 }
 
 } // cassio

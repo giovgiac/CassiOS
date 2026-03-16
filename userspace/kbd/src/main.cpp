@@ -57,6 +57,10 @@ extern "C" void _start() {
     Port<u8> data(PortType::KeyboardControllerData);
     Port<u8> cmd(PortType::KeyboardControllerCommand);
 
+    // Pending reader: if a KbdRead arrives when the buffer is empty,
+    // we hold the sender and reply only when a character becomes available.
+    u32 pending_reader = 0;
+
     while (true) {
         Message msg;
         i32 sender = IPC::receive(&msg);
@@ -67,13 +71,26 @@ extern "C" void _start() {
             while (cmd.read() & 0x01) {
                 keyboard.handleScancode(data.read());
             }
+
+            // Wake a blocked reader if characters are now available.
+            if (pending_reader != 0 && keyboard.bufferCount() > 0) {
+                Message reply = {};
+                reply.arg1 = static_cast<u8>(keyboard.readBuffer());
+                IPC::reply(pending_reader, &reply);
+                pending_reader = 0;
+            }
             break;
 
         case MessageType::KbdRead:
             if (sender > 0) {
-                Message reply = {};
-                reply.arg1 = static_cast<u8>(keyboard.readBuffer());
-                IPC::reply(static_cast<u32>(sender), &reply);
+                if (keyboard.bufferCount() > 0) {
+                    Message reply = {};
+                    reply.arg1 = static_cast<u8>(keyboard.readBuffer());
+                    IPC::reply(static_cast<u32>(sender), &reply);
+                } else {
+                    // Buffer empty -- hold the request until a character arrives.
+                    pending_reader = static_cast<u32>(sender);
+                }
             }
             break;
 

@@ -1,5 +1,5 @@
 /**
- * terminal.cpp
+ * terminal.cpp -- VGA text-mode terminal
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,18 +7,13 @@
  *
  */
 
-#include "hardware/terminal.hpp"
-#include "memory/virtual.hpp"
+#include <terminal.hpp>
 
 using namespace cassio;
 using namespace cassio::hardware;
 
-/** VgaTerminal Methods */
-
-VgaTerminal VgaTerminal::instance;
-
-VgaTerminal::VgaTerminal()
-    : buffer(reinterpret_cast<u16*>(KERNEL_VBASE + 0xB8000)),
+VgaTerminal::VgaTerminal(u16* buffer)
+    : buffer(buffer),
       x(0),
       y(0),
       color(0x0700),
@@ -31,24 +26,6 @@ void VgaTerminal::updateCursor() {
     crtc_data.write(static_cast<u8>(pos & 0xFF));
     crtc_index.write(0x0E);
     crtc_data.write(static_cast<u8>((pos >> 8) & 0xFF));
-}
-
-VgaTerminal& VgaTerminal::getTerminal() {
-    return instance;
-}
-
-u8 VgaTerminal::getCursorX() {
-    return x;
-}
-
-u8 VgaTerminal::getCursorY() {
-    return y;
-}
-
-void VgaTerminal::setCursor(u8 col, u8 row) {
-    x = col;
-    y = row;
-    updateCursor();
 }
 
 void VgaTerminal::putchar(char ch) {
@@ -102,46 +79,6 @@ void VgaTerminal::putchar(char ch) {
     updateCursor();
 }
 
-void VgaTerminal::print(const char* str) {
-    for (u32 i = 0; str[i] != '\0'; ++i) {
-        putchar(str[i]);
-    }
-}
-
-void VgaTerminal::print_hex(u32 value) {
-    const char* hex = "0123456789ABCDEF";
-    char str[11] = "0x00000000";
-
-    str[2] = hex[(value >> 28) & 0x0F];
-    str[3] = hex[(value >> 24) & 0x0F];
-    str[4] = hex[(value >> 20) & 0x0F];
-    str[5] = hex[(value >> 16) & 0x0F];
-    str[6] = hex[(value >> 12) & 0x0F];
-    str[7] = hex[(value >> 8) & 0x0F];
-    str[8] = hex[(value >> 4) & 0x0F];
-    str[9] = hex[value & 0x0F];
-
-    print(str);
-}
-
-void VgaTerminal::print_dec(u32 value) {
-    if (value == 0) {
-        putchar('0');
-        return;
-    }
-
-    char buf[10];
-    i32 i = 0;
-    while (value > 0) {
-        buf[i++] = '0' + (value % 10);
-        value /= 10;
-    }
-
-    while (--i >= 0) {
-        putchar(buf[i]);
-    }
-}
-
 void VgaTerminal::scrollUp() {
     for (u8 row = 1; row < VGA_HEIGHT; ++row) {
         for (u8 col = 0; col < VGA_WIDTH; ++col) {
@@ -166,4 +103,18 @@ void VgaTerminal::clear() {
     x = 0;
     y = 0;
     updateCursor();
+}
+
+void VgaTerminal::setCursor(u8 col, u8 row) {
+    x = col;
+    y = row;
+    updateCursor();
+}
+
+u8 VgaTerminal::getCursorX() const {
+    return x;
+}
+
+u8 VgaTerminal::getCursorY() const {
+    return y;
 }

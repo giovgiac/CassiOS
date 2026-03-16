@@ -12,6 +12,7 @@ TEST_KERNEL = bin/cassio-test.bin
 USERTEST = bin/usertest.elf
 NAMESERVER = bin/ns.elf
 KBD = bin/kbd.elf
+VGA = bin/vga.elf
 DEMO = bin/demo.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
@@ -19,7 +20,8 @@ LIBCOMMON = lib/libcommon.a
 
 
 # Discover all source files automatically.
-cpp_sources = $(shell find kernel/src/ -name '*.cpp')
+# Exclude shell and commands -- kept as reference for userspace shell migration.
+cpp_sources = $(shell find kernel/src/ -name '*.cpp' -not -path '*/commands/*' -not -name 'shell.cpp')
 asm_sources = $(shell find kernel/src/ -name '*.s')
 objects = $(patsubst kernel/src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
 
@@ -31,7 +33,8 @@ common_objects = $(patsubst common/src/%.cpp, obj/common/%.o, $(common_sources))
 shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 
 # Test objects are discovered from kernel/tests/**/test_*.cpp.
-test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
+# Exclude command tests (shell not compiled, kept as reference).
+test_sources = $(shell find kernel/tests/ -name 'test_*.cpp' -not -path '*/commands/*')
 test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 
 # Compile C++ source files.
@@ -62,6 +65,9 @@ $(NAMESERVER): $(LIBCOMMON)
 
 $(KBD): $(LIBCOMMON)
 	$(MAKE) -C userspace/kbd
+
+$(VGA): $(LIBCOMMON)
+	$(MAKE) -C userspace/vga
 
 $(DEMO): $(LIBCOMMON)
 	$(MAKE) -C userspace/demo
@@ -96,9 +102,9 @@ test-kernel: $(TEST_KERNEL)
 	cat /tmp/cassio-test-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
-test-userspace: kernel $(NAMESERVER) $(KBD) $(USERTEST)
+test-userspace: kernel $(NAMESERVER) $(KBD) $(VGA) $(USERTEST)
 	@qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(USERTEST)" \
+	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -no-reboot; \
@@ -122,9 +128,9 @@ iso: kernel
 	grub-mkrescue --output=$(ISO) iso
 	rm -rf iso
 
-run: kernel $(NAMESERVER) $(KBD) $(DEMO) $(DISK)
+run: kernel $(NAMESERVER) $(KBD) $(VGA) $(DEMO) $(DISK)
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(DEMO)" \
+	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(DEMO)" \
 	    -drive file=$(DISK),format=raw,if=ide
 
 .PHONY: kernel iso clean run test test-kernel test-userspace

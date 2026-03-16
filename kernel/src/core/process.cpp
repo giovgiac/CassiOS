@@ -42,6 +42,36 @@ u32 Process::sendQueuePop() {
     return pid;
 }
 
+static void copyMsg(const Message& src, Message& dst) {
+    dst.type = src.type;
+    dst.arg1 = src.arg1;
+    dst.arg2 = src.arg2;
+    dst.arg3 = src.arg3;
+    dst.arg4 = src.arg4;
+    dst.arg5 = src.arg5;
+}
+
+bool Process::notifyPush(u32 senderPid, const Message& m) {
+    u32 next = (notifyHead + 1) % NOTIFY_QUEUE_SIZE;
+    if (next == notifyTail) {
+        return false;
+    }
+    notifyQueue[notifyHead].senderPid = senderPid;
+    copyMsg(m, notifyQueue[notifyHead].msg);
+    notifyHead = next;
+    return true;
+}
+
+bool Process::notifyPop(u32& senderPid, Message& m) {
+    if (notifyHead == notifyTail) {
+        return false;
+    }
+    senderPid = notifyQueue[notifyTail].senderPid;
+    copyMsg(notifyQueue[notifyTail].msg, m);
+    notifyTail = (notifyTail + 1) % NOTIFY_QUEUE_SIZE;
+    return true;
+}
+
 Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirectory) {
     for (u32 i = 1; i < MAX_PROCESSES; i++) {
         if (processes[i].state == ProcessState::Empty) {
@@ -69,6 +99,8 @@ Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirect
             for (u32 j = 0; j < Process::SEND_QUEUE_SIZE; j++) {
                 p.sendQueue[j] = 0;
             }
+            p.notifyHead = 0;
+            p.notifyTail = 0;
             return &p;
         }
     }

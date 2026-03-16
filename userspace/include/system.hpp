@@ -60,6 +60,15 @@ public:
                      : "memory");
         return ret;
     }
+
+    static inline i32 mapDevice(u32 physical, u32 virt, u32 pages) {
+        i32 ret;
+        asm volatile("int $0x80" : "=a"(ret)
+                     : "a"(SyscallNumber::MapDevice), "b"(physical),
+                       "c"(virt), "d"(pages)
+                     : "memory");
+        return ret;
+    }
 };
 
 } // cassio

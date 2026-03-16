@@ -15,7 +15,7 @@
 #include "hardware/irq.hpp"
 #include "hardware/port.hpp"
 #include "hardware/serial.hpp"
-#include "hardware/terminal.hpp"
+#include "memory/paging.hpp"
 
 using namespace cassio;
 using namespace cassio::kernel;
@@ -115,7 +115,14 @@ i32 SyscallHandler::receive(Message* msg) {
         return -2;  // IRQ notification delivered; handleSyscall sets eax=0.
     }
 
-    // No pending senders or IRQs -- block.
+    // Check for queued notifications (fire-and-forget messages).
+    // Return -3 so handleSyscall sets eax=0 (no reply expected).
+    u32 notifySender;
+    if (receiver->notifyPop(notifySender, *msg)) {
+        return -3;
+    }
+
+    // No pending senders, IRQs, or notifications -- block.
     receiver->msgPtr = (u32)msg;
     receiver->state = ProcessState::ReceiveBlocked;
     return 0;  // Caller should block.
@@ -146,16 +153,41 @@ i32 SyscallHandler::reply(u32 targetPid, Message* msg) {
     return 0;
 }
 
+i32 SyscallHandler::notify(u32 targetPid, Message* msg) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* sender = pm.current();
+    Process* target = pm.get(targetPid);
+
+    if (!target || target == sender) {
+        return -1;
+    }
+
+    // Copy message to kernel space (source is in caller's address space).
+    Message temp;
+    copyMessage(msg, &temp);
+
+    if (target->state == ProcessState::ReceiveBlocked) {
+        // Deliver immediately.
+        Message* targetBuf = (Message*)target->msgPtr;
+        copyMessageToProcess(target, targetBuf, &temp);
+
+        // Return 0 as sender so receiver knows not to reply.
+        SyscallFrame* targetFrame = (SyscallFrame*)target->esp;
+        targetFrame->eax = 0;
+
+        target->state = ProcessState::Ready;
+    } else {
+        // Queue for later delivery.
+        if (!target->notifyPush(sender->pid, temp)) {
+            return -1;
+        }
+    }
+
+    return 0;  // Caller continues (no blocking).
+}
+
 i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
     const char* str = reinterpret_cast<const char*>(buf);
-
-    if (fd == 1) {
-        VgaTerminal& vga = VgaTerminal::getTerminal();
-        for (u32 i = 0; i < len; ++i) {
-            vga.putchar(str[i]);
-        }
-        return static_cast<i32>(len);
-    }
 
     if (fd == 2) {
         Serial& serial = COM1::getSerial();
@@ -166,6 +198,27 @@ i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
     }
 
     return -1;
+}
+
+i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* caller = pm.current();
+
+    if (!caller || caller->pageDirectory == 0) {
+        return -1;
+    }
+
+    memory::PagingManager& paging = memory::PagingManager::getManager();
+    u16 flags = memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER;
+
+    for (u32 i = 0; i < pages; ++i) {
+        paging.mapUserPage(caller->pageDirectory,
+                           virt + i * 0x1000,
+                           physical + i * 0x1000,
+                           flags);
+    }
+
+    return 0;
 }
 
 i32 SyscallHandler::sleep(u32 ms) {
@@ -214,8 +267,8 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
             Scheduler& sched = Scheduler::getScheduler();
             return sched.reschedule(esp);
         }
-        if (result == -2) {
-            // Pending IRQ notification delivered. Return 0 (kernel PID).
+        if (result == -2 || result == -3) {
+            // IRQ or queued notification delivered. Return 0 (no reply expected).
             frame->eax = 0;
             return esp;
         }
@@ -251,6 +304,12 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     case SyscallNumber::Exit:
         exit(frame->ebx);
+        return esp;
+    case SyscallNumber::MapDevice:
+        frame->eax = static_cast<u32>(mapDevice(frame->ebx, frame->ecx, frame->edx));
+        return esp;
+    case SyscallNumber::Notify:
+        frame->eax = static_cast<u32>(notify(frame->ebx, (Message*)frame->ecx));
         return esp;
     default:
         frame->eax = static_cast<u32>(-1);

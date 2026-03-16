@@ -20,8 +20,8 @@
 
 using namespace cassio;
 using namespace cassio::drivers;
-using namespace cassio::kernel;
 using namespace cassio::hardware;
+using namespace cassio::kernel;
 using namespace cassio::memory;
 
 void ctors() {
@@ -44,10 +44,6 @@ void start(void* multiboot, u32 magic) {
 
     PagingManager& paging = PagingManager::getManager();
     paging.init((MultibootInfo*)multiboot);
-
-    VgaTerminal& vga = VgaTerminal::getTerminal();
-    vga.clear();
-    vga.print("Welcome to the Cassio Operating System!\n");
 
     PitTimer& pit = PitTimer::getTimer();
     AtaPioDriver& ata = AtaPioDriver::getDriver();

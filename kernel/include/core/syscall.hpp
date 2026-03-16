@@ -50,6 +50,7 @@ private:
     void reboot();
     void shutdown();
     void exit(u32 code);
+    i32 mapDevice(u32 physical, u32 virt, u32 pages);
 
 public:
     /**
@@ -83,6 +84,7 @@ public:
      *
      */
     i32 send(u32 targetPid, Message* msg);
+    i32 notify(u32 targetPid, Message* msg);
 
     /**
      * @brief IPC receive: receives a message into msg.

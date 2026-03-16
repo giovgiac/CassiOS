@@ -41,6 +41,14 @@ public:
                      : "memory");
         return ret;
     }
+
+    static inline i32 notify(u32 pid, Message* msg) {
+        i32 ret;
+        asm volatile("int $0x80" : "=a"(ret)
+                     : "a"(SyscallNumber::Notify), "b"(pid), "c"((u32)msg)
+                     : "memory");
+        return ret;
+    }
 };
 
 } // cassio

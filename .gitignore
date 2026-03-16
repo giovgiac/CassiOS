@@ -5,6 +5,7 @@
 # Ignore IDE Files
 .idea/
 .vscode/
+!.vscode/c_cpp_properties.json
 
 # Ignore Binary Files
 bin/

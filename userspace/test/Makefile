@@ -3,7 +3,8 @@ SERVICE = usertest
 ROOT     = $(dir $(lastword $(MAKEFILE_LIST)))../..
 NS_DIR   = $(ROOT)/userspace/ns
 KBD_DIR  = $(ROOT)/userspace/kbd
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -I$(NS_DIR)/include/ -I$(KBD_DIR)/include/
+VGA_DIR  = $(ROOT)/userspace/vga
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -I$(NS_DIR)/include/ -I$(KBD_DIR)/include/ -I$(VGA_DIR)/include/
 LDFLAGS  = -melf_i386
 
 OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
@@ -26,7 +27,13 @@ KBD_IMPL_SOURCES = $(KBD_DIR)/src/keyboard.cpp
 KBD_TEST_OBJECTS = $(patsubst $(KBD_DIR)/tests/%.cpp, $(OBJDIR)/kbd/tests/%.o, $(KBD_TEST_SOURCES))
 KBD_IMPL_OBJECTS = $(patsubst $(KBD_DIR)/src/%.cpp, $(OBJDIR)/kbd/src/%.o, $(KBD_IMPL_SOURCES))
 
-OBJECTS = $(RUNNER_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS) $(KBD_TEST_OBJECTS) $(KBD_IMPL_OBJECTS)
+# VGA tests and implementation (compiled from vga/).
+VGA_TEST_SOURCES = $(wildcard $(VGA_DIR)/tests/test_*.cpp)
+VGA_IMPL_SOURCES = $(VGA_DIR)/src/terminal.cpp
+VGA_TEST_OBJECTS = $(patsubst $(VGA_DIR)/tests/%.cpp, $(OBJDIR)/vga/tests/%.o, $(VGA_TEST_SOURCES))
+VGA_IMPL_OBJECTS = $(patsubst $(VGA_DIR)/src/%.cpp, $(OBJDIR)/vga/src/%.o, $(VGA_IMPL_SOURCES))
+
+OBJECTS = $(RUNNER_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS) $(KBD_TEST_OBJECTS) $(KBD_IMPL_OBJECTS) $(VGA_TEST_OBJECTS) $(VGA_IMPL_OBJECTS)
 
 $(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON)
 	@mkdir -p $(BINDIR)
@@ -49,6 +56,14 @@ $(OBJDIR)/kbd/tests/%.o: $(KBD_DIR)/tests/%.cpp
 	g++ $(CXXFLAGS) -o $@ -c $<
 
 $(OBJDIR)/kbd/src/%.o: $(KBD_DIR)/src/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $<
+
+$(OBJDIR)/vga/tests/%.o: $(VGA_DIR)/tests/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $<
+
+$(OBJDIR)/vga/src/%.o: $(VGA_DIR)/src/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $<
 
