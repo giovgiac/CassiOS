@@ -16,15 +16,14 @@ using namespace cassio::hardware;
 
 IrqManager IrqManager::instance;
 
+// drv[] is not zeroed here -- BSS guarantees zero-initialization before
+// any constructors run, and drivers may register before this constructor
+// executes (static initialization order).
 IrqManager::IrqManager()
     : pic_master_cmd(PortType::MasterProgrammableInterfaceControllerCommand),
       pic_master_data(PortType::MasterProgrammableInterfaceControllerData),
       pic_slave_cmd(PortType::SlaveProgrammableInterfaceControllerCommand),
-      pic_slave_data(PortType::SlaveProgrammableInterfaceControllerData) {
-    for (u8 i = 0; i < 16; ++i) {
-        drv[i] = nullptr;
-    }
-}
+      pic_slave_data(PortType::SlaveProgrammableInterfaceControllerData) {}
 
 void IrqManager::load() {
     InterruptManager& im = InterruptManager::getManager();
