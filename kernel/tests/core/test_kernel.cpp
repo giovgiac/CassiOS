@@ -2,10 +2,11 @@
 #include <core/kernel.hpp>
 #include <hardware/interrupt.hpp>
 #include <hardware/serial.hpp>
+#include <hardware/port.hpp>
 #include <memory/heap.hpp>
 #include <memory/paging.hpp>
 #include <memory/physical.hpp>
-#include "test.hpp"
+#include <test.hpp>
 
 using namespace cassio;
 using namespace cassio::kernel;
@@ -20,6 +21,13 @@ void ctors() {
 
 GlobalDescriptorTable test_gdt;
 
+static void kernel_write(const char* buf, u32 len) {
+    Serial& com1 = COM1::getSerial();
+    for (u32 i = 0; i < len; i++) {
+        com1.putchar(buf[i]);
+    }
+}
+
 void start(void* multiboot, u32 magic) {
     GlobalDescriptorTable& gdt = test_gdt;
     InterruptManager& im = InterruptManager::getManager();
@@ -33,27 +41,8 @@ void start(void* multiboot, u32 magic) {
     PagingManager& paging = PagingManager::getManager();
     paging.init((MultibootInfo*)multiboot);
 
-    Serial& com1 = COM1::getSerial();
-
-    u32 passed = 0, failed = 0;
-    for (test::TestNode* t = test::test_list_head; t; t = t->next) {
-        bool test_failed = false;
-        t->fn(t->name, test_failed);
-        if (!test_failed) {
-            com1.puts("[PASS] ");
-            com1.puts(t->name);
-            com1.putchar('\n');
-            passed++;
-        } else {
-            failed++;
-        }
-    }
-
-    com1.puts("[DONE] ");
-    com1.put_dec(passed);
-    com1.puts(" passed, ");
-    com1.put_dec(failed);
-    com1.puts(" failed\n");
+    test::init(kernel_write);
+    u32 failed = test::run();
 
     // Exit QEMU: 0x00 -> exit code 1 (pass), 0x01 -> exit code 3 (fail)
     Port<u8> debug_exit(PortType::QemuDebugExit);

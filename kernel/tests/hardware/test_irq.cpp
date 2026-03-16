@@ -1,7 +1,7 @@
 #include <hardware/irq.hpp>
 #include <hardware/driver.hpp>
 #include <drivers/pit.hpp>
-#include "test.hpp"
+#include <test.hpp>
 
 using namespace cassio;
 using namespace cassio::hardware;

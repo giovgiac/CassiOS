@@ -1,25 +1,26 @@
 /**
- * assert.hpp -- userspace test framework
+ * test.hpp -- unified test framework
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
- * Provides TEST(), ASSERT(), and ASSERT_EQ() macros for userspace
- * integration tests. Output goes to serial (fd=2) via System::write().
+ * Shared between kernel and userspace tests. Output is routed through
+ * a write callback set via test::init() at the start of each runner.
  *
  */
 
-#ifndef USERSPACE_TEST_ASSERT_HPP_
-#define USERSPACE_TEST_ASSERT_HPP_
+#ifndef COMMON_TEST_HPP_
+#define COMMON_TEST_HPP_
 
 #include <types.hpp>
 #include <string.hpp>
-#include <system.hpp>
 
 namespace test {
 
 using namespace cassio;
+
+using WriteFn = void(*)(const char* buf, u32 len);
 
 struct TestNode {
     const char* name;
@@ -28,13 +29,18 @@ struct TestNode {
 };
 
 inline TestNode* test_list_head = nullptr;
+inline WriteFn write_fn = nullptr;
+
+inline void init(WriteFn fn) {
+    write_fn = fn;
+}
 
 inline void serial_puts(const char* s) {
-    System::write(2, s, strlen(s));
+    write_fn(s, strlen(s));
 }
 
 inline void serial_putchar(char c) {
-    System::write(2, &c, 1);
+    write_fn(&c, 1);
 }
 
 inline void serial_put_hex(u32 value) {
@@ -61,7 +67,7 @@ inline void serial_put_dec(u32 value) {
         buf[j] = buf[i - 1 - j];
         buf[i - 1 - j] = tmp;
     }
-    System::write(2, buf, i);
+    write_fn(buf, i);
 }
 
 inline void serial_put_location(const char* file, int line) {
@@ -69,6 +75,30 @@ inline void serial_put_location(const char* file, int line) {
     serial_puts(file);
     serial_putchar(':');
     serial_put_dec(static_cast<u32>(line));
+}
+
+inline u32 run() {
+    u32 passed = 0, failed = 0;
+    for (TestNode* t = test_list_head; t; t = t->next) {
+        bool test_failed = false;
+        t->fn(t->name, test_failed);
+        if (!test_failed) {
+            serial_puts("[PASS] ");
+            serial_puts(t->name);
+            serial_putchar('\n');
+            passed++;
+        } else {
+            failed++;
+        }
+    }
+
+    serial_puts("[DONE] ");
+    serial_put_dec(passed);
+    serial_puts(" passed, ");
+    serial_put_dec(failed);
+    serial_puts(" failed\n");
+
+    return failed;
 }
 
 } // test
@@ -113,4 +143,4 @@ inline void serial_put_location(const char* file, int line) {
         }                                                                         \
     } while (0)
 
-#endif // USERSPACE_TEST_ASSERT_HPP_
+#endif // COMMON_TEST_HPP_

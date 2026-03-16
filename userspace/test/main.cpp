@@ -10,7 +10,8 @@
  *
  */
 
-#include "assert.hpp"
+#include <test.hpp>
+#include <system.hpp>
 
 using namespace cassio;
 
@@ -24,28 +25,15 @@ static void ctors() {
     }
 }
 
+static void userspace_write(const char* buf, u32 len) {
+    System::write(2, buf, len);
+}
+
 extern "C" void _start() {
     ctors();
 
-    u32 passed = 0, failed = 0;
-    for (test::TestNode* t = test::test_list_head; t; t = t->next) {
-        bool test_failed = false;
-        t->fn(t->name, test_failed);
-        if (!test_failed) {
-            test::serial_puts("[PASS] ");
-            test::serial_puts(t->name);
-            test::serial_putchar('\n');
-            passed++;
-        } else {
-            failed++;
-        }
-    }
-
-    test::serial_puts("[DONE] ");
-    test::serial_put_dec(passed);
-    test::serial_puts(" passed, ");
-    test::serial_put_dec(failed);
-    test::serial_puts(" failed\n");
+    test::init(userspace_write);
+    u32 failed = test::run();
 
     System::exit(failed > 0 ? 1 : 0);
 }
