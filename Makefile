@@ -11,6 +11,8 @@ KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
 USERTEST = bin/usertest.elf
 NAMESERVER = bin/ns.elf
+KBD = bin/kbd.elf
+DEMO = bin/demo.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
 LIBCOMMON = lib/libcommon.a
@@ -58,6 +60,12 @@ kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON)
 $(NAMESERVER): $(LIBCOMMON)
 	$(MAKE) -C userspace/ns
 
+$(KBD): $(LIBCOMMON)
+	$(MAKE) -C userspace/kbd
+
+$(DEMO): $(LIBCOMMON)
+	$(MAKE) -C userspace/demo
+
 $(USERTEST): $(LIBCOMMON)
 	$(MAKE) -C userspace/test
 
@@ -88,9 +96,9 @@ test-kernel: $(TEST_KERNEL)
 	cat /tmp/cassio-test-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
-test-userspace: kernel $(NAMESERVER) $(USERTEST)
+test-userspace: kernel $(NAMESERVER) $(KBD) $(USERTEST)
 	@qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(USERTEST)" \
+	    -initrd "$(NAMESERVER),$(KBD),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -no-reboot; \
@@ -114,9 +122,9 @@ iso: kernel
 	grub-mkrescue --output=$(ISO) iso
 	rm -rf iso
 
-run: kernel $(NAMESERVER) $(DISK)
+run: kernel $(NAMESERVER) $(KBD) $(DEMO) $(DISK)
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd $(NAMESERVER) \
+	    -initrd "$(NAMESERVER),$(KBD),$(DEMO)" \
 	    -drive file=$(DISK),format=raw,if=ide
 
 .PHONY: kernel iso clean run test test-kernel test-userspace

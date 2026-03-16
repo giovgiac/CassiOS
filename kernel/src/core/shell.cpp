@@ -12,7 +12,6 @@
 
 using namespace cassio;
 using namespace cassio::kernel;
-using namespace cassio::drivers;
 using namespace cassio::hardware;
 
 Shell::Shell()

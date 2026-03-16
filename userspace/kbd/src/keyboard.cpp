@@ -1,5 +1,5 @@
 /**
- * keyboard.cpp
+ * keyboard.cpp -- PS/2 keyboard scancode translation and buffering
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,16 +7,11 @@
  *
  */
 
-#include "drivers/keyboard.hpp"
+#include <keyboard.hpp>
 
 using namespace cassio;
-using namespace cassio::drivers;
-using namespace cassio::hardware;
 
-/** Scancode-to-KeyCode lookup table for PS/2 scan set 1.
- *  Index is the raw scancode byte. A zero entry means no mapping (modifier or unused).
- */
-const KeyCode KeyboardDriver::scancode_table[0x59] = {
+const KeyCode Keyboard::scancode_table[0x59] = {
     /* 0x00 */  static_cast<KeyCode>(0),
     /* 0x01 */  KeyCode::Escape,
     /* 0x02 */  KeyCode::One,
@@ -108,14 +103,12 @@ const KeyCode KeyboardDriver::scancode_table[0x59] = {
     /* 0x58 */  KeyCode::F12
 };
 
-KeyCode KeyboardDriver::resolveShift(KeyCode key) {
-    // Letters: lowercase -> uppercase (subtract 0x20).
+KeyCode Keyboard::resolveShift(KeyCode key) {
     if (key >= KeyCode::a && key <= KeyCode::z) {
         return static_cast<KeyCode>(static_cast<u8>(key) - 0x20);
     }
 
     switch (key) {
-    // Number and symbol keys.
     case KeyCode::One:          return KeyCode::Exclamation;
     case KeyCode::Two:          return KeyCode::At;
     case KeyCode::Three:        return KeyCode::Hash;
@@ -141,94 +134,22 @@ KeyCode KeyboardDriver::resolveShift(KeyCode key) {
     }
 }
 
-/** KeyboardEventHandler Methods */
+Keyboard::Keyboard()
+    : shift_held(false), ctrl_held(false), alt_held(false),
+      caps_lock_on(false), e0_prefix(false),
+      ring_head(0), ring_tail(0) {}
 
-void KeyboardEventHandler::OnKeyDown(KeyCode key) {}
-
-void KeyboardEventHandler::OnKeyUp(KeyCode key) {}
-
-/** KeyboardDriver Methods */
-
-KeyboardCommandByte KeyboardDriver::readCommandByte() {
-    KeyboardCommandByte status;
-
-    // Requests current command byte.
-    cmd.write(KeyboardCommand::ReadCommandByte);
-
-    status.byte = data.read();
-    return status;
-}
-
-KeyboardDriver KeyboardDriver::instance;
-
-KeyboardDriver::KeyboardDriver()
-    : Driver(DriverType::KeyboardController),
-      cmd(PortType::KeyboardControllerCommand),
-      data(PortType::KeyboardControllerData),
-      handler(nullptr),
-      shift_held(false),
-      ctrl_held(false),
-      alt_held(false),
-      caps_lock_on(false),
-      e0_prefix(false),
-      ring_head(0),
-      ring_tail(0) {}
-
-void KeyboardDriver::setHandler(KeyboardEventHandler* han) {
-    handler = han;
-}
-
-char KeyboardDriver::readBuffer() {
-    if (ring_head == ring_tail) {
-        return '\0';
-    }
-    char ch = ring[ring_tail];
-    ring_tail = (ring_tail + 1) % KEYBOARD_BUFFER_SIZE;
-    return ch;
-}
-
-void KeyboardDriver::deactivate() {}
-
-void KeyboardDriver::activate() {
-    // Cleanup keystrokes before OS starts.
-    while (cmd.read() & 0x1) {
-        data.read();
-    }
-
-    // Enable communication with the keyboard.
-    cmd.write(KeyboardCommand::EnableKeyboardInterface);
-
-    // Read and modify current command byte.
-    KeyboardCommandByte status = readCommandByte();
-    status.keyboard_interrupt = true;
-    status.disable_keyboard = false;
-
-    // Set modified command byte to be the new one.
-    cmd.write(KeyboardCommand::WriteCommandByte);
-    data.write(status.byte);
-
-    // Enables keyboard and reads the ACK response so it does not remain
-    // in the output buffer where mouse.activate() could consume it.
-    data.write(0xF4);
-    data.read();
-}
-
-u32 KeyboardDriver::handleInterrupt(u32 esp) {
-    u8 raw = data.read();
-
-    // Extended scancode prefix -- the next byte carries the actual scancode.
+void Keyboard::handleScancode(u8 raw) {
     if (raw == 0xE0) {
         e0_prefix = true;
-        return esp;
+        return;
     }
 
     bool released = raw & 0x80;
     u8 scancode = raw & 0x7F;
 
-    // Handle extended scancodes (arrow keys).
     if (e0_prefix) {
         e0_prefix = false;
-
         if (!released) {
             KeyCode key = static_cast<KeyCode>(0);
             switch (scancode) {
@@ -237,56 +158,46 @@ u32 KeyboardDriver::handleInterrupt(u32 esp) {
             case 0x53: key = KeyCode::Delete;     break;
             default: break;
             }
-
-            if (static_cast<u8>(key) != 0 && handler) {
-                handler->OnKeyDown(key);
-            }
+            // Extended keys are not buffered (arrows, delete handled by shell).
+            (void)key;
         }
-
-        return esp;
+        return;
     }
 
-    // Handle modifier key state changes.
     switch (static_cast<ScanCode>(scancode)) {
     case ScanCode::LeftShift:
     case ScanCode::RightShift:
         shift_held = !released;
-        return esp;
+        return;
     case ScanCode::LeftCtrl:
         ctrl_held = !released;
-        return esp;
+        return;
     case ScanCode::LeftAlt:
         alt_held = !released;
-        return esp;
+        return;
     case ScanCode::CapsLock:
         if (!released) {
             caps_lock_on = !caps_lock_on;
         }
-        return esp;
+        return;
     case ScanCode::NumLock:
-        return esp;
+        return;
     default:
         break;
     }
 
-    // Only dispatch key-down events for non-modifier keys.
     if (released) {
-        return esp;
+        return;
     }
 
-    // Look up the KeyCode from the scancode table.
     if (scancode < 0x59) {
         KeyCode key = scancode_table[scancode];
         if (static_cast<u8>(key) != 0) {
             bool is_letter = (key >= KeyCode::a && key <= KeyCode::z);
-
-            // Letters: shift XOR caps_lock produces uppercase.
-            // Symbols/numbers: shift alone produces the shifted variant.
             if (is_letter ? (shift_held != caps_lock_on) : shift_held) {
                 key = resolveShift(key);
             }
 
-            // Buffer printable characters and Enter for syscall read().
             u8 ch = static_cast<u8>(key);
             if ((ch >= 0x20 && ch <= 0x7E) || key == KeyCode::Enter) {
                 char c = (key == KeyCode::Enter) ? '\n' : static_cast<char>(ch);
@@ -296,12 +207,19 @@ u32 KeyboardDriver::handleInterrupt(u32 esp) {
                     ring_head = next;
                 }
             }
-
-            if (handler) {
-                handler->OnKeyDown(key);
-            }
         }
     }
+}
 
-    return esp;
+char Keyboard::readBuffer() {
+    if (ring_head == ring_tail) {
+        return '\0';
+    }
+    char ch = ring[ring_tail];
+    ring_tail = (ring_tail + 1) % KEYBOARD_BUFFER_SIZE;
+    return ch;
+}
+
+u16 Keyboard::bufferCount() const {
+    return (ring_head - ring_tail + KEYBOARD_BUFFER_SIZE) % KEYBOARD_BUFFER_SIZE;
 }
