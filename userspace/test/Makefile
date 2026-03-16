@@ -1,5 +1,5 @@
 SERVICE = usertest
-SOURCES = main.cpp test_trivial.cpp
+SOURCES = main.cpp test_trivial.cpp test_nameserver.cpp
 
 ROOT     = $(dir $(lastword $(MAKEFILE_LIST)))../..
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/

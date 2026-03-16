@@ -42,6 +42,23 @@ static void copyMessage(const Message* src, Message* dst) {
     dst->arg5 = src->arg5;
 }
 
+// Copy a message to a userspace buffer that belongs to a different process.
+// Temporarily switches page directory so the target's virtual address resolves
+// to the correct physical page.
+static void copyMessageToProcess(Process* target, Message* dst, const Message* src) {
+    u32 currentCR3;
+    asm volatile("mov %%cr3, %0" : "=r"(currentCR3));
+
+    u32 targetPD = target->pageDirectory;
+    if (targetPD != 0 && targetPD != currentCR3) {
+        asm volatile("mov %0, %%cr3" : : "r"(targetPD));
+        copyMessage(src, dst);
+        asm volatile("mov %0, %%cr3" : : "r"(currentCR3));
+    } else {
+        copyMessage(src, dst);
+    }
+}
+
 i32 SyscallHandler::send(u32 targetPid, Message* msg) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* sender = pm.current();
@@ -58,7 +75,7 @@ i32 SyscallHandler::send(u32 targetPid, Message* msg) {
     if (target->state == ProcessState::ReceiveBlocked) {
         // Target is waiting for a message -- deliver immediately.
         Message* targetBuf = (Message*)target->msgPtr;
-        copyMessage(&sender->msg, targetBuf);
+        copyMessageToProcess(target, targetBuf, &sender->msg);
 
         // Set target's return value to sender PID.
         SyscallFrame* targetFrame = (SyscallFrame*)target->esp;
@@ -112,9 +129,14 @@ i32 SyscallHandler::reply(u32 targetPid, Message* msg) {
         return -1;
     }
 
-    // Copy reply to sender's reply buffer.
+    // Copy reply to kernel space first, then to sender's userspace buffer.
+    // The msg pointer is in the replier's address space and becomes invalid
+    // after switching to the sender's page directory.
+    Message replyBuf;
+    copyMessage(msg, &replyBuf);
+
     Message* senderBuf = (Message*)target->msgPtr;
-    copyMessage(msg, senderBuf);
+    copyMessageToProcess(target, senderBuf, &replyBuf);
 
     // Set sender's return value to 0 (success).
     SyscallFrame* targetFrame = (SyscallFrame*)target->esp;
