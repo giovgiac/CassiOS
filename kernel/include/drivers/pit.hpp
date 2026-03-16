@@ -10,7 +10,7 @@
 #ifndef DRIVERS_PIT_HPP_
 #define DRIVERS_PIT_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <hardware/driver.hpp>
 #include <hardware/port.hpp>
 

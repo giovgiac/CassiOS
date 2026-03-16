@@ -1,7 +1,7 @@
 #ifndef TESTS_TEST_HPP_
 #define TESTS_TEST_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <hardware/serial.hpp>
 
 namespace test {

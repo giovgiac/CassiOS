@@ -10,7 +10,7 @@
 #ifndef CORE_PROCESS_HPP_
 #define CORE_PROCESS_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <message.hpp>
 
 namespace cassio {

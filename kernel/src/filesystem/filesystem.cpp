@@ -8,7 +8,7 @@
  */
 
 #include "filesystem/filesystem.hpp"
-#include "common/string.hpp"
+#include <string.hpp>
 
 using namespace cassio;
 using namespace cassio::filesystem;

@@ -10,7 +10,7 @@
 #ifndef FILESYSTEM_FILESYSTEM_HPP_
 #define FILESYSTEM_FILESYSTEM_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 
 namespace cassio {
 namespace filesystem {

@@ -10,7 +10,7 @@
 #ifndef HARDWARE_DRIVER_HPP_
 #define HARDWARE_DRIVER_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <hardware/irq.hpp>
 
 namespace cassio {

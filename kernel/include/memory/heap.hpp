@@ -10,7 +10,7 @@
 #ifndef MEMORY_HEAP_HPP_
 #define MEMORY_HEAP_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 
 namespace cassio {
 namespace memory {

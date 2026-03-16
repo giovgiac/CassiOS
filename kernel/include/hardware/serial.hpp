@@ -1,7 +1,7 @@
 #ifndef HARDWARE_SERIAL_HPP_
 #define HARDWARE_SERIAL_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <hardware/port.hpp>
 
 namespace cassio {

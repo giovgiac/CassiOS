@@ -10,7 +10,7 @@
 #ifndef CORE_SYSCALL_HPP_
 #define CORE_SYSCALL_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <syscall.hpp>
 #include <message.hpp>
 

@@ -1,6 +1,6 @@
 #include <core/commands/command.hpp>
 #include <filesystem/filesystem.hpp>
-#include <common/string.hpp>
+#include <string.hpp>
 #include "test.hpp"
 
 using namespace cassio;

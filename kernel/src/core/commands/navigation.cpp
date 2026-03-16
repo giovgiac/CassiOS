@@ -8,7 +8,7 @@
  */
 
 #include "core/commands/navigation.hpp"
-#include "common/string.hpp"
+#include <string.hpp>
 #include "filesystem/filesystem.hpp"
 #include "hardware/terminal.hpp"
 

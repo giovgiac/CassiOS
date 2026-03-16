@@ -2,18 +2,19 @@
 # Each service Makefile sets SERVICE and SOURCES, then includes this file.
 
 ROOT     = $(dir $(lastword $(MAKEFILE_LIST)))..
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/shared/ -I$(ROOT)/userspace/lib/
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/lib/
 LDFLAGS  = -melf_i386
 
 OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
 BINDIR   = $(ROOT)/bin
 OUTPUT   = $(BINDIR)/$(SERVICE).elf
+LIBCOMMON = $(ROOT)/lib/libcommon.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON)
 	@mkdir -p $(BINDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBCOMMON)
 
 $(OBJDIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)

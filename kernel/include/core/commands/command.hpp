@@ -10,7 +10,7 @@
 #ifndef CORE_COMMANDS_COMMAND_HPP_
 #define CORE_COMMANDS_COMMAND_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 
 namespace cassio {
 namespace filesystem {

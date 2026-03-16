@@ -10,7 +10,7 @@
 #ifndef MEMORY_PHYSICAL_HPP_
 #define MEMORY_PHYSICAL_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <memory/multiboot.hpp>
 
 namespace cassio {

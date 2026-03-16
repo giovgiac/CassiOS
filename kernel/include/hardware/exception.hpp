@@ -10,7 +10,7 @@
 #ifndef HARDWARE_EXCEPTION_HPP_
 #define HARDWARE_EXCEPTION_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 
 namespace cassio {
 namespace hardware {

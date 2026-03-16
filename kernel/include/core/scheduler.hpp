@@ -10,7 +10,7 @@
 #ifndef CORE_SCHEDULER_HPP_
 #define CORE_SCHEDULER_HPP_
 
-#include <common/types.hpp>
+#include <types.hpp>
 #include <core/gdt.hpp>
 #include <core/process.hpp>
 

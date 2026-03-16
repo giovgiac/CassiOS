@@ -7,7 +7,7 @@
  *
  */
 
-#include "common/string.hpp"
+#include <string.hpp>
 
 using namespace cassio;
 

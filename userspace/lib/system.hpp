@@ -1,0 +1,63 @@
+/**
+ * system.hpp -- userspace system syscall wrappers
+ *
+ * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
+ * Use of this source code is governed by a MIT-style
+ * license that can be found in the LICENSE file.
+ *
+ */
+
+#ifndef USERSPACE_LIB_SYSTEM_HPP_
+#define USERSPACE_LIB_SYSTEM_HPP_
+
+#include <types.hpp>
+#include <syscall.hpp>
+
+namespace cassio {
+
+class System {
+public:
+    static inline i32 write(u32 fd, const char* buf, u32 len) {
+        i32 ret;
+        asm volatile("int $0x80" : "=a"(ret)
+                     : "a"(SyscallNumber::Write), "b"(fd), "c"((u32)buf), "d"(len)
+                     : "memory");
+        return ret;
+    }
+
+    static inline i32 sleep(u32 ms) {
+        i32 ret;
+        asm volatile("int $0x80" : "=a"(ret)
+                     : "a"(SyscallNumber::Sleep), "b"(ms)
+                     : "memory");
+        return ret;
+    }
+
+    static inline i32 uptime() {
+        i32 ret;
+        asm volatile("int $0x80" : "=a"(ret)
+                     : "a"(SyscallNumber::Uptime)
+                     : "memory");
+        return ret;
+    }
+
+    static inline void reboot() {
+        asm volatile("int $0x80" : : "a"(SyscallNumber::Reboot) : "memory");
+    }
+
+    static inline void shutdown() {
+        asm volatile("int $0x80" : : "a"(SyscallNumber::Shutdown) : "memory");
+    }
+
+    static inline i32 irqRegister(u32 irq) {
+        i32 ret;
+        asm volatile("int $0x80" : "=a"(ret)
+                     : "a"(SyscallNumber::IrqRegister), "b"(irq)
+                     : "memory");
+        return ret;
+    }
+};
+
+} // cassio
+
+#endif // USERSPACE_LIB_SYSTEM_HPP_
