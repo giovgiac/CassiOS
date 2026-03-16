@@ -82,7 +82,7 @@ test-kernel: $(TEST_KERNEL)
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -drive file=/tmp/cassio-test-disk.img,format=raw,if=ide \
-	    -no-reboot -net none; \
+	    -no-reboot; \
 	EXIT_CODE=$$?; \
 	rm -f /tmp/cassio-test-disk.img; \
 	cat /tmp/cassio-test-results.txt; \
@@ -93,7 +93,7 @@ test-userspace: kernel $(USERTEST)
 	    -initrd $(USERTEST) \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
-	    -no-reboot -net none; \
+	    -no-reboot; \
 	EXIT_CODE=$$?; \
 	cat /tmp/cassio-usertest-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
