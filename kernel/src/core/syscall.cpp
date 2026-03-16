@@ -116,9 +116,10 @@ i32 SyscallHandler::receive(Message* msg) {
     }
 
     // Check for queued notifications (fire-and-forget messages).
+    // Return -3 so handleSyscall sets eax=0 (no reply expected).
     u32 notifySender;
     if (receiver->notifyPop(notifySender, *msg)) {
-        return static_cast<i32>(notifySender);
+        return -3;
     }
 
     // No pending senders, IRQs, or notifications -- block.
@@ -170,8 +171,9 @@ i32 SyscallHandler::notify(u32 targetPid, Message* msg) {
         Message* targetBuf = (Message*)target->msgPtr;
         copyMessageToProcess(target, targetBuf, &temp);
 
+        // Return 0 as sender so receiver knows not to reply.
         SyscallFrame* targetFrame = (SyscallFrame*)target->esp;
-        targetFrame->eax = sender->pid;
+        targetFrame->eax = 0;
 
         target->state = ProcessState::Ready;
     } else {
@@ -265,8 +267,8 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
             Scheduler& sched = Scheduler::getScheduler();
             return sched.reschedule(esp);
         }
-        if (result == -2) {
-            // Pending IRQ notification delivered. Return 0 (kernel PID).
+        if (result == -2 || result == -3) {
+            // IRQ or queued notification delivered. Return 0 (no reply expected).
             frame->eax = 0;
             return esp;
         }
