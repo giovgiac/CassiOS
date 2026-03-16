@@ -1,5 +1,5 @@
 #include <drivers/mouse.hpp>
-#include "test.hpp"
+#include <test.hpp>
 
 using namespace cassio;
 using namespace cassio::drivers;

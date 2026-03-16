@@ -2,7 +2,7 @@
 #include <hardware/irq.hpp>
 #include <hardware/driver.hpp>
 #include <core/gdt.hpp>
-#include "test.hpp"
+#include <test.hpp>
 
 using namespace cassio;
 using namespace cassio::hardware;

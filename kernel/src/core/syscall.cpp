@@ -160,6 +160,11 @@ void SyscallHandler::shutdown() {
     asm volatile("hlt");
 }
 
+void SyscallHandler::exit(u32 code) {
+    Port<u8> debug_exit(PortType::QemuDebugExit);
+    debug_exit.write(code == 0 ? 0x00 : 0x01);
+}
+
 u32 SyscallHandler::handleSyscall(u32 esp) {
     SyscallFrame* frame = (SyscallFrame*)esp;
     u32 number = frame->eax;
@@ -202,6 +207,9 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     case SyscallNumber::Shutdown:
         shutdown();
+        return esp;
+    case SyscallNumber::Exit:
+        exit(frame->ebx);
         return esp;
     default:
         frame->eax = static_cast<u32>(-1);

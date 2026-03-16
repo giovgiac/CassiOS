@@ -24,7 +24,8 @@ namespace SyscallNumber {
     constexpr u32 Uptime      = 6;
     constexpr u32 Reboot      = 7;
     constexpr u32 Shutdown    = 8;
-    constexpr u32 Count       = 9;
+    constexpr u32 Exit        = 9;
+    constexpr u32 Count       = 10;
 }
 
 } // cassio
