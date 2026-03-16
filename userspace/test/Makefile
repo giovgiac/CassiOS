@@ -4,7 +4,8 @@ ROOT     = $(dir $(lastword $(MAKEFILE_LIST)))../..
 NS_DIR   = $(ROOT)/userspace/ns
 KBD_DIR  = $(ROOT)/userspace/kbd
 VGA_DIR  = $(ROOT)/userspace/vga
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -I$(NS_DIR)/include/ -I$(KBD_DIR)/include/ -I$(VGA_DIR)/include/
+VFS_DIR  = $(ROOT)/userspace/vfs
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -I$(NS_DIR)/include/ -I$(KBD_DIR)/include/ -I$(VGA_DIR)/include/ -I$(VFS_DIR)/include/
 LDFLAGS  = -melf_i386
 
 OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
@@ -33,7 +34,13 @@ VGA_IMPL_SOURCES = $(VGA_DIR)/src/terminal.cpp
 VGA_TEST_OBJECTS = $(patsubst $(VGA_DIR)/tests/%.cpp, $(OBJDIR)/vga/tests/%.o, $(VGA_TEST_SOURCES))
 VGA_IMPL_OBJECTS = $(patsubst $(VGA_DIR)/src/%.cpp, $(OBJDIR)/vga/src/%.o, $(VGA_IMPL_SOURCES))
 
-OBJECTS = $(RUNNER_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS) $(KBD_TEST_OBJECTS) $(KBD_IMPL_OBJECTS) $(VGA_TEST_OBJECTS) $(VGA_IMPL_OBJECTS)
+# VFS tests and implementation (compiled from vfs/).
+VFS_TEST_SOURCES = $(wildcard $(VFS_DIR)/tests/test_*.cpp)
+VFS_IMPL_SOURCES = $(VFS_DIR)/src/filesystem.cpp
+VFS_TEST_OBJECTS = $(patsubst $(VFS_DIR)/tests/%.cpp, $(OBJDIR)/vfs/tests/%.o, $(VFS_TEST_SOURCES))
+VFS_IMPL_OBJECTS = $(patsubst $(VFS_DIR)/src/%.cpp, $(OBJDIR)/vfs/src/%.o, $(VFS_IMPL_SOURCES))
+
+OBJECTS = $(RUNNER_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS) $(KBD_TEST_OBJECTS) $(KBD_IMPL_OBJECTS) $(VGA_TEST_OBJECTS) $(VGA_IMPL_OBJECTS) $(VFS_TEST_OBJECTS) $(VFS_IMPL_OBJECTS)
 
 $(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON)
 	@mkdir -p $(BINDIR)
@@ -64,6 +71,14 @@ $(OBJDIR)/vga/tests/%.o: $(VGA_DIR)/tests/%.cpp
 	g++ $(CXXFLAGS) -o $@ -c $<
 
 $(OBJDIR)/vga/src/%.o: $(VGA_DIR)/src/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $<
+
+$(OBJDIR)/vfs/tests/%.o: $(VFS_DIR)/tests/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $<
+
+$(OBJDIR)/vfs/src/%.o: $(VFS_DIR)/src/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $<
 
