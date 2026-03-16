@@ -9,6 +9,7 @@ LDFLAGS = -melf_i386
 
 KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
+USERTEST = bin/usertest.elf
 INIT = bin/init.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
@@ -57,6 +58,9 @@ kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON)
 $(INIT):
 	$(MAKE) -C userspace/init
 
+$(USERTEST): $(LIBCOMMON)
+	$(MAKE) -C userspace/test
+
 # Compile test files from the kernel/tests/ directory.
 obj/tests/%.o: kernel/tests/%.cpp
 	@mkdir -p $(dir $@)
@@ -70,16 +74,28 @@ $(DISK):
 	@mkdir -p bin
 	qemu-img create -f raw $(DISK) 1M
 
-test: $(TEST_KERNEL)
+test: test-kernel test-userspace
+
+test-kernel: $(TEST_KERNEL)
 	@qemu-img create -f raw /tmp/cassio-test-disk.img 1M 2>/dev/null; \
 	qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -drive file=/tmp/cassio-test-disk.img,format=raw,if=ide \
-	    -no-reboot; \
+	    -no-reboot -net none; \
 	EXIT_CODE=$$?; \
 	rm -f /tmp/cassio-test-disk.img; \
 	cat /tmp/cassio-test-results.txt; \
+	[ $$EXIT_CODE -eq 1 ]
+
+test-userspace: kernel $(USERTEST)
+	@qemu-system-i386 -machine pc -kernel $(KERNEL) \
+	    -initrd $(USERTEST) \
+	    -display none -serial file:/tmp/cassio-usertest-results.txt \
+	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
+	    -no-reboot -net none; \
+	EXIT_CODE=$$?; \
+	cat /tmp/cassio-usertest-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
 iso: kernel
@@ -103,6 +119,6 @@ run: kernel $(INIT) $(DISK)
 	    -initrd $(INIT) \
 	    -drive file=$(DISK),format=raw,if=ide
 
-.PHONY: kernel iso clean run test init
+.PHONY: kernel iso clean run test test-kernel test-userspace
 clean:
 	rm -rf obj/ bin/ lib/

@@ -49,6 +49,10 @@ public:
         asm volatile("int $0x80" : : "a"(SyscallNumber::Shutdown) : "memory");
     }
 
+    static inline void exit(u32 code) {
+        asm volatile("int $0x80" : : "a"(SyscallNumber::Exit), "b"(code) : "memory");
+    }
+
     static inline i32 irqRegister(u32 irq) {
         i32 ret;
         asm volatile("int $0x80" : "=a"(ret)

@@ -49,6 +49,7 @@ private:
     i32 uptime();
     void reboot();
     void shutdown();
+    void exit(u32 code);
 
 public:
     /**
