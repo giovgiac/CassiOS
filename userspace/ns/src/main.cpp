@@ -1,50 +1,24 @@
 /**
- * main.cpp -- nameserver service
+ * main.cpp -- nameserver service entry point
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
  * First userspace service (well-known PID 1). Provides name-to-PID
- * lookup for service discovery. Handles NsRegister and NsLookup
- * messages in a receive loop.
+ * lookup for service discovery via IPC.
  *
  */
 
 #include <types.hpp>
-#include <string.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
-#include <nameserver.hpp>
+#include <ns.hpp>
+#include <table.hpp>
 
 using namespace cassio;
 
-struct NsEntry {
-    char name[17];
-    u32 pid;
-};
-
-static NsEntry table[16];
-static u32 count = 0;
-
-static u32 lookup(const char* name) {
-    for (u32 i = 0; i < count; i++) {
-        if (streq(table[i].name, name)) {
-            return table[i].pid;
-        }
-    }
-    return 0;
-}
-
-static u32 registerName(const char* name, u32 pid) {
-    if (count >= 16 || lookup(name) != 0) {
-        return 0;
-    }
-    strcpy(table[count].name, name, 17);
-    table[count].pid = pid;
-    count++;
-    return 1;
-}
+static NsTable table;
 
 extern "C" void _start() {
     while (true) {
@@ -55,16 +29,16 @@ extern "C" void _start() {
         }
 
         Message reply = {};
-        char name[17];
+        char name[NsTable::MAX_NAME_LEN + 1];
 
         switch (msg.type) {
         case MessageType::NsRegister:
             Nameserver::unpackName(msg, name);
-            reply.arg1 = registerName(name, static_cast<u32>(sender));
+            reply.arg1 = table.registerName(name, static_cast<u32>(sender));
             break;
         case MessageType::NsLookup:
             Nameserver::unpackName(msg, name);
-            reply.arg1 = lookup(name);
+            reply.arg1 = table.lookup(name);
             break;
         }
 

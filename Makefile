@@ -11,7 +11,7 @@ KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
 USERTEST = bin/usertest.elf
 INIT = bin/init.elf
-NAMESERVER = bin/nameserver.elf
+NAMESERVER = bin/ns.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
 LIBCOMMON = lib/libcommon.a
@@ -60,7 +60,7 @@ $(INIT):
 	$(MAKE) -C userspace/init
 
 $(NAMESERVER): $(LIBCOMMON)
-	$(MAKE) -C userspace/nameserver
+	$(MAKE) -C userspace/ns
 
 $(USERTEST): $(LIBCOMMON)
 	$(MAKE) -C userspace/test

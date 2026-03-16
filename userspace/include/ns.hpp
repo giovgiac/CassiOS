@@ -1,5 +1,5 @@
 /**
- * nameserver.hpp -- userspace nameserver client helpers
+ * ns.hpp -- userspace nameserver client helpers
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef USERSPACE_LIB_NAMESERVER_HPP_
-#define USERSPACE_LIB_NAMESERVER_HPP_
+#ifndef USERSPACE_LIB_NS_HPP_
+#define USERSPACE_LIB_NS_HPP_
 
 #include <types.hpp>
 #include <message.hpp>
@@ -57,4 +57,4 @@ public:
 
 } // cassio
 
-#endif // USERSPACE_LIB_NAMESERVER_HPP_
+#endif // USERSPACE_LIB_NS_HPP_
