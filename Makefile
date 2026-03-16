@@ -119,6 +119,6 @@ run: kernel $(INIT) $(DISK)
 	    -initrd $(INIT) \
 	    -drive file=$(DISK),format=raw,if=ide
 
-.PHONY: kernel iso clean run test test-kernel test-userspace
+.PHONY: kernel iso clean run test test-kernel test-userspace init
 clean:
 	rm -rf obj/ bin/ lib/
