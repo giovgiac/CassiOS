@@ -27,7 +27,7 @@ SyscallHandler::SyscallHandler() {}
 
 void SyscallHandler::load() {
     InterruptManager& im = InterruptManager::getManager();
-    im.setGate(0x80, &syscallEntry, 3);
+    im.setTrapGate(0x80, &syscallEntry, 3);
 }
 
 i32 SyscallHandler::handleSyscall(u32 number, u32 ebx, u32 ecx, u32 edx) {

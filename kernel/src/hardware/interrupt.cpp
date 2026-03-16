@@ -1,6 +1,6 @@
 /**
  * interrupt.cpp
- * 
+ *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
@@ -8,6 +8,9 @@
  */
 
 #include "hardware/interrupt.hpp"
+#include "hardware/exception.hpp"
+#include "hardware/irq.hpp"
+#include "core/syscall.hpp"
 
 using namespace cassio;
 using namespace cassio::hardware;
@@ -22,11 +25,7 @@ void InterruptManager::deactivate() {
     asm("cli");
 }
 
-InterruptManager::InterruptManager()
-    : pic_master_cmd(PortType::MasterProgrammableInterfaceControllerCommand),
-      pic_master_data(PortType::MasterProgrammableInterfaceControllerData),
-      pic_slave_cmd(PortType::SlaveProgrammableInterfaceControllerCommand),
-      pic_slave_data(PortType::SlaveProgrammableInterfaceControllerData) {}
+InterruptManager::InterruptManager() : code_offset(0) {}
 
 void InterruptManager::setInterrupt(u8 number, u16 code_offset, void(*handler)(), u8 access, u8 flags) {
     idt[number].handler_low = ((u32)handler) & 0xFFFF;
@@ -36,80 +35,28 @@ void InterruptManager::setInterrupt(u8 number, u16 code_offset, void(*handler)()
     idt[number].reserved = 0;
 }
 
-void InterruptManager::setGate(u8 vector, void(*handler)(), u8 dpl) {
-    setInterrupt(vector, 0x08, handler, dpl, IDT_TRAP_GATE);
+void InterruptManager::setInterruptGate(u8 vector, void(*handler)()) {
+    setInterrupt(vector, code_offset, handler, 0, IDT_INTERRUPT_GATE);
+}
+
+void InterruptManager::setTrapGate(u8 vector, void(*handler)(), u8 dpl) {
+    setInterrupt(vector, code_offset, handler, dpl, IDT_TRAP_GATE);
 }
 
 void InterruptManager::load(cassio::kernel::GlobalDescriptorTable& gdt) {
-    u16 code_offset = gdt.getCodeOffset();
+    code_offset = gdt.getCodeOffset();
 
     for (u16 i = 0; i < 256; ++i) {
         setInterrupt(i, code_offset, &ignoreInterruptRequest, 0, IDT_INTERRUPT_GATE);
     }
 
-    setInterrupt(0x20, code_offset, &handleInterruptRequest0x00, 0, IDT_INTERRUPT_GATE);
-    setInterrupt(0x21, code_offset, &handleInterruptRequest0x01, 0, IDT_INTERRUPT_GATE);
-    setInterrupt(0x2C, code_offset, &handleInterruptRequest0x0C, 0, IDT_INTERRUPT_GATE);
-    setInterrupt(0x2E, code_offset, &handleInterruptRequest0x0E, 0, IDT_INTERRUPT_GATE);
-
-    /** Remapping of the PICs to avoid conflicts between software and hardware interrupts. */
-
-    // Restarts Master and Slave PICs.
-    pic_master_cmd.writeSlow(0x11);
-    pic_slave_cmd.writeSlow(0x11);
-
-    // Tells Master PIC to start at 20h (32) and Slave PIC to start at 28h (40).
-    pic_master_data.writeSlow(IRQ_OFFSET);
-    pic_slave_data.writeSlow(IRQ_OFFSET + 8);
-
-    // Setup PIC cascading.
-    pic_master_data.writeSlow(0x04);
-    pic_slave_data.writeSlow(0x02);
-
-    pic_master_data.writeSlow(0x01);
-    pic_slave_data.writeSlow(0x01);
-
-    pic_master_data.writeSlow(0x00);
-    pic_slave_data.writeSlow(0x00);
+    ExceptionHandler::getHandler().load();
+    IrqManager::getManager().load();
+    kernel::SyscallHandler::getSyscallHandler().load();
 
     InterruptDescriptorTable table;
     table.size = 256 * sizeof(GateDescriptor) - 1;
     table.base = (u32)idt;
 
     asm volatile("lidt  %0": :"m" (table));
-}
-
-void InterruptManager::unload() {
-
-}
-
-u32 InterruptManager::handleInterrupt(u8 number, u32 esp) {
-    if (drv[number] != nullptr) {
-        esp = drv[number]->handleInterrupt(esp);
-    }
-    else if (number != 0x20) {
-        // Print if the interrupt is not a 'timer interrupt' <- interrupt number 0x20.
-        VgaTerminal& vga = VgaTerminal::getTerminal();
-        vga.print("Unhandled Interrupt ");
-        vga.print_hex(number);
-        vga.print(" Triggered!\n");
-    }
-
-    if (0x20 <= number && number < 0x30) {
-        // Tell the PIC that interrupt was handled.
-        pic_master_cmd.writeSlow(0x20);
-
-        if (0x28 <= number) {
-            // If interrupt came from slave, tell the slave that interrupt was handled.
-            pic_slave_cmd.writeSlow(0x20);
-        }
-    }
-
-    return esp;
-}
-
-u32 handleInterrupt(u8 number, u32 esp) {
-    InterruptManager& im = InterruptManager::getManager();
-    // TODO: Check if is loaded (add boolean to keep loaded as status)
-    return im.handleInterrupt(number, esp);
 }

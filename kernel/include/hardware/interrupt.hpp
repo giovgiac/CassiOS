@@ -1,6 +1,6 @@
 /**
  * interrupt.hpp
- * 
+ *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
@@ -12,9 +12,7 @@
 
 #include <common/types.hpp>
 #include <core/gdt.hpp>
-#include <hardware/driver.hpp>
 #include <hardware/port.hpp>
-#include <hardware/terminal.hpp>
 
 namespace cassio {
 namespace hardware {
@@ -30,12 +28,10 @@ enum InterruptFlags : u8 {
 };
 
 /**
- * @brief Singleton that owns the IDT and PIC, dispatching hardware interrupts to drivers.
+ * @brief Singleton that owns the IDT. Delegates to ExceptionHandler, IrqManager, and SyscallHandler.
  *
  */
 class InterruptManager final {
-friend class Driver;
-
 private:
     /**
      * @brief An 8-byte packed IDT entry pointing to an interrupt handler.
@@ -60,18 +56,13 @@ private:
 
 private:
     GateDescriptor idt[256];
-    Driver* drv[256];
-
-    hardware::Port<u8> pic_master_cmd;
-    hardware::Port<u8> pic_master_data;
-    hardware::Port<u8> pic_slave_cmd;
-    hardware::Port<u8> pic_slave_data;
+    u16 code_offset;
 
     static InterruptManager instance;
 
 private:
     /**
-     * @brief Constructs the manager and initializes PIC ports.
+     * @brief Constructs the manager.
      *
      */
     InterruptManager();
@@ -81,6 +72,12 @@ private:
      *
      */
     ~InterruptManager() = default;
+
+    /**
+     * @brief Writes a gate descriptor entry into the IDT at the given index.
+     *
+     */
+    void setInterrupt(u8 number, u16 code_offset, void(*handler)(), u8 access, u8 flags);
 
 public:
     /**
@@ -92,10 +89,6 @@ public:
     }
 
     static void ignoreInterruptRequest();
-    static void handleInterruptRequest0x00();
-    static void handleInterruptRequest0x01();
-    static void handleInterruptRequest0x0C();
-    static void handleInterruptRequest0x0E();
 
     /**
      * @brief Enables hardware interrupts by executing the sti instruction.
@@ -110,34 +103,22 @@ public:
     void deactivate();
 
     /**
-     * @brief Dispatches an interrupt to the registered driver or prints a warning.
+     * @brief Sets an interrupt gate (DPL=0) at the given vector.
      *
      */
-    u32 handleInterrupt(u8 number, u32 esp);
+    void setInterruptGate(u8 vector, void(*handler)());
 
     /**
-     * @brief Writes a gate descriptor entry into the IDT at the given index.
+     * @brief Sets a trap gate at the given vector with the specified DPL.
      *
      */
-    void setInterrupt(u8 number, u16 code_offset, void(*handler)(), u8 access, u8 flags);
+    void setTrapGate(u8 vector, void(*handler)(), u8 dpl);
 
     /**
-     * @brief Registers a non-IRQ interrupt gate at the given vector with the specified DPL.
-     *
-     */
-    void setGate(u8 vector, void(*handler)(), u8 dpl);
-
-    /**
-     * @brief Populates the IDT, remaps the PICs, and loads the IDT via lidt.
+     * @brief Populates the IDT, delegates to sub-managers, and loads the IDT via lidt.
      *
      */
     void load(cassio::kernel::GlobalDescriptorTable& gdt);
-
-    /**
-     * @brief Unloads the interrupt manager.
-     *
-     */
-    void unload();
 
     /** Deleted Methods */
     InterruptManager(const InterruptManager&) = delete;
@@ -149,11 +130,5 @@ public:
 
 }
 }
-
-/**
- * @brief C-linkage interrupt handler called from assembly stubs in stub.s.
- *
- */
-extern "C" cassio::u32 handleInterrupt(cassio::u8 number, cassio::u32 esp);
 
 #endif // HARDWARE_INTERRUPT_HPP_

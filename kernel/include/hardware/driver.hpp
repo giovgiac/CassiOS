@@ -1,6 +1,6 @@
 /**
  * driver.hpp
- * 
+ *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
@@ -11,21 +11,19 @@
 #define HARDWARE_DRIVER_HPP_
 
 #include <common/types.hpp>
+#include <hardware/irq.hpp>
 
 namespace cassio {
 namespace hardware {
 
-// Offset to add to PIC interrupts to avoid conflict with software interrupts.
-constexpr u8 IRQ_OFFSET = 0x20;
-
 /**
  * @brief Defines the interrupt number for the various types of devices.
- * 
+ *
  * Enumerates the various types of device drivers, including those that are
  * related to the PIC (Programmable Interface Controller).
- * 
+ *
  * @see https://en.wikipedia.org/wiki/Interrupt_request_(PC_architecture)
- * 
+ *
  */
 enum class DriverType : u8 {
     SystemTimer                                     = 0x00 + IRQ_OFFSET,
@@ -46,8 +44,8 @@ enum class DriverType : u8 {
 /**
  * @brief Base class for hardware drivers that handle IRQ interrupts.
  *
- * Registers itself with the InterruptManager on construction using its
- * DriverType as the interrupt number.
+ * Registers itself with the IrqManager on construction using its
+ * DriverType as the interrupt vector number.
  *
  */
 class Driver {
@@ -56,13 +54,13 @@ protected:
 
 protected:
     /**
-     * @brief Constructs the driver and registers it with the InterruptManager for its IRQ.
+     * @brief Constructs the driver and registers it with the IrqManager for its IRQ.
      *
      */
     Driver(DriverType type);
 
     /**
-     * @brief Unregisters the driver from the InterruptManager.
+     * @brief Unregisters the driver from the IrqManager.
      *
      */
     ~Driver();
@@ -82,10 +80,10 @@ public:
 
     /**
      * @brief Resets the device, so that the state becomes known.
-     * 
+     *
      * Useful for removing hardware from an unknown state, that might have been left
      * by another operating system or bootloader.
-     * 
+     *
      */
     virtual i32 reset();
 

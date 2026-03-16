@@ -1,6 +1,6 @@
 /**
  * driver.cpp
- * 
+ *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
@@ -9,24 +9,19 @@
 
 #include "hardware/driver.hpp"
 
-#include <hardware/interrupt.hpp>
-
 using namespace cassio;
 using namespace cassio::hardware;
 
 DriverManager DriverManager::instance;
 
 Driver::Driver(DriverType type) : number(static_cast<u8>(type)) {
-    InterruptManager& im = InterruptManager::getManager();
-    im.drv[number] = this;
+    IrqManager& irq = IrqManager::getManager();
+    irq.registerDriver(number, this);
 }
 
 Driver::~Driver() {
-    InterruptManager& im = InterruptManager::getManager();
-
-    if (im.drv[number] == this) {
-        im.drv[number] = nullptr;
-    }
+    IrqManager& irq = IrqManager::getManager();
+    irq.unregisterDriver(number, this);
 }
 
 i32 Driver::reset() {

@@ -1,4 +1,5 @@
 #include <hardware/interrupt.hpp>
+#include <hardware/irq.hpp>
 #include <hardware/driver.hpp>
 #include <core/gdt.hpp>
 #include "test.hpp"
@@ -58,4 +59,29 @@ TEST(interrupt_idt_entry_after_load) {
     u32 handler_addr = static_cast<u32>(*reinterpret_cast<u16*>(entry + 6)) << 16
                      | static_cast<u32>(*reinterpret_cast<u16*>(entry));
     ASSERT(handler_addr != 0);
+}
+
+TEST(interrupt_exception_idt_entries) {
+    // Verify exception vectors 0, 6, 13, 14 are set to non-ignore handlers.
+    struct __attribute__((packed)) { u16 limit; u32 base; } idtr;
+    asm volatile("sidt %0" : "=m"(idtr));
+
+    // Get the ignore handler address for comparison
+    u8* ignore_entry = reinterpret_cast<u8*>(idtr.base) + 1 * 8; // vector 1 is unused
+    u32 ignore_addr = static_cast<u32>(*reinterpret_cast<u16*>(ignore_entry + 6)) << 16
+                    | static_cast<u32>(*reinterpret_cast<u16*>(ignore_entry));
+
+    u8 vectors[] = { 0x00, 0x06, 0x0D, 0x0E };
+    for (u8 v : vectors) {
+        u8* entry = reinterpret_cast<u8*>(idtr.base) + v * 8;
+        u32 handler_addr = static_cast<u32>(*reinterpret_cast<u16*>(entry + 6)) << 16
+                         | static_cast<u32>(*reinterpret_cast<u16*>(entry));
+
+        // Handler should be set (non-zero) and different from the ignore stub
+        ASSERT(handler_addr != 0);
+        ASSERT(handler_addr != ignore_addr);
+
+        // Access byte should be 0x8E (present, DPL=0, interrupt gate)
+        ASSERT_EQ(static_cast<u32>(entry[5]), 0x8Eu);
+    }
 }
