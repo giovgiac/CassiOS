@@ -49,6 +49,18 @@ static void activate() {
     data.read();
 }
 
+// Pack all buffered characters (up to 20) into reply.arg1-arg5.
+static void drainToReply(Message& reply) {
+    char* data = reinterpret_cast<char*>(&reply.arg1);
+    u32 count = 0;
+    while (count < 20 && keyboard.bufferCount() > 0) {
+        data[count++] = keyboard.readBuffer();
+    }
+    if (count < 20) {
+        data[count] = '\0';
+    }
+}
+
 extern "C" void _start() {
     Nameserver::registerName("kbd");
     System::irqRegister(1);
@@ -75,7 +87,7 @@ extern "C" void _start() {
             // Wake a blocked reader if characters are now available.
             if (pending_reader != 0 && keyboard.bufferCount() > 0) {
                 Message reply = {};
-                reply.arg1 = static_cast<u8>(keyboard.readBuffer());
+                drainToReply(reply);
                 IPC::reply(pending_reader, &reply);
                 pending_reader = 0;
             }
@@ -85,7 +97,7 @@ extern "C" void _start() {
             if (sender > 0) {
                 if (keyboard.bufferCount() > 0) {
                     Message reply = {};
-                    reply.arg1 = static_cast<u8>(keyboard.readBuffer());
+                    drainToReply(reply);
                     IPC::reply(static_cast<u32>(sender), &reply);
                 } else {
                     // Buffer empty -- hold the request until a character arrives.
