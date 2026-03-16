@@ -4,7 +4,58 @@
 
 Migrate from monolithic to microkernel architecture. The kernel shrinks to: IPC, scheduling, memory management, and interrupt routing. Everything else (drivers, filesystem, terminal, shell) moves to userspace services communicating via synchronous message passing.
 
-## 1. Interrupt Subsystem Refactor
+## 1. Source Tree Reorganization
+
+Establish a clear boundary between kernel and userspace code in the file tree.
+
+### Layout
+
+```
+shared/
+  syscall.hpp              <-- syscall numbers (kernel + userspace must agree)
+  message.hpp              <-- Message struct, message type constants
+kernel/
+  src/
+    core/                  <-- kernel.cpp, process.cpp, scheduler.cpp, syscall.cpp, etc.
+    hardware/              <-- interrupt.cpp, stub.s, serial.cpp, port.cpp
+    memory/                <-- paging.cpp, physical.cpp, heap.cpp
+  include/
+    core/
+    hardware/
+    memory/
+  tests/                   <-- in-kernel unit tests
+userspace/
+  lib/
+    syscall.hpp            <-- inline asm syscall wrappers
+    nameserver.hpp         <-- ns_register(), ns_lookup() helpers
+  test/
+    assert.hpp             <-- userspace test macros (ASSERT, serial output)
+  nameserver/
+    main.cpp
+    tests/
+  kbd/
+    main.cpp
+    tests/
+  mouse/
+    main.cpp
+    tests/
+  ata/
+    main.cpp
+    tests/
+  vga/
+    main.cpp
+    tests/
+  vfs/
+    main.cpp
+    tests/
+  shell/
+    main.cpp
+    tests/
+```
+
+Current `src/` and `include/` move into `kernel/src/` and `kernel/include/`. Current `tests/` moves into `kernel/tests/`. The `shared/` directory holds definitions that both kernel and userspace include. The `userspace/lib/` directory holds userspace-only helpers. The `userspace/test/` directory holds the userspace test framework.
+
+## 2. Interrupt Subsystem Refactor
 
 Split the current `InterruptManager` into four classes with distinct responsibilities.
 
@@ -54,7 +105,7 @@ else if (vector == 0x80) -> SyscallHandler::handle()
 else                    -> ignore
 ```
 
-## 2. IPC Mechanism
+## 3. IPC Mechanism
 
 Synchronous send/receive/reply (L4/QNX style). No kernel-side message buffering.
 
@@ -80,6 +131,8 @@ struct Message {
 ```
 
 Register-only for this phase (no buffer copy between address spaces). Buffer copy extension added later when needed (prerequisite for Phase 9 FAT32 bulk I/O).
+
+The `Message` struct and all message type constants (`MSG_IRQ_NOTIFY`, `MSG_NS_REGISTER`, `MSG_KBD_READ`, etc.) live in `shared/message.hpp` so both kernel and userspace include the same definitions.
 
 ### Process States
 
@@ -107,7 +160,11 @@ Each process has a fixed array of 15 PID slots (max processes - 1) for pending s
 
 `SendBlocked` and `ReceiveBlocked` processes are skipped by the round-robin scheduler. Only `Ready` and `Running` are schedulable.
 
-## 3. IRQ Forwarding
+### Shared Definitions
+
+Syscall numbers live in `shared/syscall.hpp` so the kernel's dispatch table and userspace's syscall wrappers are always in sync. Userspace syscall wrappers (inline asm) live in `userspace/lib/syscall.hpp`.
+
+## 4. IRQ Forwarding
 
 When a hardware IRQ fires and a userspace driver has registered for it, the kernel delivers it via IPC.
 
@@ -130,7 +187,7 @@ The kernel sends PIC EOI before forwarding to userspace. The IRQ is acknowledged
 
 The driver's `receive()` handles both IRQ notifications and client requests. Distinguished by `msg.type`: `MSG_IRQ_NOTIFY` for hardware, application-defined types for client requests.
 
-## 4. Nameserver
+## 5. Nameserver
 
 First userspace process, well-known PID 1. Provides name-to-PID lookup for service discovery.
 
@@ -143,7 +200,7 @@ First userspace process, well-known PID 1. Provides name-to-PID lookup for servi
 
 Fixed table of 16 entries (name string + PID). Linear scan for lookup.
 
-## 5. Service Architecture
+## 6. Service Architecture
 
 Each service is a standalone userspace ELF binary loaded from a multiboot module. All follow the same pattern: register with nameserver, loop on `receive()`.
 
@@ -191,13 +248,13 @@ Each service is a standalone userspace ELF binary loaded from a multiboot module
 - `reboot`, `shutdown` use kernel syscalls directly.
 - `uptime`, `sleep` remain kernel syscalls.
 
-## 6. Port I/O from Userspace
+## 7. Port I/O from Userspace
 
 Driver processes (kbd, mouse, ata, vga) get IOPL=3 set in their initial EFLAGS when the kernel creates the process. This allows all port I/O instructions (in/out) from ring 3. Simple and sufficient for a small set of trusted driver processes.
 
 Per-port isolation via I/O permission bitmap in the TSS can be added later without changing driver code (just stop setting IOPL=3 and configure the bitmap instead).
 
-## 7. Boot Sequence
+## 8. Boot Sequence
 
 ### GRUB Multiboot Modules
 
@@ -231,7 +288,7 @@ The kernel no longer runs the shell directly. After spawning all processes, it i
 
 The shell retries `lookup()` if a service hasn't registered yet (returns PID 0). No kernel-side dependency management needed.
 
-## 8. Syscall Table
+## 9. Syscall Table
 
 | Number | Name | Purpose |
 |--------|------|---------|
@@ -247,7 +304,7 @@ The shell retries `lookup()` if a service hasn't registered yet (returns PID 0).
 
 Previous syscall numbers are reassigned. The old `read` (fd=0 keyboard) is removed.
 
-## 9. What Gets Removed from the Kernel
+## 10. What Gets Removed from the Kernel
 
 - `Shell` (core/shell.cpp, core/commands/)
 - `KeyboardDriver` (drivers/keyboard.cpp)
@@ -258,7 +315,9 @@ Previous syscall numbers are reassigned. The old `read` (fd=0 keyboard) is remov
 - `DriverManager` (hardware/driver.cpp) -- no more in-kernel driver registry
 - `Driver` base class -- replaced by userspace service pattern
 
-## 10. What Stays in the Kernel
+Each component is removed as its corresponding userspace service is migrated.
+
+## 11. What Stays in the Kernel
 
 - GDT / TSS
 - Interrupt subsystem: InterruptManager (IDT), ExceptionHandler, IrqManager, SyscallHandler
@@ -269,13 +328,32 @@ Previous syscall numbers are reassigned. The old `read` (fd=0 keyboard) is remov
 - ELF loader
 - Serial (COM1) for debugging
 
-## 11. Testing Strategy
+## 12. Testing Strategy
 
-Each implementation issue includes its own tests.
+Two-tier testing: in-kernel unit tests for kernel components, userspace integration tests for services.
 
-- **Interrupt refactor**: test exception handlers fire on forced faults (div-by-zero), test IrqManager dispatch.
-- **IPC mechanism**: test send/receive/reply between kernel-created processes. Test blocking states, send queue ordering.
-- **IRQ forwarding**: test registered process receives IRQ notifications. Test pending flag when driver is busy.
-- **Nameserver**: test register + lookup round-trip. Test lookup of unregistered name returns 0.
-- **Service migration**: for each service, run end-to-end. E.g., keyboard migration: verify keystrokes arrive at test consumer via IPC. VGA migration: verify characters on screen via QEMU screenshot.
+### In-Kernel Tests (`kernel/tests/`)
+
+Test kernel internals directly using the existing test framework (TEST macro, ASSERT, ASSERT_EQ, serial output, QEMU exit codes):
+
+- **Interrupt refactor**: exception handlers fire on forced faults (div-by-zero), IrqManager dispatch.
+- **IPC mechanism**: send/receive/reply between kernel-created processes, blocking states, send queue ordering.
+- **IRQ forwarding**: registered process receives IRQ notifications, pending flag when driver is busy.
+
+### Userspace Test Framework (`userspace/test/`)
+
+A small library providing ASSERT macros and serial output via `sys_write(fd=2)`. Userspace test processes use this to report results.
+
+### Userspace Integration Tests (`userspace/<service>/tests/`)
+
+Each service has co-located tests. A test process is loaded as a multiboot module alongside the real services, exercises them via IPC, and reports results via serial:
+
+- **Nameserver**: register + lookup round-trip, lookup of unregistered name returns 0.
+- **Keyboard**: verify scancodes arrive at test consumer via IPC.
+- **VGA terminal**: verify characters appear on screen via QEMU screenshot.
+- **Filesystem**: create/read/write/delete files via IPC.
 - **Full integration**: boot with all services, type a command in the shell, verify output via QEMU screenshot.
+
+### Test Execution
+
+`make test` builds and runs both tiers: kernel unit tests first, then full-system integration tests. The regular `make run` never includes test processes.
