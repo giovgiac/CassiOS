@@ -12,45 +12,42 @@ INIT = bin/init.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
 
-INIT_CXXFLAGS = -m32 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector
 
 # Discover all source files automatically.
-cpp_sources = $(shell find src/ -name '*.cpp')
-asm_sources = $(shell find src/ -name '*.s')
-objects = $(patsubst src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst src/%.s, obj/%.o, $(asm_sources))
+cpp_sources = $(shell find kernel/src/ -name '*.cpp')
+asm_sources = $(shell find kernel/src/ -name '*.s')
+objects = $(patsubst kernel/src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
 
 # Shared objects for the test kernel (everything except kernel.o).
 shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 
-# Test objects are discovered from tests/**/test_*.cpp.
-test_sources = $(shell find tests/ -name 'test_*.cpp')
-test_objects = $(patsubst tests/%.cpp, obj/tests/%.o, $(test_sources))
+# Test objects are discovered from kernel/tests/**/test_*.cpp.
+test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
+test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 
 # Compile C++ source files.
-obj/%.o: src/%.cpp
+obj/%.o: kernel/src/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Iinclude/
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/
 
 # Compile assembly source files.
-obj/%.o: src/%.s
+obj/%.o: kernel/src/%.s
 	@mkdir -p $(dir $@)
 	as $(ASMFLAGS) -o $@ $<
 
-kernel: src/linker.ld $(objects)
+kernel: kernel/src/linker.ld $(objects)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects)
 
-$(INIT): userspace/init/main.cpp userspace/init/linker.ld
-	@mkdir -p bin obj/userspace/init
-	g++ $(INIT_CXXFLAGS) -o obj/userspace/init/main.o -c userspace/init/main.cpp
-	ld $(LDFLAGS) -T userspace/init/linker.ld -o $(INIT) obj/userspace/init/main.o
+$(INIT):
+	$(MAKE) -C userspace/init
 
-# Compile test files from the tests/ directory.
-obj/tests/%.o: tests/%.cpp
+# Compile test files from the kernel/tests/ directory.
+obj/tests/%.o: kernel/tests/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Iinclude/ -Itests/
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Ikernel/tests/
 
-$(TEST_KERNEL): src/linker.ld $(shared_objects) $(test_objects)
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects)
 
