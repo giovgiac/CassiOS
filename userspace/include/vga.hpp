@@ -22,7 +22,7 @@ public:
         Message msg = {};
         msg.type = MessageType::VgaPutchar;
         msg.arg1 = static_cast<u8>(ch);
-        IPC::send(pid, &msg);
+        IPC::notify(pid, &msg);
     }
 
     static inline void write(u32 pid, const char* str) {
@@ -38,7 +38,7 @@ public:
             if (i < 20) {
                 data[i] = '\0';
             }
-            IPC::send(pid, &msg);
+            IPC::notify(pid, &msg);
             str += i;
         }
     }

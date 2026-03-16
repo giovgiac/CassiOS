@@ -35,8 +35,8 @@ extern "C" void _start() {
         msg.type = MessageType::KbdRead;
         IPC::send(kbd_pid, &msg);
 
-        // Forward the batch directly to vga as a VgaWrite.
+        // Fire-and-forget: send batch to vga without blocking.
         msg.type = MessageType::VgaWrite;
-        IPC::send(vga_pid, &msg);
+        IPC::notify(vga_pid, &msg);
     }
 }

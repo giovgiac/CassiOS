@@ -49,6 +49,20 @@ struct Process {
 
     bool sendQueuePush(u32 senderPid);
     u32 sendQueuePop();
+
+    // Notification queue: fire-and-forget messages (no reply expected).
+    struct Notification {
+        u32 senderPid;
+        Message msg;
+    };
+
+    static constexpr u32 NOTIFY_QUEUE_SIZE = 8;
+    Notification notifyQueue[NOTIFY_QUEUE_SIZE];
+    u32 notifyHead;
+    u32 notifyTail;
+
+    bool notifyPush(u32 senderPid, const Message& msg);
+    bool notifyPop(u32& senderPid, Message& msg);
 };
 
 /**

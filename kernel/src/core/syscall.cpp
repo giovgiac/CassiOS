@@ -115,7 +115,13 @@ i32 SyscallHandler::receive(Message* msg) {
         return -2;  // IRQ notification delivered; handleSyscall sets eax=0.
     }
 
-    // No pending senders or IRQs -- block.
+    // Check for queued notifications (fire-and-forget messages).
+    u32 notifySender;
+    if (receiver->notifyPop(notifySender, *msg)) {
+        return static_cast<i32>(notifySender);
+    }
+
+    // No pending senders, IRQs, or notifications -- block.
     receiver->msgPtr = (u32)msg;
     receiver->state = ProcessState::ReceiveBlocked;
     return 0;  // Caller should block.
@@ -144,6 +150,38 @@ i32 SyscallHandler::reply(u32 targetPid, Message* msg) {
 
     target->state = ProcessState::Ready;
     return 0;
+}
+
+i32 SyscallHandler::notify(u32 targetPid, Message* msg) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* sender = pm.current();
+    Process* target = pm.get(targetPid);
+
+    if (!target || target == sender) {
+        return -1;
+    }
+
+    // Copy message to kernel space (source is in caller's address space).
+    Message temp;
+    copyMessage(msg, &temp);
+
+    if (target->state == ProcessState::ReceiveBlocked) {
+        // Deliver immediately.
+        Message* targetBuf = (Message*)target->msgPtr;
+        copyMessageToProcess(target, targetBuf, &temp);
+
+        SyscallFrame* targetFrame = (SyscallFrame*)target->esp;
+        targetFrame->eax = sender->pid;
+
+        target->state = ProcessState::Ready;
+    } else {
+        // Queue for later delivery.
+        if (!target->notifyPush(sender->pid, temp)) {
+            return -1;
+        }
+    }
+
+    return 0;  // Caller continues (no blocking).
 }
 
 i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
@@ -267,6 +305,9 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     case SyscallNumber::MapDevice:
         frame->eax = static_cast<u32>(mapDevice(frame->ebx, frame->ecx, frame->edx));
+        return esp;
+    case SyscallNumber::Notify:
+        frame->eax = static_cast<u32>(notify(frame->ebx, (Message*)frame->ecx));
         return esp;
     default:
         frame->eax = static_cast<u32>(-1);

@@ -84,6 +84,7 @@ public:
      *
      */
     i32 send(u32 targetPid, Message* msg);
+    i32 notify(u32 targetPid, Message* msg);
 
     /**
      * @brief IPC receive: receives a message into msg.
