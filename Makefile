@@ -20,7 +20,8 @@ LIBCOMMON = lib/libcommon.a
 
 
 # Discover all source files automatically.
-cpp_sources = $(shell find kernel/src/ -name '*.cpp')
+# Exclude shell and commands -- kept as reference for userspace shell migration.
+cpp_sources = $(shell find kernel/src/ -name '*.cpp' -not -path '*/commands/*' -not -name 'shell.cpp')
 asm_sources = $(shell find kernel/src/ -name '*.s')
 objects = $(patsubst kernel/src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
 
@@ -32,7 +33,8 @@ common_objects = $(patsubst common/src/%.cpp, obj/common/%.o, $(common_sources))
 shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 
 # Test objects are discovered from kernel/tests/**/test_*.cpp.
-test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
+# Exclude command tests (shell not compiled, kept as reference).
+test_sources = $(shell find kernel/tests/ -name 'test_*.cpp' -not -path '*/commands/*')
 test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 
 # Compile C++ source files.
