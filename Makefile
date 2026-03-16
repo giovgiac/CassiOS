@@ -12,7 +12,6 @@ INIT = bin/init.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
 
-INIT_CXXFLAGS = -m32 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector
 
 # Discover all source files automatically.
 cpp_sources = $(shell find kernel/src/ -name '*.cpp')
@@ -40,10 +39,8 @@ kernel: kernel/src/linker.ld $(objects)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects)
 
-$(INIT): userspace/init/main.cpp userspace/init/linker.ld
-	@mkdir -p bin obj/userspace/init
-	g++ $(INIT_CXXFLAGS) -o obj/userspace/init/main.o -c userspace/init/main.cpp
-	ld $(LDFLAGS) -T userspace/init/linker.ld -o $(INIT) obj/userspace/init/main.o
+$(INIT):
+	$(MAKE) -C userspace/init
 
 # Compile test files from the kernel/tests/ directory.
 obj/tests/%.o: kernel/tests/%.cpp
