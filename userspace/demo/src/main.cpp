@@ -14,6 +14,7 @@
 #include <message.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
+#include <vga.hpp>
 
 using namespace cassio;
 
@@ -30,13 +31,14 @@ extern "C" void _start() {
     }
 
     while (true) {
-        // Blocking batch read: returns all buffered chars packed in arg1-arg5.
+        // Blocking read: returns one character.
         Message msg = {};
         msg.type = MessageType::KbdRead;
         IPC::send(kbd_pid, &msg);
 
-        // Fire-and-forget: send batch to vga without blocking.
-        msg.type = MessageType::VgaWrite;
-        IPC::notify(vga_pid, &msg);
+        char ch = static_cast<char>(msg.arg1);
+        if (ch != '\0') {
+            Vga::putchar(vga_pid, ch);
+        }
     }
 }
