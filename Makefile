@@ -10,7 +10,6 @@ LDFLAGS = -melf_i386
 KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
 USERTEST = bin/usertest.elf
-INIT = bin/init.elf
 NAMESERVER = bin/ns.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
@@ -55,9 +54,6 @@ $(LIBCOMMON): $(common_objects)
 kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBCOMMON)
-
-$(INIT):
-	$(MAKE) -C userspace/init
 
 $(NAMESERVER): $(LIBCOMMON)
 	$(MAKE) -C userspace/ns
@@ -123,6 +119,6 @@ run: kernel $(NAMESERVER) $(DISK)
 	    -initrd $(NAMESERVER) \
 	    -drive file=$(DISK),format=raw,if=ide
 
-.PHONY: kernel iso clean run test test-kernel test-userspace init
+.PHONY: kernel iso clean run test test-kernel test-userspace
 clean:
 	rm -rf obj/ bin/ lib/
