@@ -31,6 +31,11 @@ extern "C" void _start() {
     VgaTerminal terminal(reinterpret_cast<u16*>(VGA_PHYSICAL));
     terminal.clear();
 
+    const char* welcome = "Welcome to the Cassio Operating System!\n";
+    for (u32 i = 0; welcome[i] != '\0'; ++i) {
+        terminal.putchar(welcome[i]);
+    }
+
     while (true) {
         Message msg;
         i32 sender = IPC::receive(&msg);

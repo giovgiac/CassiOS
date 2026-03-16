@@ -45,16 +45,6 @@ void start(void* multiboot, u32 magic) {
     PagingManager& paging = PagingManager::getManager();
     paging.init((MultibootInfo*)multiboot);
 
-    // Direct VGA write for pre-service boot message.
-    u16* vga_buf = reinterpret_cast<u16*>(KERNEL_VBASE + 0xB8000);
-    for (u32 i = 0; i < 80 * 25; ++i) {
-        vga_buf[i] = 0x0700 | ' ';
-    }
-    const char* welcome = "Welcome to the Cassio Operating System!";
-    for (u32 i = 0; welcome[i] != '\0'; ++i) {
-        vga_buf[i] = 0x0700 | welcome[i];
-    }
-
     PitTimer& pit = PitTimer::getTimer();
     AtaPioDriver& ata = AtaPioDriver::getDriver();
 
