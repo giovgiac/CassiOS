@@ -9,3 +9,4 @@
 # Ignore Binary Files
 bin/
 obj/
+lib/
