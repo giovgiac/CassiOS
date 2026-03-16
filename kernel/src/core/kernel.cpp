@@ -12,7 +12,6 @@
 #include "core/process.hpp"
 #include "core/scheduler.hpp"
 #include "core/shell.hpp"
-#include "core/syscall.hpp"
 #include "drivers/ata.hpp"
 #include "drivers/keyboard.hpp"
 #include "drivers/pit.hpp"
@@ -39,9 +38,6 @@ void start(void* multiboot, u32 magic) {
     DriverManager& dm = DriverManager::getManager();
 
     im.load(gdt);
-
-    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
-    sh.load();
 
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
     pmm.init((MultibootInfo*)multiboot);
@@ -147,7 +143,6 @@ void start(void* multiboot, u32 magic) {
     im.deactivate();
 
     dm.unload();
-    im.unload();
 
     // Halt the CPU. Interrupts are already disabled, so this stops execution.
     while (true) {
