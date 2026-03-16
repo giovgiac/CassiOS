@@ -32,6 +32,12 @@ namespace MessageType {
     constexpr u32 VgaWrite     = 6;
     constexpr u32 VgaClear     = 7;
     constexpr u32 VgaSetCursor = 8;
+    constexpr u32 VfsMkdir     = 9;
+    constexpr u32 VfsRemove    = 10;
+    constexpr u32 VfsOpen      = 11;
+    constexpr u32 VfsRead      = 12;
+    constexpr u32 VfsWrite     = 13;
+    constexpr u32 VfsList      = 14;
 }
 
 } // cassio
