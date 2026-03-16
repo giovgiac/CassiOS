@@ -12,6 +12,7 @@
 #include "core/scheduler.hpp"
 #include "drivers/pit.hpp"
 #include "hardware/interrupt.hpp"
+#include "hardware/irq.hpp"
 #include "hardware/port.hpp"
 #include "hardware/serial.hpp"
 #include "hardware/terminal.hpp"
@@ -91,7 +92,13 @@ i32 SyscallHandler::receive(Message* msg) {
         return static_cast<i32>(senderPid);
     }
 
-    // No pending senders -- block.
+    // Check for pending IRQ notifications before blocking.
+    IrqManager& irqMgr = IrqManager::getManager();
+    if (irqMgr.deliverPending(receiver->pid, msg)) {
+        return -2;  // IRQ notification delivered; handleSyscall sets eax=0.
+    }
+
+    // No pending senders or IRQs -- block.
     receiver->msgPtr = (u32)msg;
     receiver->state = ProcessState::ReceiveBlocked;
     return 0;  // Caller should block.
@@ -185,12 +192,24 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
             Scheduler& sched = Scheduler::getScheduler();
             return sched.reschedule(esp);
         }
+        if (result == -2) {
+            // Pending IRQ notification delivered. Return 0 (kernel PID).
+            frame->eax = 0;
+            return esp;
+        }
         frame->eax = static_cast<u32>(result);
         return esp;
     }
     case SyscallNumber::Reply: {
         i32 result = reply(frame->ebx, (Message*)frame->ecx);
         frame->eax = static_cast<u32>(result);
+        return esp;
+    }
+    case SyscallNumber::IrqRegister: {
+        IrqManager& irqMgr = IrqManager::getManager();
+        ProcessManager& pm = ProcessManager::getManager();
+        frame->eax = static_cast<u32>(irqMgr.registerForward(
+            static_cast<u8>(frame->ebx), pm.current()->pid));
         return esp;
     }
     case SyscallNumber::Write:

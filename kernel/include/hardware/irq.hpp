@@ -11,6 +11,7 @@
 #define HARDWARE_IRQ_HPP_
 
 #include <types.hpp>
+#include <message.hpp>
 #include <hardware/port.hpp>
 
 namespace cassio {
@@ -31,6 +32,8 @@ class Driver; // forward declaration
 class IrqManager final {
 private:
     Driver* drv[16];
+    u32 forwardPid[16];
+    bool pendingIrq[16];
 
     Port<u8> pic_master_cmd;
     Port<u8> pic_master_data;
@@ -84,6 +87,24 @@ public:
      *
      */
     void unregisterDriver(u8 vector, Driver* driver);
+
+    /**
+     * @brief Registers a userspace process to receive IRQ notifications.
+     *
+     * One process per IRQ. Returns 0 on success, -1 if irq is out of range.
+     *
+     */
+    i32 registerForward(u8 irq, u32 pid);
+
+    /**
+     * @brief Delivers a pending IRQ notification to a process.
+     *
+     * Scans for pending IRQs registered to the given PID and fills msg
+     * with the first one found. Returns true if a notification was
+     * delivered, false if none pending.
+     *
+     */
+    bool deliverPending(u32 pid, Message* msg);
 
     /** Deleted Methods */
     IrqManager(const IrqManager&) = delete;
