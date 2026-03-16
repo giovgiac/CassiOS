@@ -11,9 +11,7 @@
 #include "core/kernel.hpp"
 #include "core/process.hpp"
 #include "core/scheduler.hpp"
-#include "core/shell.hpp"
 #include "drivers/ata.hpp"
-#include "drivers/keyboard.hpp"
 #include "drivers/pit.hpp"
 #include "memory/heap.hpp"
 #include "memory/paging.hpp"
@@ -51,16 +49,10 @@ void start(void* multiboot, u32 magic) {
     vga.clear();
     vga.print("Welcome to the Cassio Operating System!\n");
 
-    Shell shell;
-
-    KeyboardDriver& keyboard = KeyboardDriver::getDriver();
-    keyboard.setHandler(&shell);
-
     PitTimer& pit = PitTimer::getTimer();
     AtaPioDriver& ata = AtaPioDriver::getDriver();
 
     dm.addDriver(pit);
-    dm.addDriver(keyboard);
     dm.addDriver(ata);
 
     // Initialize scheduler and register kernel task.
@@ -114,7 +106,7 @@ void start(void* multiboot, u32 magic) {
             u32* frame = (u32*)kernelStackTop;
             *(--frame) = userDS;            // SS
             *(--frame) = 0xC0000000;        // ESP (top of user stack page)
-            *(--frame) = 0x202;             // EFLAGS (IF=1)
+            *(--frame) = 0x3202;            // EFLAGS (IF=1, IOPL=3)
             *(--frame) = userCS;            // CS
             *(--frame) = elf.entryPoint;    // EIP
             *(--frame) = 0;                 // EAX
@@ -143,13 +135,7 @@ void start(void* multiboot, u32 magic) {
 
     im.activate();
 
-    shell.run();
-
-    im.deactivate();
-
-    dm.unload();
-
-    // Halt the CPU. Interrupts are already disabled, so this stops execution.
+    // Kernel idle loop. Userspace services handle all I/O via IPC.
     while (true) {
         asm volatile("hlt");
     }

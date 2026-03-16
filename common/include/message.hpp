@@ -27,6 +27,7 @@ namespace MessageType {
     constexpr u32 IrqNotify  = 1;
     constexpr u32 NsRegister = 2;
     constexpr u32 NsLookup   = 3;
+    constexpr u32 KbdRead    = 4;
 }
 
 } // cassio

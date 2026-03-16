@@ -7,7 +7,7 @@
  *
  */
 
-#include "hardware/port.hpp"
+#include <port.hpp>
 
 using namespace cassio;
 using namespace cassio::hardware;

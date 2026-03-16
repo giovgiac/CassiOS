@@ -11,7 +11,7 @@
 #define CORE_SHELL_HPP_
 
 #include <types.hpp>
-#include <drivers/keyboard.hpp>
+#include <keycode.hpp>
 #include <filesystem/filesystem.hpp>
 #include <hardware/terminal.hpp>
 
@@ -29,7 +29,7 @@ constexpr u8 SHELL_MAX_ARGS = 16;
  * and splits input into arguments for command execution.
  *
  */
-class Shell : public drivers::KeyboardEventHandler {
+class Shell {
 private:
     hardware::VgaTerminal& vga;
     filesystem::FileNode* cwd;
@@ -54,7 +54,7 @@ public:
      */
     void run();
 
-    virtual void OnKeyDown(drivers::KeyCode key) override;
+    void OnKeyDown(KeyCode key);
 
     /** Deleted Methods */
     Shell(const Shell&) = delete;
