@@ -168,36 +168,25 @@ bool Ata::writeSectorInternal(u32 lba) {
     return true;
 }
 
-i32 Ata::read(u32 lba, u32 offset, u8* buf, u32 len) {
-    if (offset >= SECTOR_SIZE) return -1;
-
-    // Use cache if available.
-    if (!cacheValid || cachedLba != lba) {
-        if (!readSectorInternal(lba)) return -1;
-    }
-
-    u32 available = SECTOR_SIZE - offset;
-    u32 toRead = len < available ? len : available;
-
-    for (u32 i = 0; i < toRead; ++i) {
-        buf[i] = sectorBuf[offset + i];
-    }
-
-    return static_cast<i32>(toRead);
-}
-
-bool Ata::write(u32 lba, u32 offset, const u8* buf, u32 len) {
-    if (offset >= SECTOR_SIZE) return false;
-    if (offset + len > SECTOR_SIZE) return false;
-
-    // Read-modify-write: load current sector first.
+bool Ata::readSector(u32 lba, u8* buf) {
     if (!cacheValid || cachedLba != lba) {
         if (!readSectorInternal(lba)) return false;
     }
 
-    for (u32 i = 0; i < len; ++i) {
-        sectorBuf[offset + i] = buf[i];
+    for (u32 i = 0; i < SECTOR_SIZE; ++i) {
+        buf[i] = sectorBuf[i];
     }
+
+    return true;
+}
+
+bool Ata::writeSector(u32 lba, const u8* buf) {
+    for (u32 i = 0; i < SECTOR_SIZE; ++i) {
+        sectorBuf[i] = buf[i];
+    }
+
+    cachedLba = lba;
+    cacheValid = true;
 
     return writeSectorInternal(lba);
 }
