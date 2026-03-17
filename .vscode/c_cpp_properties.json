@@ -6,9 +6,7 @@
                 "${workspaceFolder}/kernel/include",
                 "${workspaceFolder}/common/include",
                 "${workspaceFolder}/userspace/include",
-                "${workspaceFolder}/userspace/ns/include",
-                "${workspaceFolder}/userspace/kbd/include",
-                "${workspaceFolder}/userspace/vga/include",
+                "${workspaceFolder}/userspace/*/include",
                 "${workspaceFolder}/kernel/tests"
             ],
             "defines": [],
