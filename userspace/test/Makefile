@@ -7,7 +7,8 @@ VGA_DIR  = $(ROOT)/userspace/vga
 VFS_DIR  = $(ROOT)/userspace/vfs
 MOUSE_DIR = $(ROOT)/userspace/mouse
 ATA_DIR  = $(ROOT)/userspace/ata
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -I$(NS_DIR)/include/ -I$(KBD_DIR)/include/ -I$(VGA_DIR)/include/ -I$(VFS_DIR)/include/ -I$(MOUSE_DIR)/include/ -I$(ATA_DIR)/include/
+SHELL_DIR = $(ROOT)/userspace/shell
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -I$(NS_DIR)/include/ -I$(KBD_DIR)/include/ -I$(VGA_DIR)/include/ -I$(VFS_DIR)/include/ -I$(MOUSE_DIR)/include/ -I$(ATA_DIR)/include/ -I$(SHELL_DIR)/include/
 LDFLAGS  = -melf_i386
 
 OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
@@ -52,7 +53,13 @@ MOUSE_IMPL_OBJECTS = $(patsubst $(MOUSE_DIR)/src/%.cpp, $(OBJDIR)/mouse/src/%.o,
 ATA_TEST_SOURCES = $(wildcard $(ATA_DIR)/tests/test_*.cpp)
 ATA_TEST_OBJECTS = $(patsubst $(ATA_DIR)/tests/%.cpp, $(OBJDIR)/ata/tests/%.o, $(ATA_TEST_SOURCES))
 
-OBJECTS = $(RUNNER_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS) $(KBD_TEST_OBJECTS) $(KBD_IMPL_OBJECTS) $(VGA_TEST_OBJECTS) $(VGA_IMPL_OBJECTS) $(VFS_TEST_OBJECTS) $(VFS_IMPL_OBJECTS) $(MOUSE_TEST_OBJECTS) $(MOUSE_IMPL_OBJECTS) $(ATA_TEST_OBJECTS)
+# Shell tests and implementation (compiled from shell/).
+SHELL_TEST_SOURCES = $(wildcard $(SHELL_DIR)/tests/test_*.cpp)
+SHELL_IMPL_SOURCES = $(SHELL_DIR)/src/shell.cpp
+SHELL_TEST_OBJECTS = $(patsubst $(SHELL_DIR)/tests/%.cpp, $(OBJDIR)/shell/tests/%.o, $(SHELL_TEST_SOURCES))
+SHELL_IMPL_OBJECTS = $(patsubst $(SHELL_DIR)/src/%.cpp, $(OBJDIR)/shell/src/%.o, $(SHELL_IMPL_SOURCES))
+
+OBJECTS = $(RUNNER_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS) $(KBD_TEST_OBJECTS) $(KBD_IMPL_OBJECTS) $(VGA_TEST_OBJECTS) $(VGA_IMPL_OBJECTS) $(VFS_TEST_OBJECTS) $(VFS_IMPL_OBJECTS) $(MOUSE_TEST_OBJECTS) $(MOUSE_IMPL_OBJECTS) $(ATA_TEST_OBJECTS) $(SHELL_TEST_OBJECTS) $(SHELL_IMPL_OBJECTS)
 
 $(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON)
 	@mkdir -p $(BINDIR)
@@ -103,6 +110,14 @@ $(OBJDIR)/mouse/src/%.o: $(MOUSE_DIR)/src/%.cpp
 	g++ $(CXXFLAGS) -o $@ -c $<
 
 $(OBJDIR)/ata/tests/%.o: $(ATA_DIR)/tests/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $<
+
+$(OBJDIR)/shell/tests/%.o: $(SHELL_DIR)/tests/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $<
+
+$(OBJDIR)/shell/src/%.o: $(SHELL_DIR)/src/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $<
 

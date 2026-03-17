@@ -45,17 +45,26 @@ TEST(kbd_release_ignored) {
     ASSERT_EQ(kb.readBuffer(), '\0');
 }
 
-TEST(kbd_e0_prefix_not_buffered) {
+TEST(kbd_e0_prefix_arrow_buffered) {
     Keyboard kb;
     kb.handleScancode(0xE0);  // Extended prefix
-    kb.handleScancode(0x4B);  // Left Arrow (not printable, not buffered)
-    ASSERT_EQ(kb.readBuffer(), '\0');
+    kb.handleScancode(0x4B);  // Left Arrow
+    ASSERT_EQ(static_cast<u8>(kb.readBuffer()),
+              static_cast<u8>(KeyCode::LeftArrow));
 }
 
-TEST(kbd_enter_buffers_newline) {
+TEST(kbd_enter_buffers_keycode) {
     Keyboard kb;
     kb.handleScancode(0x1C);  // Enter
-    ASSERT_EQ(kb.readBuffer(), '\n');
+    ASSERT_EQ(static_cast<u8>(kb.readBuffer()),
+              static_cast<u8>(KeyCode::Enter));
+}
+
+TEST(kbd_backspace_buffered) {
+    Keyboard kb;
+    kb.handleScancode(0x0E);  // Backspace
+    ASSERT_EQ(static_cast<u8>(kb.readBuffer()),
+              static_cast<u8>(KeyCode::Backspace));
 }
 
 TEST(kbd_buffer_empty_returns_null) {
@@ -94,8 +103,9 @@ TEST(kbd_modifier_release_clears_state) {
     ASSERT_EQ(kb.readBuffer(), 'a');
 }
 
-TEST(kbd_function_key_not_buffered) {
+TEST(kbd_function_key_buffered) {
     Keyboard kb;
     kb.handleScancode(0x3B);  // F1
-    ASSERT_EQ(kb.readBuffer(), '\0');
+    ASSERT_EQ(static_cast<u8>(kb.readBuffer()),
+              static_cast<u8>(KeyCode::F1));
 }

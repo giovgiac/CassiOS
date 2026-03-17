@@ -63,6 +63,9 @@ extern "C" void _start() {
                 static_cast<u8>(msg.arg2));
             break;
 
+        case MessageType::VgaGetCursor:
+            break;
+
         default:
             break;
         }

@@ -11,7 +11,7 @@
 #define DRIVERS_PIT_HPP_
 
 #include <types.hpp>
-#include <hardware/driver.hpp>
+#include <hardware/irq.hpp>
 #include <hardware/port.hpp>
 
 namespace cassio {
@@ -36,7 +36,7 @@ constexpr u8 PIT_CMD_CHANNEL0_MODE2 = 0x34;
  * Maintains a tick counter and provides a busy-wait sleep.
  *
  */
-class PitTimer : public hardware::Driver {
+class PitTimer {
 private:
     hardware::Port<u8> channel0;
     hardware::Port<u8> command;
@@ -58,17 +58,22 @@ public:
     }
 
     /**
+     * @brief Static IRQ handler registered with IrqManager.
+     *
+     */
+    static u32 irqHandler(u32 esp);
+
+    /**
      * @brief Programs the PIT for periodic mode at ~100 Hz.
      *
      */
-    virtual void activate() override;
-    virtual void deactivate() override;
+    void activate();
 
     /**
-     * @brief Increments the tick counter.
+     * @brief Increments the tick counter and invokes the scheduler.
      *
      */
-    virtual u32 handleInterrupt(u32 esp) override;
+    u32 handleInterrupt(u32 esp);
 
     /**
      * @brief Returns the number of ticks since activation.

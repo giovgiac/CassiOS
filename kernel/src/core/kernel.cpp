@@ -1,6 +1,6 @@
 /**
  * kernel.cpp
- * 
+ *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
@@ -32,7 +32,6 @@ void ctors() {
 void start(void* multiboot, u32 magic) {
     GlobalDescriptorTable gdt;
     InterruptManager& im = InterruptManager::getManager();
-    DriverManager& dm = DriverManager::getManager();
 
     im.load(gdt);
 
@@ -45,8 +44,7 @@ void start(void* multiboot, u32 magic) {
     paging.init((MultibootInfo*)multiboot);
 
     PitTimer& pit = PitTimer::getTimer();
-
-    dm.addDriver(pit);
+    pit.activate();
 
     // Initialize scheduler and register kernel task.
     Scheduler& scheduler = Scheduler::getScheduler();
@@ -123,8 +121,6 @@ void start(void* multiboot, u32 magic) {
             }
         }
     }
-
-    dm.load();
 
     im.activate();
 

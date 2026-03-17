@@ -158,8 +158,14 @@ void Keyboard::handleScancode(u8 raw) {
             case 0x53: key = KeyCode::Delete;     break;
             default: break;
             }
-            // Extended keys are not buffered (arrows, delete handled by shell).
-            (void)key;
+            u8 ch = static_cast<u8>(key);
+            if (ch != 0) {
+                u16 next = (ring_head + 1) % KEYBOARD_BUFFER_SIZE;
+                if (next != ring_tail) {
+                    ring[ring_head] = static_cast<char>(ch);
+                    ring_head = next;
+                }
+            }
         }
         return;
     }
@@ -199,11 +205,10 @@ void Keyboard::handleScancode(u8 raw) {
             }
 
             u8 ch = static_cast<u8>(key);
-            if ((ch >= 0x20 && ch <= 0x7E) || key == KeyCode::Enter) {
-                char c = (key == KeyCode::Enter) ? '\n' : static_cast<char>(ch);
+            if (ch != 0) {
                 u16 next = (ring_head + 1) % KEYBOARD_BUFFER_SIZE;
                 if (next != ring_tail) {
-                    ring[ring_head] = c;
+                    ring[ring_head] = static_cast<char>(ch);
                     ring_head = next;
                 }
             }

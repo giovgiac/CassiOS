@@ -8,7 +8,6 @@
  */
 
 #include "hardware/irq.hpp"
-#include "hardware/driver.hpp"
 #include "hardware/interrupt.hpp"
 #include "core/process.hpp"
 #include "core/syscall.hpp"
@@ -18,8 +17,8 @@ using namespace cassio::hardware;
 
 IrqManager IrqManager::instance;
 
-// drv[] is not zeroed here -- BSS guarantees zero-initialization before
-// any constructors run, and drivers may register before this constructor
+// handlers[] is not zeroed here -- BSS guarantees zero-initialization before
+// any constructors run, and handlers may be registered before this constructor
 // executes (static initialization order).
 IrqManager::IrqManager()
     : pic_master_cmd(PortType::MasterProgrammableInterfaceControllerCommand),
@@ -54,8 +53,8 @@ void IrqManager::load() {
 u32 IrqManager::handleIrq(u8 number, u32 esp) {
     u8 irq = number - IRQ_OFFSET;
 
-    if (irq < 16 && drv[irq] != nullptr) {
-        esp = drv[irq]->handleInterrupt(esp);
+    if (irq < 16 && handlers[irq] != nullptr) {
+        esp = handlers[irq](esp);
     }
 
     // Send EOI to master PIC.
@@ -126,17 +125,15 @@ bool IrqManager::deliverPending(u32 pid, Message* msg) {
     return false;
 }
 
-void IrqManager::registerDriver(u8 vector, Driver* driver) {
-    u8 irq = vector - IRQ_OFFSET;
+void IrqManager::registerHandler(u8 irq, IrqHandler handler) {
     if (irq < 16) {
-        drv[irq] = driver;
+        handlers[irq] = handler;
     }
 }
 
-void IrqManager::unregisterDriver(u8 vector, Driver* driver) {
-    u8 irq = vector - IRQ_OFFSET;
-    if (irq < 16 && drv[irq] == driver) {
-        drv[irq] = nullptr;
+void IrqManager::unregisterHandler(u8 irq) {
+    if (irq < 16) {
+        handlers[irq] = nullptr;
     }
 }
 

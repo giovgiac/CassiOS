@@ -17,12 +17,16 @@ using namespace cassio::hardware;
 PitTimer PitTimer::instance;
 
 PitTimer::PitTimer()
-    : Driver(DriverType::SystemTimer),
-      channel0(PortType::PitChannel0Data),
+    : channel0(PortType::PitChannel0Data),
       command(PortType::PitCommand),
-      ticks(0) {}
+      ticks(0) {
+    IrqManager& irq = IrqManager::getManager();
+    irq.registerHandler(0, &PitTimer::irqHandler);
+}
 
-void PitTimer::deactivate() {}
+u32 PitTimer::irqHandler(u32 esp) {
+    return instance.handleInterrupt(esp);
+}
 
 void PitTimer::activate() {
     command.write(PIT_CMD_CHANNEL0_MODE2);

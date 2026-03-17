@@ -17,14 +17,14 @@ VFS = bin/vfs.elf
 MOUSE = bin/mouse.elf
 ATA = bin/ata.elf
 DEMO = bin/demo.elf
+USERSHELL = bin/shell.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
 LIBCOMMON = lib/libcommon.a
 
 
 # Discover all source files automatically.
-# Exclude shell and commands -- kept as reference for userspace shell migration.
-cpp_sources = $(shell find kernel/src/ -name '*.cpp' -not -path '*/commands/*' -not -name 'shell.cpp')
+cpp_sources = $(shell find kernel/src/ -name '*.cpp')
 asm_sources = $(shell find kernel/src/ -name '*.s')
 objects = $(patsubst kernel/src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
 
@@ -36,8 +36,7 @@ common_objects = $(patsubst common/src/%.cpp, obj/common/%.o, $(common_sources))
 shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 
 # Test objects are discovered from kernel/tests/**/test_*.cpp.
-# Exclude command tests (shell not compiled, kept as reference).
-test_sources = $(shell find kernel/tests/ -name 'test_*.cpp' -not -path '*/commands/*')
+test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
 test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 
 # Compile C++ source files.
@@ -83,6 +82,9 @@ $(ATA): $(LIBCOMMON)
 
 $(DEMO): $(LIBCOMMON)
 	$(MAKE) -C userspace/demo
+
+$(USERSHELL): $(LIBCOMMON)
+	$(MAKE) -C userspace/shell
 
 $(USERTEST): $(LIBCOMMON)
 	$(MAKE) -C userspace/test
@@ -147,9 +149,9 @@ iso: kernel
 	grub-mkrescue --output=$(ISO) iso
 	rm -rf iso
 
-run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(DEMO) $(DISK)
+run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) $(DISK)
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(DEMO)" \
+	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(USERSHELL)" \
 	    -drive file=$(DISK),format=raw,if=ide
 
 .PHONY: kernel iso clean run test test-kernel test-userspace
