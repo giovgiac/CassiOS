@@ -40,7 +40,7 @@ TEST(vfs_ipc_open_write_read) {
     u32 pid = Nameserver::lookup("vfs");
     ASSERT(pid != 0);
 
-    u32 handle = Vfs::open(pid, "/hello");
+    u32 handle = Vfs::open(pid, "/hello", true);
     ASSERT(handle != 0);
 
     const u8 text[] = {'h', 'e', 'l', 'l', 'o'};
@@ -61,7 +61,7 @@ TEST(vfs_ipc_delete_file) {
     u32 pid = Nameserver::lookup("vfs");
     ASSERT(pid != 0);
 
-    Vfs::open(pid, "/delme");
+    Vfs::open(pid, "/delme", true);
     u32 ret = Vfs::remove(pid, "/delme");
     ASSERT_EQ(ret, 0u);
 
@@ -105,7 +105,7 @@ TEST(vfs_ipc_long_path) {
     ASSERT_EQ(ret, 0u);
 
     // Create a file in the nested directory.
-    u32 handle = Vfs::open(pid, "/longdir/subdir/file");
+    u32 handle = Vfs::open(pid, "/longdir/subdir/file", true);
     ASSERT(handle != 0);
 
     // Verify nested listing.
@@ -127,7 +127,7 @@ TEST(vfs_ipc_large_write_read) {
     u32 pid = Nameserver::lookup("vfs");
     ASSERT(pid != 0);
 
-    u32 handle = Vfs::open(pid, "/bigfile");
+    u32 handle = Vfs::open(pid, "/bigfile", true);
     ASSERT(handle != 0);
 
     // Write 64 bytes (exceeds old 12-byte limit).
@@ -170,7 +170,7 @@ TEST(vfs_ipc_remove_nonempty_dir_fails) {
     ASSERT(pid != 0);
 
     Vfs::mkdir(pid, "/nonempty");
-    Vfs::open(pid, "/nonempty/child");
+    Vfs::open(pid, "/nonempty/child", true);
 
     u32 ret = Vfs::remove(pid, "/nonempty");
     ASSERT(ret != 0);
@@ -180,7 +180,7 @@ TEST(vfs_ipc_read_with_offset) {
     u32 pid = Nameserver::lookup("vfs");
     ASSERT(pid != 0);
 
-    u32 handle = Vfs::open(pid, "/offtest");
+    u32 handle = Vfs::open(pid, "/offtest", true);
     ASSERT(handle != 0);
 
     const u8 text[] = {'a', 'b', 'c', 'd'};
@@ -191,6 +191,14 @@ TEST(vfs_ipc_read_with_offset) {
     ASSERT_EQ(n, 2);
     ASSERT_EQ(buf[0], (u8)'c');
     ASSERT_EQ(buf[1], (u8)'d');
+}
+
+TEST(vfs_ipc_open_nonexistent_fails) {
+    u32 pid = Nameserver::lookup("vfs");
+    ASSERT(pid != 0);
+
+    u32 handle = Vfs::open(pid, "/doesnotexist");
+    ASSERT_EQ(handle, 0u);
 }
 
 TEST(vfs_ipc_seed_file_readable) {

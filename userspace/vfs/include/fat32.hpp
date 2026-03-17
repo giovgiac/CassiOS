@@ -19,6 +19,7 @@ namespace vfs {
 constexpr u32 MAX_HANDLES = 16;
 constexpr u32 MAX_PATH = 256;
 constexpr u32 MAX_NAME = 256;
+constexpr u32 CACHE_SIZE = 16;
 
 struct FileHandle {
     u32 startCluster;
@@ -52,9 +53,25 @@ private:
     // Handle table.
     FileHandle handles[MAX_HANDLES];
 
-    // Sector I/O.
+    // Sector cache (LRU).
+    struct CacheEntry {
+        u32 lba;
+        u8* data;
+        u32 age;
+        bool valid;
+        bool dirty;
+    };
+    CacheEntry cache[CACHE_SIZE];
+    u32 cacheAge;
+
+    // Sector I/O (cached).
     bool readSector(u32 lba, u8* buf);
     bool writeSector(u32 lba, const u8* buf);
+    CacheEntry* cacheLookup(u32 lba);
+    CacheEntry* cacheEvict();
+    bool cacheRead(u32 lba, u8* buf);
+    bool cacheWrite(u32 lba, const u8* buf);
+    void cacheInvalidate(u32 lba);
 
     // Cluster I/O.
     u32 clusterToLba(u32 cluster);
@@ -95,7 +112,7 @@ public:
     bool createDirectory(const char* path);
     bool remove(const char* path);
 
-    u32 open(const char* path);
+    u32 open(const char* path, bool create = false);
     i32 read(u32 handle, u32 offset, u8* buf, u32 len);
     bool write(u32 handle, const u8* data, u32 len);
 

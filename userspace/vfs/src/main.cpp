@@ -63,7 +63,8 @@ extern "C" void _start() {
         }
 
         case MessageType::VfsOpen: {
-            reply.arg1 = fs.open(reinterpret_cast<char*>(dataBuf));
+            bool create = (msg.arg1 != 0);
+            reply.arg1 = fs.open(reinterpret_cast<char*>(dataBuf), create);
             break;
         }
 

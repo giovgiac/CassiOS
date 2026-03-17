@@ -17,15 +17,100 @@ using namespace cassio;
 using namespace cassio::vfs;
 
 // ---------------------------------------------------------------------------
+// Sector cache
+// ---------------------------------------------------------------------------
+
+Fat32::CacheEntry* Fat32::cacheLookup(u32 lba) {
+    for (u32 i = 0; i < CACHE_SIZE; i++) {
+        if (cache[i].valid && cache[i].lba == lba) {
+            cache[i].age = ++cacheAge;
+            return &cache[i];
+        }
+    }
+    return nullptr;
+}
+
+Fat32::CacheEntry* Fat32::cacheEvict() {
+    // Find an empty slot first.
+    for (u32 i = 0; i < CACHE_SIZE; i++) {
+        if (!cache[i].valid) {
+            if (!cache[i].data) {
+                cache[i].data = static_cast<u8*>(UserHeap::alloc(SECTOR_SIZE));
+                if (!cache[i].data) return nullptr;
+            }
+            return &cache[i];
+        }
+    }
+
+    // Evict the least recently used entry.
+    u32 oldest = 0;
+    for (u32 i = 1; i < CACHE_SIZE; i++) {
+        if (cache[i].age < cache[oldest].age) oldest = i;
+    }
+
+    CacheEntry* entry = &cache[oldest];
+    // Flush dirty entry before evicting.
+    if (entry->dirty) {
+        AtaClient::writeSector(ataPid, entry->lba, entry->data);
+        entry->dirty = false;
+    }
+    entry->valid = false;
+    return entry;
+}
+
+bool Fat32::cacheRead(u32 lba, u8* buf) {
+    CacheEntry* entry = cacheLookup(lba);
+    if (entry) {
+        memcpy(buf, entry->data, SECTOR_SIZE);
+        return true;
+    }
+
+    // Cache miss -- read from disk and cache it.
+    entry = cacheEvict();
+    if (!entry) return AtaClient::readSector(ataPid, lba, buf);
+
+    if (!AtaClient::readSector(ataPid, lba, entry->data)) return false;
+
+    entry->lba = lba;
+    entry->valid = true;
+    entry->dirty = false;
+    entry->age = ++cacheAge;
+    memcpy(buf, entry->data, SECTOR_SIZE);
+    return true;
+}
+
+bool Fat32::cacheWrite(u32 lba, const u8* buf) {
+    CacheEntry* entry = cacheLookup(lba);
+    if (!entry) {
+        entry = cacheEvict();
+        if (!entry) return AtaClient::writeSector(ataPid, lba, buf);
+    }
+
+    memcpy(entry->data, buf, SECTOR_SIZE);
+    entry->lba = lba;
+    entry->valid = true;
+    entry->dirty = true;
+    entry->age = ++cacheAge;
+
+    // Write through to disk immediately for durability.
+    return AtaClient::writeSector(ataPid, lba, buf);
+}
+
+void Fat32::cacheInvalidate(u32 lba) {
+    CacheEntry* entry = cacheLookup(lba);
+    if (entry) entry->valid = false;
+}
+
+// ---------------------------------------------------------------------------
 // Sector / cluster I/O
 // ---------------------------------------------------------------------------
 
 bool Fat32::readSector(u32 lba, u8* buf) {
-    return AtaClient::readSector(ataPid, lba, buf);
+    return cacheRead(lba, buf);
 }
 
 bool Fat32::writeSector(u32 lba, const u8* buf) {
-    return AtaClient::writeSector(ataPid, lba, buf);
+    return cacheWrite(lba, buf);
 }
 
 u32 Fat32::clusterToLba(u32 cluster) {
@@ -743,6 +828,16 @@ bool Fat32::mount(u32 ataServicePid) {
         handles[i].inUse = false;
     }
 
+    // Initialize sector cache.
+    cacheAge = 0;
+    for (u32 i = 0; i < CACHE_SIZE; i++) {
+        cache[i].valid = false;
+        cache[i].dirty = false;
+        cache[i].data = nullptr;
+        cache[i].lba = 0;
+        cache[i].age = 0;
+    }
+
     // Read the boot sector.
     u8 bootSector[SECTOR_SIZE];
     if (!readSector(0, bootSector)) return false;
@@ -809,13 +904,15 @@ bool Fat32::remove(const char* path) {
     return removeEntry(parentCluster, name);
 }
 
-u32 Fat32::open(const char* path) {
+u32 Fat32::open(const char* path, bool create) {
     DirEntry entry;
     u32 ec, eo;
     u32 cluster = resolvePath(path, &entry, &ec, &eo);
 
     if (cluster == 0) {
-        // Auto-create the file.
+        if (!create) return 0;
+
+        // Create the file.
         char name[MAX_NAME];
         u32 parentCluster = resolveParentPath(path, name, MAX_NAME);
         if (parentCluster == 0 || name[0] == '\0') return 0;
