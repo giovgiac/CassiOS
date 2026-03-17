@@ -16,31 +16,10 @@
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
-#include <vga.hpp>
 #include <ata.hpp>
 
 using namespace cassio;
 using namespace cassio::ata;
-
-static void vga_put_dec(u32 vgaPid, u32 value) {
-    if (value == 0) {
-        Vga::write(vgaPid, "0");
-        return;
-    }
-    char buf[12];
-    i32 i = 0;
-    while (value > 0) {
-        buf[i++] = '0' + (value % 10);
-        value /= 10;
-    }
-    for (i32 j = 0; j < i / 2; j++) {
-        char tmp = buf[j];
-        buf[j] = buf[i - 1 - j];
-        buf[i - 1 - j] = tmp;
-    }
-    buf[i] = '\0';
-    Vga::write(vgaPid, buf);
-}
 
 extern "C" void _start() {
     Nameserver::registerName("ata");
@@ -48,22 +27,6 @@ extern "C" void _start() {
 
     Ata drive;
     drive.init();
-
-    // Print drive info to VGA terminal.
-    u32 vgaPid = Nameserver::lookup("vga");
-    if (vgaPid != 0) {
-        if (drive.isPresent()) {
-            Vga::write(vgaPid, "ATA: ");
-            Vga::write(vgaPid, drive.getModel());
-            Vga::write(vgaPid, " (");
-            vga_put_dec(vgaPid, drive.getSectors());
-            Vga::write(vgaPid, " sectors, ");
-            vga_put_dec(vgaPid, drive.getSectors() / 2);
-            Vga::write(vgaPid, " KiB)\n");
-        } else {
-            Vga::write(vgaPid, "ATA: no drive detected\n");
-        }
-    }
 
     u8 sectorBuf[SECTOR_SIZE];
 
