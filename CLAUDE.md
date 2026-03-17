@@ -1,25 +1,28 @@
 # CassiOS
 
-A hobby operating system targeting i386 (32-bit x86), written in C++ and assembly. Boots via GRUB using the Multiboot specification.
+A microkernel operating system targeting i386 (32-bit x86), written in C++ and assembly. Boots via GRUB using the Multiboot specification.
 
 ## Technical Details
 
 - Toolchain: `g++` (with `-m32`), `as` (with `--32`), `ld` (with `-melf_i386`)
-- In-kernel test framework: `make test` builds a separate test kernel and runs it in QEMU (see `tests/` and `docs/plans/2026-03-07-in-kernel-testing-design.md`)
-- Custom fixed-width types defined in `include/common/types.hpp`: `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `usize`, `isize`
+- Two-tier test framework: `make test` runs kernel unit tests then userspace integration tests in QEMU
+- Custom fixed-width types defined in `common/include/types.hpp`: `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `usize`, `isize`
 - Headers use `#ifndef` include guards (not `#pragma once`)
 - Assembly uses AT&T syntax
 - Copy/move constructors and assignment operators are explicitly deleted on hardware-bound and singleton classes
 - When issues or bugs are encountered, start by reproducing the issue yourself, determine the root cause and only then attempt to fix. Once applied, verify and prove that the issue is no longer reproducible through testing
-- Testing is done with QEMU: `qemu-system-i386 -machine pc -kernel bin/cassio.bin -net none`
+- Manual testing: `make run` boots with all services in QEMU
 - For headless/automated testing, use the QEMU monitor with `screendump` to capture VGA screenshots (see `docs/DEBUGGING.md` for the full test script and techniques)
 
 ## Architecture
 
-- **Boot flow**: GRUB loads the kernel via Multiboot (`src/core/loader.s`), which sets up a 2MiB stack, calls `ctors()` for global constructors, then calls `start()` in `kernel.cpp`. `start()` initializes GDT, InterruptManager, DriverManager, loads drivers, and enters the main loop.
-- **Interrupt dispatch**: assembly stubs in `src/hardware/stub.s` use mangled C++ names to bridge IRQs to `InterruptManager::handleInterrupt()`. Adding a new IRQ handler requires: a `HandleInterruptRequest` macro call in `stub.s`, a static method declaration in `InterruptManager`, and a `setInterrupt()` call in `InterruptManager::load()`.
-- **Singletons** for `InterruptManager`, `DriverManager`, and `COM1` (private constructors, static `instance`, accessed via `getManager()`/`getSerial()`)
-- **Drivers** inherit from `hardware::Driver`, self-register with the `InterruptManager` in their constructor, and use an event handler pattern to decouple input handling from the driver itself.
+CassiOS is a microkernel. The kernel contains only: GDT/TSS, interrupt subsystem (IDT, exceptions, IRQ dispatch), memory management (physical, heap, paging), process management, scheduler, PIT timer, IPC, ELF loader, and serial. Everything else runs as userspace services.
+
+- **Boot flow**: GRUB loads the kernel via Multiboot (`kernel/src/core/loader.s`), which sets up a 2MiB stack, calls `ctors()` for global constructors, then calls `start()` in `kernel.cpp`. `start()` initializes GDT, interrupts, memory, PIT, scheduler, loads userspace ELF modules, and enters an idle loop (`hlt`).
+- **Interrupt dispatch**: assembly stubs in `kernel/src/hardware/stub.s` bridge IRQs to `IrqManager::handleIrq()`. IRQs are either handled by in-kernel handlers (PIT) or forwarded to registered userspace processes via IPC.
+- **IPC**: synchronous message passing (send/receive/reply) plus fire-and-forget notify. Messages are 24 bytes (type + 5 args). The kernel copies messages between address spaces. `receive()` priority: IRQ notifications > notify queue > send queue.
+- **Userspace services**: each is a separate ELF binary loaded as a GRUB multiboot module. Services register with the nameserver and communicate via IPC. Drivers live under `userspace/drivers/`, higher-level services at `userspace/`.
+- **Singletons** for kernel managers: `InterruptManager`, `IrqManager`, `PitTimer`, `COM1`, etc. (private constructors, static `instance`, accessed via getter)
 - **Serial**: `Serial` is a general class taking `PortType` values; `COM1` is a singleton wrapping it for COM1 ports. Used by the test framework for output.
 
 ## Pull Request Policy
@@ -31,14 +34,16 @@ Never merge a pull request without explicit user approval. After opening a PR, s
 1. Keep it simple - NEVER over-engineer, ALWAYS simplify, NO unnecessary defensive programming. No extra features - focus on simplicity
 2. Be concise. Keep README minimal.
 3. NEVER use emojis.
-4. Use proper C++ classes, not C-style free function APIs. Follow existing patterns (e.g., `KeyboardDriver`, `InterruptManager`).
-5. Hardware-bound classes use singletons (private constructor, static instance, public getter). General-purpose classes (like `Serial`) take configuration via constructor and are wrapped by singletons for specific instances (like `COM1`).
+4. Use proper C++ classes, not C-style free function APIs. Follow existing patterns.
+5. Hardware-bound classes use singletons (private constructor, static instance, public getter). General-purpose classes take configuration via constructor and are wrapped by singletons for specific instances (e.g., Serial + COM1).
 6. I/O port addresses go in the `PortType` enum in `port.hpp` -- no magic numbers. Do not add raw `u16` constructors to `Port`.
 7. Functions called from assembly (`ctors`, `start`) must be declared `extern "C"`.
 8. Tests are part of the implementation, not separate work items. Everything testable must be tested within the same issue. Only skip tests when something genuinely can't be tested or the effort is disproportionate -- but make every effort not to skip. Never create separate issues for testing.
+9. Userspace services must have proper structure: `include/`, `src/`, `tests/`. Split logic into classes -- `main.cpp` should only contain the entry point and receive loop. For complex services like the shell, split further (e.g., `src/commands/`).
+10. Use the kernel heap (`KernelHeap`, `operator new`) for dynamic data structures rather than defaulting to fixed-size arrays. Fixed arrays are appropriate only when the size is hardware-dictated (IDT, IRQ tables, page directories).
 
 ## Working Documentation
 
-All documents for planning, working with and executing this project are in the docs/ directory. 
-Check @docs/WORKFLOW.md for instructions on how to use the project tooling, such as GitHub Issues and Git. 
+All documents for planning, working with and executing this project are in the docs/ directory.
+Check @docs/WORKFLOW.md for instructions on how to use the project tooling, such as GitHub Issues and Git.
 ALWAYS CHECK docs/DEBUGGING.md for the methodology to follow when fixing bugs and issues.

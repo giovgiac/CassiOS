@@ -55,15 +55,18 @@ Do not consider a bug fixed until you have proven it through the verify step. A 
 
 ### QEMU as the test environment
 
-Run the kernel with QEMU instead of VirtualBox for development:
+Run the full system (kernel + all userspace services) with `make run`, or manually:
 
 ```
-qemu-system-i386 -machine pc -kernel bin/cassio.bin -net none
+qemu-system-i386 -machine pc -kernel bin/cassio.bin \
+    -initrd "bin/ns.elf,bin/kbd.elf,bin/vga.elf,bin/vfs.elf,bin/mouse.elf,bin/ata.elf,bin/shell.elf" \
+    -drive file=bin/disk.img,format=raw,if=ide
 ```
 
 Key flags:
 - `-machine pc` -- required; without it QEMU may not load the multiboot kernel
-- `-net none` -- disables iPXE network boot ROM, which otherwise writes to VGA memory and corrupts kernel output
+- `-initrd` -- loads userspace service ELFs as multiboot modules (order matters: nameserver first, shell last)
+- `-drive file=...,if=ide` -- ATA disk image for the disk driver
 - `-no-reboot` -- halts on triple fault instead of rebooting (makes crashes visible)
 - `-display none` -- headless mode for automated testing
 
@@ -83,8 +86,10 @@ pkill -f qemu-system-i386 2>/dev/null || true
 sleep 0.5; rm -f "$SOCK"
 
 qemu-system-i386 -machine pc -kernel bin/cassio.bin \
+    -initrd "bin/ns.elf,bin/kbd.elf,bin/vga.elf,bin/vfs.elf,bin/mouse.elf,bin/ata.elf,bin/shell.elf" \
+    -drive file=bin/disk.img,format=raw,if=ide \
     -display none -monitor "unix:$SOCK,server,nowait" \
-    -no-reboot -net none -daemonize
+    -no-reboot -daemonize
 sleep 2
 
 for key in "$@"; do
@@ -132,7 +137,7 @@ Key things to look for:
 Run with `-d int -D /tmp/int_log.txt` to log all interrupts and exceptions:
 
 ```
-qemu-system-i386 -machine pc -kernel bin/cassio.bin -net none \
+qemu-system-i386 -machine pc -kernel bin/cassio.bin \
     -no-reboot -display none -d int -D /tmp/int_log.txt
 ```
 
@@ -147,7 +152,7 @@ Then search for exceptions: `grep "check_exception" /tmp/int_log.txt | head`
 For tracing which instructions execute (useful to confirm the kernel entry point is reached):
 
 ```
-qemu-system-i386 -machine pc -kernel bin/cassio.bin -net none \
+qemu-system-i386 -machine pc -kernel bin/cassio.bin \
     -no-reboot -display none -d in_asm -D /tmp/asm_log.txt
 ```
 

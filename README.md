@@ -1,24 +1,19 @@
 # CassiOS
 
-A hobby operating system targeting i386 (32-bit x86), written in C++ and assembly. Boots via GRUB using the Multiboot specification. Built from scratch with no standard library -- every component from the GDT to the filesystem is hand-written.
+A microkernel operating system targeting i386 (32-bit x86), written in C++ and assembly. Boots via GRUB using the Multiboot specification. Built from scratch with no standard library -- every component from the GDT to the IPC layer is hand-written.
 
 ## Features
 
-- **Higher-half kernel** mapped at 0xC0000000+ with GDT, IDT, and interrupt-driven I/O
-- **Userspace execution** -- ring 3 init process loaded from an ELF binary via GRUB multiboot module
-- **Preemptive round-robin scheduler** driven by PIT timer (~100 Hz), context switching via saved ESP
-- **Per-process address spaces** with separate page directories and shared kernel mappings
-- **ELF32 loader** for statically linked executables
-- **Syscall interface** via `int 0x80` (write, read, sleep, uptime)
-- **PS/2 keyboard driver** with full scancode translation, arrow keys, and extended key support
-- **VGA text-mode terminal** with cursor control and color attributes
-- **Physical memory manager** with bitmap allocator
-- **Kernel heap** with `new`/`delete` support
-- **Paging** with direct-mapped kernel memory and per-process user pages
-- **ATA PIO block device driver** for IDE disk access
-- **In-memory hierarchical filesystem** supporting files, directories, and path resolution
-- **Interactive shell** with line editing and 22 built-in commands
-- **In-kernel test framework** with 190 automated tests, run headlessly via serial output and QEMU exit codes
+- **Microkernel architecture** -- kernel provides IPC, scheduling, memory management, and interrupt routing; everything else runs as userspace services
+- **Synchronous IPC** -- message passing (send/receive/reply) and fire-and-forget notify between processes
+- **Userspace drivers** -- PS/2 keyboard, PS/2 mouse, VGA terminal, ATA PIO disk, all as separate services
+- **Userspace services** -- nameserver for service discovery, in-memory filesystem, interactive shell with 16 commands
+- **Higher-half kernel** mapped at 0xC0000000+ with per-process address spaces
+- **Preemptive round-robin scheduler** driven by PIT timer (~100 Hz)
+- **ELF32 loader** for statically linked userspace binaries via GRUB multiboot modules
+- **Syscall interface** via `int 0x80` (IPC, memory, process control, system info)
+- **Physical memory manager**, kernel heap with `new`/`delete`, paging
+- **Two-tier test framework** -- 104 kernel unit tests + 84 userspace integration tests, run headlessly via QEMU
 
 ## Prerequisites
 
@@ -30,8 +25,8 @@ A hobby operating system targeting i386 (32-bit x86), written in C++ and assembl
 
 ```sh
 make kernel    # compile and link the kernel binary
-make run       # build and launch in QEMU
-make test      # build and run in-kernel tests
+make run       # build and launch in QEMU with all services
+make test      # build and run all tests (kernel + userspace)
 make iso       # build a bootable ISO
 make clean     # remove build artifacts
 ```
