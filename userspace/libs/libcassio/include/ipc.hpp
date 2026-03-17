@@ -18,34 +18,42 @@ namespace cassio {
 
 class IPC {
 public:
-    static inline i32 send(u32 pid, Message* msg) {
+    static inline i32 send(u32 pid, Message* msg,
+                           const void* data = nullptr, u32 dataLen = 0) {
         i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::Send), "b"(pid), "c"((u32)msg)
+                     : "a"(SyscallNumber::Send), "b"(pid), "c"((u32)msg),
+                       "S"((u32)data), "D"(dataLen)
                      : "memory");
         return ret;
     }
 
-    static inline i32 receive(Message* msg) {
+    static inline i32 receive(Message* msg,
+                              void* data = nullptr, u32 dataCapacity = 0) {
         i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::Receive), "b"((u32)msg)
+                     : "a"(SyscallNumber::Receive), "b"((u32)msg),
+                       "S"((u32)data), "D"(dataCapacity)
                      : "memory");
         return ret;
     }
 
-    static inline i32 reply(u32 pid, Message* msg) {
+    static inline i32 reply(u32 pid, Message* msg,
+                            const void* data = nullptr, u32 dataLen = 0) {
         i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::Reply), "b"(pid), "c"((u32)msg)
+                     : "a"(SyscallNumber::Reply), "b"(pid), "c"((u32)msg),
+                       "S"((u32)data), "D"(dataLen)
                      : "memory");
         return ret;
     }
 
-    static inline i32 notify(u32 pid, Message* msg) {
+    static inline i32 notify(u32 pid, Message* msg,
+                             const void* data = nullptr, u32 dataLen = 0) {
         i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::Notify), "b"(pid), "c"((u32)msg)
+                     : "a"(SyscallNumber::Notify), "b"(pid), "c"((u32)msg),
+                       "S"((u32)data), "D"(dataLen)
                      : "memory");
         return ret;
     }

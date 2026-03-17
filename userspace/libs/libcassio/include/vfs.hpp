@@ -18,51 +18,30 @@ namespace cassio {
 
 class Vfs {
 public:
-    static inline void packPath(Message& msg, const char* path) {
-        char* dst = reinterpret_cast<char*>(&msg.arg1);
-        u32 i = 0;
-        while (i < 20 && path[i] != '\0') {
-            dst[i] = path[i];
-            i++;
-        }
-        if (i < 20) {
-            dst[i] = '\0';
-        }
-    }
-
-    static inline void packPath16(Message& msg, const char* path) {
-        char* dst = reinterpret_cast<char*>(&msg.arg2);
-        u32 i = 0;
-        while (i < 16 && path[i] != '\0') {
-            dst[i] = path[i];
-            i++;
-        }
-        if (i < 16) {
-            dst[i] = '\0';
-        }
-    }
-
     static inline u32 mkdir(u32 pid, const char* path) {
+        u32 len = 0;
+        while (path[len] != '\0') len++;
         Message msg = {};
         msg.type = MessageType::VfsMkdir;
-        packPath(msg, path);
-        IPC::send(pid, &msg);
+        IPC::send(pid, &msg, path, len + 1);
         return msg.arg1;
     }
 
     static inline u32 remove(u32 pid, const char* path) {
+        u32 len = 0;
+        while (path[len] != '\0') len++;
         Message msg = {};
         msg.type = MessageType::VfsRemove;
-        packPath(msg, path);
-        IPC::send(pid, &msg);
+        IPC::send(pid, &msg, path, len + 1);
         return msg.arg1;
     }
 
     static inline u32 open(u32 pid, const char* path) {
+        u32 len = 0;
+        while (path[len] != '\0') len++;
         Message msg = {};
         msg.type = MessageType::VfsOpen;
-        packPath(msg, path);
-        IPC::send(pid, &msg);
+        IPC::send(pid, &msg, path, len + 1);
         return msg.arg1;
     }
 
@@ -72,15 +51,9 @@ public:
         msg.type = MessageType::VfsRead;
         msg.arg1 = handle;
         msg.arg2 = offset;
-        IPC::send(pid, &msg);
-
-        u32 bytesRead = msg.arg1;
-        const u8* src = reinterpret_cast<const u8*>(&msg.arg2);
-        u32 toCopy = bytesRead < bufLen ? bytesRead : bufLen;
-        for (u32 i = 0; i < toCopy; i++) {
-            buf[i] = src[i];
-        }
-        return static_cast<i32>(bytesRead);
+        msg.arg3 = bufLen;
+        IPC::send(pid, &msg, buf, bufLen);
+        return static_cast<i32>(msg.arg1);
     }
 
     static inline u32 write(u32 pid, u32 handle, const u8* data, u32 len) {
@@ -88,34 +61,38 @@ public:
         msg.type = MessageType::VfsWrite;
         msg.arg1 = handle;
         msg.arg2 = len;
-        u8* dst = reinterpret_cast<u8*>(&msg.arg3);
-        u32 limit = len < 12 ? len : 12;
-        for (u32 i = 0; i < limit; i++) {
-            dst[i] = data[i];
-        }
-        IPC::send(pid, &msg);
+        IPC::send(pid, &msg, data, len);
         return msg.arg1;
     }
 
     static inline bool list(u32 pid, const char* path, u32 index,
                             char* nameOut, u32 nameMax) {
+        u32 pathLen = 0;
+        while (path[pathLen] != '\0') pathLen++;
+
+        // Use a local buffer: send the path, reply overwrites with the name.
+        char buf[64];
+        u32 i = 0;
+        while (i < sizeof(buf) - 1 && i <= pathLen) {
+            buf[i] = path[i];
+            i++;
+        }
+
         Message msg = {};
         msg.type = MessageType::VfsList;
         msg.arg1 = index;
-        packPath16(msg, path);
-        IPC::send(pid, &msg);
+        msg.arg2 = pathLen + 1;
+        IPC::send(pid, &msg, buf, sizeof(buf));
 
         if (msg.arg1 == 0) {
             return false;
         }
-        const char* src = reinterpret_cast<const char*>(&msg.arg2);
-        u32 i = 0;
+
+        // buf now contains the reply name.
+        i = 0;
         u32 limit = nameMax - 1;
-        if (limit > 16) {
-            limit = 16;
-        }
-        while (i < limit && src[i] != '\0') {
-            nameOut[i] = src[i];
+        while (i < limit && buf[i] != '\0') {
+            nameOut[i] = buf[i];
             i++;
         }
         nameOut[i] = '\0';

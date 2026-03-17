@@ -26,21 +26,12 @@ public:
     }
 
     static inline void write(u32 pid, const char* str) {
-        while (*str != '\0') {
-            Message msg = {};
-            msg.type = MessageType::VgaWrite;
-            char* data = reinterpret_cast<char*>(&msg.arg1);
-            u32 i = 0;
-            while (i < 20 && str[i] != '\0') {
-                data[i] = str[i];
-                ++i;
-            }
-            if (i < 20) {
-                data[i] = '\0';
-            }
-            IPC::notify(pid, &msg);
-            str += i;
-        }
+        u32 len = 0;
+        while (str[len] != '\0') len++;
+        Message msg = {};
+        msg.type = MessageType::VgaWrite;
+        msg.arg1 = len;
+        IPC::notify(pid, &msg, str, len);
     }
 
     static inline void clear(u32 pid) {

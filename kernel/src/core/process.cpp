@@ -36,6 +36,8 @@ ProcessManager::ProcessManager()
     kernelTask.heapBreak = 0;
     kernelTask.msg = {};
     kernelTask.msgPtr = 0;
+    kernelTask.dataPtr = 0;
+    kernelTask.dataLen = 0;
     processes.pushBack(&kernelTask);
 }
 
@@ -72,24 +74,49 @@ static void copyMsg(const Message& src, Message& dst) {
     dst.arg5 = src.arg5;
 }
 
-bool Process::notifyPush(u32 senderPid, const Message& m) {
+bool Process::notifyPush(u32 senderPid, const Message& m,
+                         const void* data, u32 dataLen) {
     NotifyNode* node = new NotifyNode;
     if (!node) {
         return false;
     }
     node->senderPid = senderPid;
     copyMsg(m, node->msg);
+    node->data = nullptr;
+    node->dataLen = 0;
+    if (data != nullptr && dataLen > 0) {
+        node->data = static_cast<u8*>(operator new(dataLen));
+        if (!node->data) {
+            delete node;
+            return false;
+        }
+        const u8* src = static_cast<const u8*>(data);
+        for (u32 i = 0; i < dataLen; i++) {
+            node->data[i] = src[i];
+        }
+        node->dataLen = dataLen;
+    }
     notifyQueue.pushBack(node);
     return true;
 }
 
-bool Process::notifyPop(u32& senderPid, Message& m) {
+bool Process::notifyPop(u32& senderPid, Message& m,
+                        void* dataDst, u32 dataCapacity) {
     NotifyNode* node = notifyQueue.popFront();
     if (!node) {
         return false;
     }
     senderPid = node->senderPid;
     copyMsg(node->msg, m);
+    if (node->data != nullptr && node->dataLen > 0 &&
+        dataDst != nullptr && dataCapacity > 0) {
+        u32 copyLen = node->dataLen < dataCapacity ? node->dataLen : dataCapacity;
+        u8* dst = static_cast<u8*>(dataDst);
+        for (u32 i = 0; i < copyLen; i++) {
+            dst[i] = node->data[i];
+        }
+    }
+    operator delete(node->data);
     delete node;
     return true;
 }
@@ -122,6 +149,8 @@ Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirect
     p->heapBreak = 0;
     p->msg = {};
     p->msgPtr = 0;
+    p->dataPtr = 0;
+    p->dataLen = 0;
 
     processes.pushBack(p);
     return p;
@@ -151,7 +180,9 @@ void ProcessManager::destroy(u32 pid) {
 
     // Drain notify queue.
     while (!p->notifyQueue.isEmpty()) {
-        delete p->notifyQueue.popFront();
+        Process::NotifyNode* node = p->notifyQueue.popFront();
+        operator delete(node->data);
+        delete node;
     }
 
     // Unlink from process list and free.

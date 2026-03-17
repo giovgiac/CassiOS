@@ -55,12 +55,25 @@ TEST(vga_ipc_write) {
     u32 pid = Nameserver::lookup("vga");
     ASSERT(pid != 0);
 
+    const char* text = "Hi";
     Message msg = {};
     msg.type = MessageType::VgaWrite;
-    char* data = reinterpret_cast<char*>(&msg.arg1);
-    data[0] = 'H';
-    data[1] = 'i';
-    data[2] = '\0';
-    i32 ret = IPC::send(pid, &msg);
+    msg.arg1 = 2;
+    i32 ret = IPC::send(pid, &msg, text, 2);
+    ASSERT_EQ(ret, 0);
+}
+
+TEST(vga_ipc_write_long) {
+    u32 pid = Nameserver::lookup("vga");
+    ASSERT(pid != 0);
+
+    const char* text = "This is a long string that exceeds 20 characters!";
+    u32 len = 0;
+    while (text[len]) len++;
+
+    Message msg = {};
+    msg.type = MessageType::VgaWrite;
+    msg.arg1 = len;
+    i32 ret = IPC::send(pid, &msg, text, len);
     ASSERT_EQ(ret, 0);
 }

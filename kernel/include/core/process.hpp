@@ -36,6 +36,8 @@ struct Process {
     struct NotifyNode {
         u32 senderPid;
         Message msg;
+        u8* data;      // Heap-allocated copy of sender's bulk data (nullptr if none).
+        u32 dataLen;   // Length of copied data.
         NotifyNode* next;
     };
 
@@ -56,6 +58,8 @@ struct Process {
     // IPC state.
     Message msg;        // Outgoing message (sender) or staging buffer.
     u32 msgPtr;         // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
+    u32 dataPtr;        // Userspace pointer to bulk data buffer.
+    u32 dataLen;        // Bulk data length (outgoing) or capacity (incoming).
 
     // Send queue: PIDs of processes waiting to send to this process.
     LinkedList<SendNode> sendQueue;
@@ -66,8 +70,10 @@ struct Process {
     // Notification queue: fire-and-forget messages (no reply expected).
     LinkedList<NotifyNode> notifyQueue;
 
-    bool notifyPush(u32 senderPid, const Message& msg);
-    bool notifyPop(u32& senderPid, Message& msg);
+    bool notifyPush(u32 senderPid, const Message& msg,
+                    const void* data = nullptr, u32 dataLen = 0);
+    bool notifyPop(u32& senderPid, Message& msg,
+                   void* dataDst = nullptr, u32 dataCapacity = 0);
 };
 
 /**

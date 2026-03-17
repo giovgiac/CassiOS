@@ -115,6 +115,54 @@ TEST(ipc_notify_queue_beyond_old_limit) {
     pm.destroy(p->pid);
 }
 
+TEST(ipc_notify_queue_with_data) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    ASSERT(p != nullptr);
+
+    u8 sendData[32];
+    for (u32 i = 0; i < 32; i++) sendData[i] = static_cast<u8>(i + 1);
+
+    Message m = {5, 32, 0, 0, 0, 0};
+    ASSERT(p->notifyPush(7, m, sendData, 32));
+
+    u32 sender;
+    Message out = {};
+    u8 recvData[64] = {};
+    ASSERT(p->notifyPop(sender, out, recvData, 64));
+    ASSERT_EQ(sender, 7u);
+    ASSERT_EQ(out.type, 5u);
+    ASSERT_EQ(out.arg1, 32u);
+    for (u32 i = 0; i < 32; i++) {
+        ASSERT_EQ(recvData[i], static_cast<u8>(i + 1));
+    }
+
+    pm.destroy(p->pid);
+}
+
+TEST(ipc_notify_queue_data_truncated) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    ASSERT(p != nullptr);
+
+    u8 sendData[32];
+    for (u32 i = 0; i < 32; i++) sendData[i] = static_cast<u8>(i + 100);
+
+    Message m = {1, 0, 0, 0, 0, 0};
+    ASSERT(p->notifyPush(1, m, sendData, 32));
+
+    u32 sender;
+    Message out = {};
+    u8 recvData[16] = {};
+    ASSERT(p->notifyPop(sender, out, recvData, 16));
+    // Only first 16 bytes should be copied.
+    for (u32 i = 0; i < 16; i++) {
+        ASSERT_EQ(recvData[i], static_cast<u8>(i + 100));
+    }
+
+    pm.destroy(p->pid);
+}
+
 // -- IPC send/receive/reply tests --
 
 TEST(ipc_send_to_receive_blocked_delivers_immediately) {
@@ -138,7 +186,7 @@ TEST(ipc_send_to_receive_blocked_delivers_immediately) {
     // Set sender as current process and call send().
     pm.setCurrent(sender);
     Message sendMsg = { 42, 1, 2, 3, 4, 5 };
-    i32 result = sh.send(receiver->pid, &sendMsg);
+    i32 result = sh.send(receiver->pid, &sendMsg, 0, 0);
 
     // Sender should block.
     ASSERT_EQ(result, 0);
@@ -169,7 +217,7 @@ TEST(ipc_send_to_non_blocked_queues_sender) {
 
     pm.setCurrent(sender);
     Message sendMsg = { 99, 0, 0, 0, 0, 0 };
-    i32 result = sh.send(receiver->pid, &sendMsg);
+    i32 result = sh.send(receiver->pid, &sendMsg, 0, 0);
 
     ASSERT_EQ(result, 0);
     ASSERT(sender->state == ProcessState::SendBlocked);
@@ -199,7 +247,7 @@ TEST(ipc_receive_with_pending_sender) {
 
     pm.setCurrent(receiver);
     Message recvBuf = {};
-    i32 result = sh.receive(&recvBuf);
+    i32 result = sh.receive(&recvBuf, 0, 0);
 
     // Should deliver immediately (return sender PID).
     ASSERT_EQ(result, static_cast<i32>(sender->pid));
@@ -224,7 +272,7 @@ TEST(ipc_receive_empty_queue_blocks) {
 
     pm.setCurrent(receiver);
     Message recvBuf = {};
-    i32 result = sh.receive(&recvBuf);
+    i32 result = sh.receive(&recvBuf, 0, 0);
 
     ASSERT_EQ(result, 0);
     ASSERT(receiver->state == ProcessState::ReceiveBlocked);
@@ -252,7 +300,7 @@ TEST(ipc_reply_unblocks_sender) {
 
     pm.setCurrent(replier);
     Message replyMsg = { 100, 11, 22, 33, 44, 55 };
-    i32 result = sh.reply(sender->pid, &replyMsg);
+    i32 result = sh.reply(sender->pid, &replyMsg, 0, 0);
 
     ASSERT_EQ(result, 0);
     ASSERT(sender->state == ProcessState::Ready);
@@ -277,7 +325,7 @@ TEST(ipc_reply_to_non_blocked_fails) {
 
     pm.setCurrent(replier);
     Message replyMsg = { 0, 0, 0, 0, 0, 0 };
-    i32 result = sh.reply(target->pid, &replyMsg);
+    i32 result = sh.reply(target->pid, &replyMsg, 0, 0);
 
     ASSERT_EQ(result, static_cast<i32>(-1));
 
@@ -294,7 +342,7 @@ TEST(ipc_send_to_self_fails) {
 
     pm.setCurrent(p);
     Message msg = { 1, 0, 0, 0, 0, 0 };
-    i32 result = sh.send(p->pid, &msg);
+    i32 result = sh.send(p->pid, &msg, 0, 0);
 
     ASSERT_EQ(result, static_cast<i32>(-1));
     // Process should NOT be blocked.
@@ -312,7 +360,7 @@ TEST(ipc_send_to_invalid_pid_fails) {
 
     pm.setCurrent(p);
     Message msg = { 1, 0, 0, 0, 0, 0 };
-    i32 result = sh.send(99999, &msg);
+    i32 result = sh.send(99999, &msg, 0, 0);
 
     ASSERT_EQ(result, static_cast<i32>(-1));
 
@@ -333,7 +381,7 @@ TEST(ipc_full_round_trip) {
     // Step 1: Server calls receive() -- no pending senders, blocks.
     pm.setCurrent(server);
     Message serverBuf = {};
-    i32 result = sh.receive(&serverBuf);
+    i32 result = sh.receive(&serverBuf, 0, 0);
     ASSERT_EQ(result, 0);
     ASSERT(server->state == ProcessState::ReceiveBlocked);
 
@@ -344,7 +392,7 @@ TEST(ipc_full_round_trip) {
     // Step 2: Client calls send() -- server is ReceiveBlocked, delivers immediately.
     pm.setCurrent(client);
     Message request = { 42, 1, 2, 3, 4, 5 };
-    result = sh.send(server->pid, &request);
+    result = sh.send(server->pid, &request, 0, 0);
     ASSERT_EQ(result, 0);
     ASSERT(client->state == ProcessState::SendBlocked);
     ASSERT(server->state == ProcessState::Ready);
@@ -362,7 +410,7 @@ TEST(ipc_full_round_trip) {
     // Step 3: Server calls reply() -- unblocks client with response.
     pm.setCurrent(server);
     Message response = { 99, 10, 20, 30, 40, 50 };
-    result = sh.reply(client->pid, &response);
+    result = sh.reply(client->pid, &response, 0, 0);
     ASSERT_EQ(result, 0);
     ASSERT(client->state == ProcessState::Ready);
 
@@ -375,6 +423,269 @@ TEST(ipc_full_round_trip) {
 
     pm.destroy(client->pid);
     pm.destroy(server->pid);
+}
+
+// -- Long message tests (bulk data transfer) --
+
+TEST(ipc_send_receive_blocked_with_data) {
+    ProcessManager& pm = ProcessManager::getManager();
+    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
+
+    Process* sender = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    Process* receiver = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
+    ASSERT(sender != nullptr);
+    ASSERT(receiver != nullptr);
+
+    // Receiver is blocked with a data buffer.
+    Message recvBuf = {};
+    u8 recvData[64] = {};
+    receiver->state = ProcessState::ReceiveBlocked;
+    receiver->msgPtr = (u32)&recvBuf;
+    receiver->dataPtr = (u32)recvData;
+    receiver->dataLen = sizeof(recvData);
+
+    SyscallFrame recvFrame = {};
+    receiver->esp = (u32)&recvFrame;
+
+    // Sender sends with data.
+    u8 sendData[32];
+    for (u32 i = 0; i < 32; i++) sendData[i] = static_cast<u8>(i + 1);
+
+    pm.setCurrent(sender);
+    Message sendMsg = { 10, 32, 0, 0, 0, 0 };
+    i32 result = sh.send(receiver->pid, &sendMsg,
+                         (u32)sendData, sizeof(sendData));
+
+    ASSERT_EQ(result, 0);
+    ASSERT(receiver->state == ProcessState::Ready);
+    ASSERT_EQ(recvBuf.type, 10u);
+    ASSERT_EQ(recvBuf.arg1, 32u);
+
+    // Verify data was copied.
+    for (u32 i = 0; i < 32; i++) {
+        ASSERT_EQ(recvData[i], static_cast<u8>(i + 1));
+    }
+
+    pm.destroy(sender->pid);
+    pm.destroy(receiver->pid);
+}
+
+TEST(ipc_send_data_truncated) {
+    ProcessManager& pm = ProcessManager::getManager();
+    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
+
+    Process* sender = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    Process* receiver = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
+    ASSERT(sender != nullptr);
+    ASSERT(receiver != nullptr);
+
+    // Receiver has small buffer.
+    Message recvBuf = {};
+    u8 recvData[16] = {};
+    receiver->state = ProcessState::ReceiveBlocked;
+    receiver->msgPtr = (u32)&recvBuf;
+    receiver->dataPtr = (u32)recvData;
+    receiver->dataLen = sizeof(recvData);
+
+    SyscallFrame recvFrame = {};
+    receiver->esp = (u32)&recvFrame;
+
+    // Sender sends more data than receiver can hold.
+    u8 sendData[64];
+    for (u32 i = 0; i < 64; i++) sendData[i] = static_cast<u8>(i + 10);
+
+    pm.setCurrent(sender);
+    Message sendMsg = { 20, 64, 0, 0, 0, 0 };
+    i32 result = sh.send(receiver->pid, &sendMsg,
+                         (u32)sendData, sizeof(sendData));
+
+    ASSERT_EQ(result, 0);
+
+    // Only 16 bytes should be copied (receiver's capacity).
+    for (u32 i = 0; i < 16; i++) {
+        ASSERT_EQ(recvData[i], static_cast<u8>(i + 10));
+    }
+
+    pm.destroy(sender->pid);
+    pm.destroy(receiver->pid);
+}
+
+TEST(ipc_send_no_data_backward_compat) {
+    ProcessManager& pm = ProcessManager::getManager();
+    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
+
+    Process* sender = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    Process* receiver = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
+    ASSERT(sender != nullptr);
+    ASSERT(receiver != nullptr);
+
+    // Receiver has a data buffer but sender sends no data.
+    Message recvBuf = {};
+    u8 recvData[32];
+    for (u32 i = 0; i < 32; i++) recvData[i] = 0xFF;
+    receiver->state = ProcessState::ReceiveBlocked;
+    receiver->msgPtr = (u32)&recvBuf;
+    receiver->dataPtr = (u32)recvData;
+    receiver->dataLen = sizeof(recvData);
+
+    SyscallFrame recvFrame = {};
+    receiver->esp = (u32)&recvFrame;
+
+    pm.setCurrent(sender);
+    Message sendMsg = { 42, 0, 0, 0, 0, 0 };
+    i32 result = sh.send(receiver->pid, &sendMsg, 0, 0);
+
+    ASSERT_EQ(result, 0);
+    ASSERT_EQ(recvBuf.type, 42u);
+
+    // Receiver's data buffer should be untouched.
+    for (u32 i = 0; i < 32; i++) {
+        ASSERT_EQ(recvData[i], static_cast<u8>(0xFF));
+    }
+
+    pm.destroy(sender->pid);
+    pm.destroy(receiver->pid);
+}
+
+TEST(ipc_reply_with_data) {
+    ProcessManager& pm = ProcessManager::getManager();
+    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
+
+    Process* sender = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    Process* replier = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
+    ASSERT(sender != nullptr);
+    ASSERT(replier != nullptr);
+
+    // Simulate sender blocked with a data buffer for reply.
+    u8 senderData[64] = {};
+    sender->state = ProcessState::SendBlocked;
+    Message replyBuf = {};
+    sender->msgPtr = (u32)&replyBuf;
+    sender->dataPtr = (u32)senderData;
+    sender->dataLen = sizeof(senderData);
+
+    SyscallFrame senderFrame = {};
+    sender->esp = (u32)&senderFrame;
+
+    // Replier sends reply with data.
+    u8 replyData[48];
+    for (u32 i = 0; i < 48; i++) replyData[i] = static_cast<u8>(i + 50);
+
+    pm.setCurrent(replier);
+    Message replyMsg = { 200, 48, 0, 0, 0, 0 };
+    i32 result = sh.reply(sender->pid, &replyMsg,
+                          (u32)replyData, sizeof(replyData));
+
+    ASSERT_EQ(result, 0);
+    ASSERT(sender->state == ProcessState::Ready);
+    ASSERT_EQ(replyBuf.type, 200u);
+    ASSERT_EQ(senderFrame.eax, 0u);
+
+    // Verify reply data in sender's buffer.
+    for (u32 i = 0; i < 48; i++) {
+        ASSERT_EQ(senderData[i], static_cast<u8>(i + 50));
+    }
+
+    pm.destroy(sender->pid);
+    pm.destroy(replier->pid);
+}
+
+TEST(ipc_full_round_trip_with_data) {
+    ProcessManager& pm = ProcessManager::getManager();
+    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
+
+    Process* client = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    Process* server = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
+    ASSERT(client != nullptr);
+    ASSERT(server != nullptr);
+
+    // Step 1: Server blocks in receive with data buffer.
+    u8 serverData[128] = {};
+    pm.setCurrent(server);
+    Message serverBuf = {};
+    i32 result = sh.receive(&serverBuf, (u32)serverData, sizeof(serverData));
+    ASSERT_EQ(result, 0);
+    ASSERT(server->state == ProcessState::ReceiveBlocked);
+
+    SyscallFrame serverFrame = {};
+    server->esp = (u32)&serverFrame;
+
+    // Step 2: Client sends with data.
+    u8 clientData[64];
+    for (u32 i = 0; i < 64; i++) clientData[i] = static_cast<u8>(i);
+
+    pm.setCurrent(client);
+    Message request = { 42, 64, 0, 0, 0, 0 };
+    result = sh.send(server->pid, &request,
+                     (u32)clientData, sizeof(clientData));
+    ASSERT_EQ(result, 0);
+    ASSERT(server->state == ProcessState::Ready);
+
+    // Server got the message and data.
+    ASSERT_EQ(serverBuf.type, 42u);
+    ASSERT_EQ(serverBuf.arg1, 64u);
+    for (u32 i = 0; i < 64; i++) {
+        ASSERT_EQ(serverData[i], static_cast<u8>(i));
+    }
+
+    SyscallFrame clientFrame = {};
+    client->esp = (u32)&clientFrame;
+
+    // Step 3: Server replies with data.
+    u8 replyData[32];
+    for (u32 i = 0; i < 32; i++) replyData[i] = static_cast<u8>(i + 100);
+
+    pm.setCurrent(server);
+    Message response = { 99, 32, 0, 0, 0, 0 };
+    result = sh.reply(client->pid, &response,
+                      (u32)replyData, sizeof(replyData));
+    ASSERT_EQ(result, 0);
+    ASSERT(client->state == ProcessState::Ready);
+
+    // Client received reply message and data.
+    ASSERT_EQ(request.type, 99u);
+    ASSERT_EQ(request.arg1, 32u);
+    for (u32 i = 0; i < 32; i++) {
+        ASSERT_EQ(clientData[i], static_cast<u8>(i + 100));
+    }
+
+    pm.destroy(client->pid);
+    pm.destroy(server->pid);
+}
+
+TEST(ipc_receive_queued_sender_with_data) {
+    ProcessManager& pm = ProcessManager::getManager();
+    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
+
+    Process* sender = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    Process* receiver = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
+    ASSERT(sender != nullptr);
+    ASSERT(receiver != nullptr);
+
+    // Simulate sender already in queue with data.
+    u8 senderData[24];
+    for (u32 i = 0; i < 24; i++) senderData[i] = static_cast<u8>(i + 200);
+
+    sender->state = ProcessState::SendBlocked;
+    sender->msg = { 77, 24, 0, 0, 0, 0 };
+    sender->dataPtr = (u32)senderData;
+    sender->dataLen = sizeof(senderData);
+    receiver->sendQueuePush(sender->pid);
+
+    // Receiver calls receive with data buffer.
+    u8 recvData[64] = {};
+    pm.setCurrent(receiver);
+    Message recvBuf = {};
+    i32 result = sh.receive(&recvBuf, (u32)recvData, sizeof(recvData));
+
+    ASSERT_EQ(result, static_cast<i32>(sender->pid));
+    ASSERT_EQ(recvBuf.type, 77u);
+    for (u32 i = 0; i < 24; i++) {
+        ASSERT_EQ(recvData[i], static_cast<u8>(i + 200));
+    }
+
+    pm.destroy(sender->pid);
+    pm.destroy(receiver->pid);
 }
 
 // -- Scheduler integration tests --

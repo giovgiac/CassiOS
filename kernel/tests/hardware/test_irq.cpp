@@ -143,7 +143,7 @@ TEST(irq_forward_sets_pending_when_not_receive_blocked) {
     // Now simulate target calling receive(). Pending IRQ should be delivered.
     pm.setCurrent(target);
     Message recvBuf = {};
-    i32 result = sh.receive(&recvBuf);
+    i32 result = sh.receive(&recvBuf, 0, 0);
 
     // -2 means IRQ notification delivered.
     ASSERT_EQ(result, static_cast<i32>(-2));
@@ -151,7 +151,7 @@ TEST(irq_forward_sets_pending_when_not_receive_blocked) {
     ASSERT_EQ(recvBuf.arg1, 5u);
 
     // A second receive() with no more pending IRQs should block.
-    result = sh.receive(&recvBuf);
+    result = sh.receive(&recvBuf, 0, 0);
     ASSERT_EQ(result, 0);
     ASSERT(target->state == ProcessState::ReceiveBlocked);
 
@@ -225,14 +225,14 @@ TEST(irq_forward_irq_takes_priority_over_send_queue) {
     // receive() should deliver the IRQ first (highest priority).
     pm.setCurrent(receiver);
     Message recvBuf = {};
-    i32 result = sh.receive(&recvBuf);
+    i32 result = sh.receive(&recvBuf, 0, 0);
 
     ASSERT_EQ(result, static_cast<i32>(-2));
     ASSERT_EQ(recvBuf.type, MessageType::IrqNotify);
     ASSERT_EQ(recvBuf.arg1, 5u);
 
     // Next receive() should deliver from the send queue.
-    result = sh.receive(&recvBuf);
+    result = sh.receive(&recvBuf, 0, 0);
     ASSERT_EQ(result, static_cast<i32>(sender->pid));
     ASSERT_EQ(recvBuf.type, 42u);
 
