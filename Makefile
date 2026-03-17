@@ -102,8 +102,10 @@ $(DISK):
 
 test: test-kernel test-userspace
 
-test-kernel: $(TEST_KERNEL)
-	@qemu-img create -f raw /tmp/cassio-test-disk.img 1M 2>/dev/null; \
+test-kernel:
+	@$(MAKE) --no-print-directory $(TEST_KERNEL) > /tmp/cassio-build.log 2>&1 \
+	    || (cat /tmp/cassio-build.log; exit 1); \
+	qemu-img create -f raw /tmp/cassio-test-disk.img 1M 2>/dev/null; \
 	qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
@@ -114,8 +116,10 @@ test-kernel: $(TEST_KERNEL)
 	cat /tmp/cassio-test-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
-test-userspace: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERTEST)
-	@qemu-img create -f raw /tmp/cassio-usertest-disk.img 1M 2>/dev/null; \
+test-userspace:
+	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERTEST) \
+	    > /tmp/cassio-build.log 2>&1 || (cat /tmp/cassio-build.log; exit 1); \
+	qemu-img create -f raw /tmp/cassio-usertest-disk.img 1M 2>/dev/null; \
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
 	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
