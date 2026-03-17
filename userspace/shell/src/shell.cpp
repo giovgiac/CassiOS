@@ -80,15 +80,35 @@ void Shell::printDec(u32 val) {
 // --- Prompt and line editing ---
 
 void Shell::printPrompt() {
-    print("$ ");
-    Vga::getCursor(vgaPid, promptCol, promptRow);
+    // Single blocking send for "$ "; read cursor position from reply.
+    Message msg = {};
+    msg.type = MessageType::VgaWrite;
+    char* data = reinterpret_cast<char*>(&msg.arg1);
+    data[0] = '$';
+    data[1] = ' ';
+    data[2] = '\0';
+    IPC::send(vgaPid, &msg);
+    promptCol = static_cast<u8>(msg.arg1);
+    promptRow = static_cast<u8>(msg.arg2);
 }
 
 void Shell::redrawLine() {
     Vga::setCursor(vgaPid, promptCol, promptRow);
 
-    for (u8 i = 0; i < length; ++i) {
-        putchar(buffer[i]);
+    // Batch characters into 20-char VgaWrite chunks.
+    u8 pos = 0;
+    while (pos < length) {
+        Message msg = {};
+        msg.type = MessageType::VgaWrite;
+        char* data = reinterpret_cast<char*>(&msg.arg1);
+        u8 chunk = 0;
+        while (chunk < 20 && pos + chunk < length) {
+            data[chunk] = buffer[pos + chunk];
+            ++chunk;
+        }
+        if (chunk < 20) data[chunk] = '\0';
+        IPC::send(vgaPid, &msg);
+        pos += chunk;
     }
 
     // Clear any leftover character from a previous longer line.
@@ -170,7 +190,14 @@ void Shell::run() {
                 }
                 --length;
                 --cursor;
-                redrawLine();
+                if (cursor == length) {
+                    // Deleting at end: backspace, clear, backspace.
+                    putchar('\b');
+                    putchar(' ');
+                    putchar('\b');
+                } else {
+                    redrawLine();
+                }
             }
             continue;
 
@@ -209,7 +236,12 @@ void Shell::run() {
             buffer[cursor] = static_cast<char>(key);
             ++length;
             ++cursor;
-            redrawLine();
+            if (cursor == length) {
+                // Appended at end: just print the one character.
+                putchar(static_cast<char>(key));
+            } else {
+                redrawLine();
+            }
         }
     }
 }
