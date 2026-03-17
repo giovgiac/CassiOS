@@ -6,7 +6,8 @@ KBD_DIR  = $(ROOT)/userspace/kbd
 VGA_DIR  = $(ROOT)/userspace/vga
 VFS_DIR  = $(ROOT)/userspace/vfs
 MOUSE_DIR = $(ROOT)/userspace/mouse
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -I$(NS_DIR)/include/ -I$(KBD_DIR)/include/ -I$(VGA_DIR)/include/ -I$(VFS_DIR)/include/ -I$(MOUSE_DIR)/include/
+ATA_DIR  = $(ROOT)/userspace/ata
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-use-cxa-atexit -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -I$(NS_DIR)/include/ -I$(KBD_DIR)/include/ -I$(VGA_DIR)/include/ -I$(VFS_DIR)/include/ -I$(MOUSE_DIR)/include/ -I$(ATA_DIR)/include/
 LDFLAGS  = -melf_i386
 
 OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
@@ -47,7 +48,11 @@ MOUSE_IMPL_SOURCES = $(MOUSE_DIR)/src/mouse.cpp
 MOUSE_TEST_OBJECTS = $(patsubst $(MOUSE_DIR)/tests/%.cpp, $(OBJDIR)/mouse/tests/%.o, $(MOUSE_TEST_SOURCES))
 MOUSE_IMPL_OBJECTS = $(patsubst $(MOUSE_DIR)/src/%.cpp, $(OBJDIR)/mouse/src/%.o, $(MOUSE_IMPL_SOURCES))
 
-OBJECTS = $(RUNNER_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS) $(KBD_TEST_OBJECTS) $(KBD_IMPL_OBJECTS) $(VGA_TEST_OBJECTS) $(VGA_IMPL_OBJECTS) $(VFS_TEST_OBJECTS) $(VFS_IMPL_OBJECTS) $(MOUSE_TEST_OBJECTS) $(MOUSE_IMPL_OBJECTS)
+# ATA tests (no impl sources needed -- constants only, header-only).
+ATA_TEST_SOURCES = $(wildcard $(ATA_DIR)/tests/test_*.cpp)
+ATA_TEST_OBJECTS = $(patsubst $(ATA_DIR)/tests/%.cpp, $(OBJDIR)/ata/tests/%.o, $(ATA_TEST_SOURCES))
+
+OBJECTS = $(RUNNER_OBJECTS) $(NS_TEST_OBJECTS) $(NS_IMPL_OBJECTS) $(KBD_TEST_OBJECTS) $(KBD_IMPL_OBJECTS) $(VGA_TEST_OBJECTS) $(VGA_IMPL_OBJECTS) $(VFS_TEST_OBJECTS) $(VFS_IMPL_OBJECTS) $(MOUSE_TEST_OBJECTS) $(MOUSE_IMPL_OBJECTS) $(ATA_TEST_OBJECTS)
 
 $(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON)
 	@mkdir -p $(BINDIR)
@@ -94,6 +99,10 @@ $(OBJDIR)/mouse/tests/%.o: $(MOUSE_DIR)/tests/%.cpp
 	g++ $(CXXFLAGS) -o $@ -c $<
 
 $(OBJDIR)/mouse/src/%.o: $(MOUSE_DIR)/src/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $<
+
+$(OBJDIR)/ata/tests/%.o: $(ATA_DIR)/tests/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $<
 

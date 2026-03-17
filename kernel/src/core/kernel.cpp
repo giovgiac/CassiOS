@@ -11,7 +11,6 @@
 #include "core/kernel.hpp"
 #include "core/process.hpp"
 #include "core/scheduler.hpp"
-#include "drivers/ata.hpp"
 #include "drivers/pit.hpp"
 #include "memory/heap.hpp"
 #include "memory/paging.hpp"
@@ -46,10 +45,8 @@ void start(void* multiboot, u32 magic) {
     paging.init((MultibootInfo*)multiboot);
 
     PitTimer& pit = PitTimer::getTimer();
-    AtaPioDriver& ata = AtaPioDriver::getDriver();
 
     dm.addDriver(pit);
-    dm.addDriver(ata);
 
     // Initialize scheduler and register kernel task.
     Scheduler& scheduler = Scheduler::getScheduler();
