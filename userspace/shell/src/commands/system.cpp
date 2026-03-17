@@ -18,6 +18,7 @@ void Shell::cmdHelp() {
     print("  help        - Show this help\n");
     print("  clear       - Clear the screen\n");
     print("  echo        - Print text\n");
+    print("  mem         - Show memory statistics\n");
     print("  uptime      - Show time since boot\n");
     print("  reboot      - Reboot the system\n");
     print("  shutdown    - Halt the system\n");
@@ -42,6 +43,28 @@ void Shell::cmdEcho(const char** args, u8 argc) {
         print(args[i]);
     }
     putchar('\n');
+}
+
+void Shell::cmdMem() {
+    u32 total, used, free;
+    System::memInfo(total, used, free);
+
+    print("Physical memory:\n");
+    print("  Total: ");
+    printDec(total * 4);
+    print(" KiB (");
+    printDec(total);
+    print(" frames)\n");
+    print("  Used:  ");
+    printDec(used * 4);
+    print(" KiB (");
+    printDec(used);
+    print(" frames)\n");
+    print("  Free:  ");
+    printDec(free * 4);
+    print(" KiB (");
+    printDec(free);
+    print(" frames)\n");
 }
 
 void Shell::cmdUptime() {

@@ -49,6 +49,16 @@ public:
         asm volatile("int $0x80" : : "a"(SyscallNumber::Shutdown) : "memory");
     }
 
+    static inline void memInfo(u32& total, u32& used, u32& free) {
+        u32 t, u, f;
+        asm volatile("int $0x80" : "=a"(t), "=b"(u), "=c"(f)
+                     : "a"(SyscallNumber::MemInfo)
+                     : "memory");
+        total = t;
+        used = u;
+        free = f;
+    }
+
     static inline void exit(u32 code) {
         asm volatile("int $0x80" : : "a"(SyscallNumber::Exit), "b"(code) : "memory");
     }

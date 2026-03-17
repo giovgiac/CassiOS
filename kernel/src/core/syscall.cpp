@@ -16,6 +16,7 @@
 #include "hardware/port.hpp"
 #include "hardware/serial.hpp"
 #include "memory/paging.hpp"
+#include "memory/physical.hpp"
 
 using namespace cassio;
 using namespace cassio::hardware;
@@ -242,6 +243,13 @@ void SyscallHandler::shutdown() {
     asm volatile("hlt");
 }
 
+void SyscallHandler::memInfo(u32& total, u32& used, u32& free) {
+    memory::PhysicalMemoryManager& pmm = memory::PhysicalMemoryManager::getManager();
+    total = pmm.getTotalFrames();
+    used = pmm.getUsedFrames();
+    free = pmm.getFreeFrames();
+}
+
 void SyscallHandler::exit(u32 code) {
     Port<u8> debug_exit(PortType::QemuDebugExit);
     debug_exit.write(code == 0 ? 0x00 : 0x01);
@@ -311,6 +319,14 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
     case SyscallNumber::Notify:
         frame->eax = static_cast<u32>(notify(frame->ebx, (Message*)frame->ecx));
         return esp;
+    case SyscallNumber::MemInfo: {
+        u32 total, used, free;
+        memInfo(total, used, free);
+        frame->eax = total;
+        frame->ebx = used;
+        frame->ecx = free;
+        return esp;
+    }
     default:
         frame->eax = static_cast<u32>(-1);
         return esp;
