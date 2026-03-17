@@ -2,7 +2,7 @@
 
 ## Current State
 
-CassiOS boots via GRUB (multiboot), runs in 32-bit protected mode with a GDT (kernel + user segments + TSS), IDT, interrupt-driven PS/2 keyboard and mouse drivers, a VGA text-mode terminal, a shell with 22 commands, serial output (COM1), an in-kernel test framework, physical/heap memory management with paging, an in-memory filesystem, an ATA PIO block device driver, a syscall interface via int 0x80, preemptive round-robin scheduling, per-process address spaces, an ELF loader, and a ring 3 init process running alongside the kernel shell.
+CassiOS is a microkernel OS. The kernel provides IPC (synchronous message passing), scheduling, memory management, and interrupt routing. Everything else runs as userspace services: keyboard, mouse, VGA terminal, ATA disk, filesystem, nameserver, and an interactive shell with 16 commands. Boots via GRUB (multiboot), 32-bit protected mode, preemptive round-robin scheduling, per-process address spaces, ELF loader, serial output (COM1), and both kernel and userspace test frameworks.
 
 ## Phase 1: Memory Management
 
@@ -68,15 +68,19 @@ Design: `docs/plans/2026-03-16-userspace-process-management-design.md`
 
 ## Phase 8: IPC and Microkernel Transition
 
-**Planning**: Brainstorm + design doc
+**Status**: Complete
 
-Migrate from monolithic to microkernel architecture. The kernel shrinks to: IPC, scheduling, memory management, and interrupt routing. Everything else moves to userspace services.
+Migrated from monolithic to microkernel architecture. The kernel now contains only: GDT/TSS, interrupt subsystem, memory management, process management, scheduler, PIT timer, IPC, ELF loader, and serial. Everything else runs as userspace services communicating via IPC.
 
-1. **Interrupt subsystem refactor** — split InterruptManager into IDT owner, ExceptionHandler, IrqManager, and SyscallHandler (deferred from Phase 7 — justified now by IRQ forwarding and growing vector count)
-2. **IPC mechanism** — synchronous message passing (send/receive/reply). This is the critical path for performance.
-3. **IRQ forwarding** — kernel routes hardware interrupts to registered userspace driver processes via IPC
-4. **Service migration** — move drivers (keyboard, mouse), filesystem, and shell out of the kernel into separate userspace processes
-5. **Nameserver** — simple service for processes to find each other by name (e.g., shell looks up "vfs" to find the filesystem service)
+1. **Interrupt subsystem refactor** (#96) — split InterruptManager into IDT owner, ExceptionHandler, IrqManager, and SyscallHandler
+2. **IPC mechanism** (#97) — synchronous message passing (send/receive/reply) with fire-and-forget notify
+3. **IRQ forwarding** (#98) — kernel routes hardware interrupts to registered userspace driver processes via IPC
+4. **Userspace test framework** (#99) — TEST() macro with auto-registration, serial output, QEMU exit
+5. **Nameserver** (#100, #101) — service discovery by name, first userspace service
+6. **Driver migration** — keyboard (#102), VGA terminal (#103), filesystem (#104), mouse (#105), ATA (#106) moved to userspace
+7. **Shell migration** (#107) — shell as userspace process, dead kernel code removed, PIT moved to hardware/, drivers grouped under userspace/drivers/
+
+Design: `docs/plans/2026-03-16-ipc-microkernel-transition-design.md`
 
 ## Phase 9: FAT32 Filesystem
 
