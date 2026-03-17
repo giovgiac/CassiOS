@@ -255,6 +255,38 @@ void SyscallHandler::exit(u32 code) {
     debug_exit.write(code == 0 ? 0x00 : 0x01);
 }
 
+u32 SyscallHandler::sbrk(u32 increment) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* caller = pm.current();
+
+    if (!caller || caller->heapBreak == 0) {
+        return 0;
+    }
+
+    u32 oldBreak = caller->heapBreak;
+
+    if (increment == 0) {
+        return oldBreak;
+    }
+
+    u32 newBreak = (oldBreak + increment + memory::FRAME_SIZE - 1) & ~(memory::FRAME_SIZE - 1);
+
+    memory::PagingManager& paging = memory::PagingManager::getManager();
+    memory::PhysicalMemoryManager& pmm = memory::PhysicalMemoryManager::getManager();
+
+    for (u32 addr = oldBreak; addr < newBreak; addr += memory::FRAME_SIZE) {
+        void* frame = pmm.allocFrame();
+        if (!frame) {
+            return 0;
+        }
+        paging.mapUserPage(caller->pageDirectory, addr, (u32)frame,
+                           memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER);
+    }
+
+    caller->heapBreak = newBreak;
+    return oldBreak;
+}
+
 u32 SyscallHandler::handleSyscall(u32 esp) {
     SyscallFrame* frame = (SyscallFrame*)esp;
     u32 number = frame->eax;
@@ -327,6 +359,9 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         frame->ecx = free;
         return esp;
     }
+    case SyscallNumber::Sbrk:
+        frame->eax = sbrk(frame->ebx);
+        return esp;
     default:
         frame->eax = static_cast<u32>(-1);
         return esp;

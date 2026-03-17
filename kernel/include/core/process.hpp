@@ -25,8 +25,22 @@ enum class ProcessState : u8 {
 };
 
 struct Process {
+    // Linked list node for heap-backed IPC send queue.
+    struct SendNode {
+        u32 senderPid;
+        SendNode* next;
+    };
+
+    // Linked list node for heap-backed IPC notification queue.
+    struct NotifyNode {
+        u32 senderPid;
+        Message msg;
+        NotifyNode* next;
+    };
+
     u32 pid;
     ProcessState state;
+    Process* next;  // Intrusive list link for ProcessManager.
 
     u32 eax, ebx, ecx, edx;
     u32 esi, edi, ebp, esp;
@@ -36,60 +50,51 @@ struct Process {
 
     u32 pageDirectory;
     u32 kernelEsp;
+    u32 heapBreak;  // Current top of process heap (page-aligned, for sbrk).
 
     // IPC state.
     Message msg;        // Outgoing message (sender) or staging buffer.
     u32 msgPtr;         // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
 
     // Send queue: PIDs of processes waiting to send to this process.
-    static constexpr u32 SEND_QUEUE_SIZE = 15;
-    u32 sendQueue[SEND_QUEUE_SIZE];
-    u32 sendQueueHead;
+    SendNode* sendHead;
+    SendNode* sendTail;
     u32 sendQueueCount;
 
     bool sendQueuePush(u32 senderPid);
     u32 sendQueuePop();
 
     // Notification queue: fire-and-forget messages (no reply expected).
-    struct Notification {
-        u32 senderPid;
-        Message msg;
-    };
-
-    static constexpr u32 NOTIFY_QUEUE_SIZE = 32;
-    Notification notifyQueue[NOTIFY_QUEUE_SIZE];
-    u32 notifyHead;
-    u32 notifyTail;
+    NotifyNode* notifyHead;
+    NotifyNode* notifyTail;
 
     bool notifyPush(u32 senderPid, const Message& msg);
     bool notifyPop(u32& senderPid, Message& msg);
 };
 
 /**
- * @brief Singleton that manages the process table.
+ * @brief Singleton that manages the process table as a heap-backed linked list.
  *
- * Owns a fixed-size array of Process slots. PID 0 is reserved for the
- * kernel task and is initialized directly, not via create().
+ * PID 0 is reserved for the kernel task and is stored as an embedded member
+ * (initialized before the heap is ready). All other processes are heap-allocated.
  *
  */
 class ProcessManager {
 public:
-    static constexpr u32 MAX_PROCESSES = 16;
-
     inline static ProcessManager& getManager() {
         return instance;
     }
 
     /**
-     * @brief Creates a new process in the first available slot.
+     * @brief Creates a new process via heap allocation.
      *
-     * Returns null if no slots are available.
+     * Returns null if the heap is exhausted.
      *
      */
     Process* create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirectory);
 
     /**
-     * @brief Destroys a process by marking its slot as Empty.
+     * @brief Destroys a process, freeing its IPC queues and the process itself.
      *
      */
     void destroy(u32 pid);
@@ -101,7 +106,7 @@ public:
     Process* current();
 
     /**
-     * @brief Returns the process at the given index, or null if out of range.
+     * @brief Looks up a process by PID.
      *
      */
     Process* get(u32 pid);
@@ -111,6 +116,18 @@ public:
      *
      */
     void setCurrent(Process* process);
+
+    /**
+     * @brief Returns the head of the process list (for scheduler iteration).
+     *
+     */
+    Process* getHead();
+
+    /**
+     * @brief Returns the total number of processes (including kernel task).
+     *
+     */
+    u32 getProcessCount() const;
 
     /** Deleted Methods */
     ProcessManager(const ProcessManager&) = delete;
@@ -123,9 +140,11 @@ private:
 
     static ProcessManager instance;
 
-    Process processes[MAX_PROCESSES];
-    u32 currentPid;
+    Process kernelTask;
+    Process* head;
+    Process* currentProcess;
     u32 nextPid;
+    u32 processCount;
 };
 
 } // kernel

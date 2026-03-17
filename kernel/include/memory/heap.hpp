@@ -1,5 +1,5 @@
 /**
- * heap.hpp
+ * heap.hpp -- kernel heap
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -10,32 +10,14 @@
 #ifndef MEMORY_HEAP_HPP_
 #define MEMORY_HEAP_HPP_
 
-#include <types.hpp>
+#include <heap.hpp>
 
 namespace cassio {
 namespace memory {
 
-struct BlockHeader {
-    u32 size;
-    bool free;
-    BlockHeader* next;
-};
-
-class HeapAllocator {
-public:
-    HeapAllocator(void* base, u32 size);
-
-    void* allocate(usize size);
-    void free(void* ptr);
-
-    HeapAllocator(const HeapAllocator&) = delete;
-    HeapAllocator(HeapAllocator&&) = delete;
-    HeapAllocator& operator=(const HeapAllocator&) = delete;
-    HeapAllocator& operator=(HeapAllocator&&) = delete;
-
-private:
-    BlockHeader* head;
-};
+// Re-export into cassio::memory for backward compatibility.
+using cassio::BlockHeader;
+using cassio::HeapAllocator;
 
 static constexpr u32 KERNEL_HEAP_FRAMES = 256;
 static constexpr u32 KERNEL_HEAP_SIZE = KERNEL_HEAP_FRAMES * 4096;

@@ -45,7 +45,7 @@ void start(void* multiboot, u32 magic) {
     PitTimer& pit = PitTimer::getTimer();
     pit.activate();
 
-    // Initialize scheduler and register kernel task.
+    // Initialize scheduler and set up kernel task.
     Scheduler& scheduler = Scheduler::getScheduler();
     scheduler.init(gdt);
 
@@ -55,7 +55,6 @@ void start(void* multiboot, u32 magic) {
     kernelTask->cs = 0x08;
     kernelTask->ds = 0x10;
     kernelTask->pageDirectory = 0;
-    scheduler.addProcess(kernelTask);
 
     // Load userspace processes from multiboot modules.
     MultibootInfo* mb = (MultibootInfo*)multiboot;
@@ -116,7 +115,7 @@ void start(void* multiboot, u32 magic) {
                 elf.entryPoint, (u32)frame, userCS, userDS, pdPhysical);
             if (proc) {
                 proc->kernelEsp = kernelStackTop;
-                scheduler.addProcess(proc);
+                proc->heapBreak = elf.heapStart;
             }
         }
     }

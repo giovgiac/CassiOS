@@ -30,30 +30,30 @@ TEST(ipc_send_queue_push_pop) {
     pm.destroy(p->pid);
 }
 
-TEST(ipc_send_queue_full) {
+TEST(ipc_send_queue_beyond_old_limit) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
     ASSERT(p != nullptr);
 
-    for (u32 i = 0; i < Process::SEND_QUEUE_SIZE; i++) {
+    // Should be able to push more than the old fixed limit of 15.
+    for (u32 i = 0; i < 20; i++) {
         ASSERT(p->sendQueuePush(i + 1));
     }
-    // Queue is full.
-    ASSERT(!p->sendQueuePush(99));
+    ASSERT_EQ(p->sendQueueCount, 20u);
 
-    // Drain.
-    for (u32 i = 0; i < Process::SEND_QUEUE_SIZE; i++) {
+    // Drain and verify FIFO order.
+    for (u32 i = 0; i < 20; i++) {
         ASSERT_EQ(p->sendQueuePop(), i + 1);
     }
     pm.destroy(p->pid);
 }
 
-TEST(ipc_send_queue_wraparound) {
+TEST(ipc_send_queue_interleaved_push_pop) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
     ASSERT(p != nullptr);
 
-    // Push 5, pop 3, push 5 more -- tests circular buffer wraparound.
+    // Push 5, pop 3, push 5 more -- tests FIFO ordering.
     for (u32 i = 0; i < 5; i++) p->sendQueuePush(i + 1);
     ASSERT_EQ(p->sendQueuePop(), 1u);
     ASSERT_EQ(p->sendQueuePop(), 2u);
@@ -66,6 +66,51 @@ TEST(ipc_send_queue_wraparound) {
     ASSERT_EQ(p->sendQueuePop(), 4u);
     ASSERT_EQ(p->sendQueuePop(), 5u);
     ASSERT_EQ(p->sendQueuePop(), 10u);
+
+    pm.destroy(p->pid);
+}
+
+// -- Notification queue tests --
+
+TEST(ipc_notify_queue_push_pop) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    ASSERT(p != nullptr);
+
+    Message m1 = {1, 10, 20, 30, 40, 50};
+    ASSERT(p->notifyPush(42, m1));
+
+    u32 sender;
+    Message out = {};
+    ASSERT(p->notifyPop(sender, out));
+    ASSERT_EQ(sender, 42u);
+    ASSERT_EQ(out.type, 1u);
+    ASSERT_EQ(out.arg1, 10u);
+    ASSERT_EQ(out.arg5, 50u);
+
+    // Queue is empty now.
+    ASSERT(!p->notifyPop(sender, out));
+
+    pm.destroy(p->pid);
+}
+
+TEST(ipc_notify_queue_beyond_old_limit) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    ASSERT(p != nullptr);
+
+    // Should be able to push more than the old fixed limit of 32.
+    for (u32 i = 0; i < 40; i++) {
+        Message m = {i, 0, 0, 0, 0, 0};
+        ASSERT(p->notifyPush(i, m));
+    }
+    for (u32 i = 0; i < 40; i++) {
+        u32 sender;
+        Message out;
+        ASSERT(p->notifyPop(sender, out));
+        ASSERT_EQ(sender, i);
+        ASSERT_EQ(out.type, i);
+    }
 
     pm.destroy(p->pid);
 }
@@ -131,7 +176,8 @@ TEST(ipc_send_to_non_blocked_queues_sender) {
 
     // Sender should be in receiver's send queue.
     ASSERT_EQ(receiver->sendQueueCount, 1u);
-    ASSERT_EQ(receiver->sendQueue[0], sender->pid);
+    ASSERT(receiver->sendHead != nullptr);
+    ASSERT_EQ(receiver->sendHead->senderPid, sender->pid);
 
     pm.destroy(sender->pid);
     pm.destroy(receiver->pid);
@@ -343,8 +389,7 @@ TEST(scheduler_skips_send_blocked) {
     Process* p2 = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
     p1->state = ProcessState::Running;
     p2->state = ProcessState::SendBlocked;
-    s.addProcess(p1);
-    s.addProcess(p2);
+    pm.setCurrent(p1);
 
     // Even after time slice, scheduler should skip p2 and stay on p1.
     for (u32 i = 0; i < Scheduler::DEFAULT_TIME_SLICE; i++) {
@@ -366,8 +411,7 @@ TEST(scheduler_skips_receive_blocked) {
     Process* p2 = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
     p1->state = ProcessState::Running;
     p2->state = ProcessState::ReceiveBlocked;
-    s.addProcess(p1);
-    s.addProcess(p2);
+    pm.setCurrent(p1);
 
     for (u32 i = 0; i < Scheduler::DEFAULT_TIME_SLICE; i++) {
         s.schedule(0x5000);
@@ -388,8 +432,7 @@ TEST(scheduler_reschedule_switches_to_ready) {
     Process* p2 = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
     p1->state = ProcessState::Running;
     p2->state = ProcessState::Ready;
-    s.addProcess(p1);
-    s.addProcess(p2);
+    pm.setCurrent(p1);
 
     // Mark p1 as SendBlocked and reschedule.
     p1->state = ProcessState::SendBlocked;

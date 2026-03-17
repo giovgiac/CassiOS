@@ -16,7 +16,6 @@ namespace cassio {
 
 class NsTable {
 public:
-    static constexpr u32 MAX_ENTRIES = 16;
     static constexpr u32 MAX_NAME_LEN = 16;
 
     NsTable();
@@ -25,13 +24,17 @@ public:
     u32 lookup(const char* name);
     u32 count() const;
 
+    NsTable(const NsTable&) = delete;
+    NsTable& operator=(const NsTable&) = delete;
+
 private:
     struct Entry {
         char name[MAX_NAME_LEN + 1];
         u32 pid;
+        Entry* next;
     };
 
-    Entry entries[MAX_ENTRIES];
+    Entry* head;
     u32 entryCount;
 };
 

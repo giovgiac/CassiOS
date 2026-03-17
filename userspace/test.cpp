@@ -12,6 +12,7 @@
 
 #include <test.hpp>
 #include <system.hpp>
+#include <userheap.hpp>
 
 using namespace cassio;
 
@@ -29,8 +30,14 @@ static void userspace_write(const char* buf, u32 len) {
     System::write(2, buf, len);
 }
 
+static void* sbrkGrow(u32 size) {
+    return System::sbrk(size);
+}
+
 extern "C" void _start() {
     ctors();
+
+    UserHeap::init(sbrkGrow, 4096);
 
     test::init(userspace_write);
     u32 failed = test::run();

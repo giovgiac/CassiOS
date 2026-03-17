@@ -104,6 +104,14 @@ public:
      */
     i32 reply(u32 targetPid, Message* msg);
 
+    /**
+     * @brief Grows the calling process's heap by increment bytes.
+     *
+     * Returns the previous break address, or 0 on failure.
+     *
+     */
+    u32 sbrk(u32 increment);
+
     /** Deleted Methods */
     SyscallHandler(const SyscallHandler&) = delete;
     SyscallHandler(SyscallHandler&&) = delete;

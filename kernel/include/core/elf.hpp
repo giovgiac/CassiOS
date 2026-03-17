@@ -67,6 +67,7 @@ static constexpr u32 PT_LOAD = 1;
 
 struct ElfLoadResult {
     u32 entryPoint;
+    u32 heapStart;  // Page-aligned end of loaded segments (initial sbrk break).
     bool success;
 };
 
