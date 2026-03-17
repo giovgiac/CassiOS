@@ -38,7 +38,8 @@ extern "C" void _start() {
 
     while (true) {
         Message msg;
-        i32 sender = IPC::receive(&msg);
+        char dataBuf[256];
+        i32 sender = IPC::receive(&msg, dataBuf, sizeof(dataBuf));
 
         switch (msg.type) {
         case MessageType::VgaPutchar:
@@ -46,9 +47,10 @@ extern "C" void _start() {
             break;
 
         case MessageType::VgaWrite: {
-            const char* data = reinterpret_cast<const char*>(&msg.arg1);
-            for (u32 i = 0; i < 20 && data[i] != '\0'; ++i) {
-                terminal.putchar(data[i]);
+            u32 len = msg.arg1;
+            if (len > sizeof(dataBuf)) len = sizeof(dataBuf);
+            for (u32 i = 0; i < len; ++i) {
+                terminal.putchar(dataBuf[i]);
             }
             break;
         }

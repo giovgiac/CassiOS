@@ -84,8 +84,8 @@ public:
      * Returns 0 if caller should block, -1 on error.
      *
      */
-    i32 send(u32 targetPid, Message* msg);
-    i32 notify(u32 targetPid, Message* msg);
+    i32 send(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen);
+    i32 notify(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen);
 
     /**
      * @brief IPC receive: receives a message into msg.
@@ -94,7 +94,7 @@ public:
      * 0 if caller should block, -1 on error.
      *
      */
-    i32 receive(Message* msg);
+    i32 receive(Message* msg, u32 dataPtr, u32 dataCapacity);
 
     /**
      * @brief IPC reply: sends a reply to a SendBlocked process.
@@ -102,7 +102,7 @@ public:
      * Returns 0 on success, -1 on error.
      *
      */
-    i32 reply(u32 targetPid, Message* msg);
+    i32 reply(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen);
 
     /**
      * @brief Grows the calling process's heap by increment bytes.

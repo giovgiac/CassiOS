@@ -47,7 +47,7 @@ TEST(vfs_ipc_open_write_read) {
     u32 wret = Vfs::write(pid, handle, text, 5);
     ASSERT_EQ(wret, 0u);
 
-    u8 buf[16] = {};
+    u8 buf[256] = {};
     i32 n = Vfs::read(pid, handle, 0, buf, sizeof(buf));
     ASSERT_EQ(n, 5);
     ASSERT_EQ(buf[0], (u8)'h');
@@ -90,5 +90,58 @@ TEST(vfs_ipc_remove_directory) {
             break;
         }
         ASSERT(!streq(name, "rmdir"));
+    }
+}
+
+TEST(vfs_ipc_long_path) {
+    u32 pid = Nameserver::lookup("vfs");
+    ASSERT(pid != 0);
+
+    // Create a nested directory structure with path > 20 chars.
+    u32 ret = Vfs::mkdir(pid, "/longdir");
+    ASSERT_EQ(ret, 0u);
+
+    ret = Vfs::mkdir(pid, "/longdir/subdir");
+    ASSERT_EQ(ret, 0u);
+
+    // Create a file in the nested directory.
+    u32 handle = Vfs::open(pid, "/longdir/subdir/file");
+    ASSERT(handle != 0);
+
+    // Verify nested listing.
+    char name[32];
+    bool found = false;
+    for (u32 i = 0; i < 32; i++) {
+        if (!Vfs::list(pid, "/longdir/subdir", i, name, sizeof(name))) {
+            break;
+        }
+        if (streq(name, "file")) {
+            found = true;
+            break;
+        }
+    }
+    ASSERT(found);
+}
+
+TEST(vfs_ipc_large_write_read) {
+    u32 pid = Nameserver::lookup("vfs");
+    ASSERT(pid != 0);
+
+    u32 handle = Vfs::open(pid, "/bigfile");
+    ASSERT(handle != 0);
+
+    // Write 64 bytes (exceeds old 12-byte limit).
+    u8 data[64];
+    for (u32 i = 0; i < 64; i++) data[i] = static_cast<u8>(i + 1);
+
+    u32 wret = Vfs::write(pid, handle, data, 64);
+    ASSERT_EQ(wret, 0u);
+
+    // Read it back.
+    u8 buf[256] = {};
+    i32 n = Vfs::read(pid, handle, 0, buf, sizeof(buf));
+    ASSERT_EQ(n, 64);
+    for (i32 i = 0; i < 64; i++) {
+        ASSERT_EQ(buf[i], static_cast<u8>(i + 1));
     }
 }

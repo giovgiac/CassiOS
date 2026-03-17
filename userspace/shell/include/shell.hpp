@@ -16,7 +16,7 @@ namespace cassio {
 
 constexpr u8 SHELL_MAX_INPUT = 78;
 constexpr u8 SHELL_MAX_ARGS = 16;
-constexpr u32 SHELL_MAX_PATH = 20;
+constexpr u32 SHELL_MAX_PATH = 64;
 
 class Shell {
 private:

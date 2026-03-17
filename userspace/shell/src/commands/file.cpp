@@ -98,7 +98,7 @@ void Shell::cmdCat(const char** args, u8 argc) {
         return;
     }
 
-    u8 buf[16];
+    u8 buf[256];
     u32 offset = 0;
     while (true) {
         i32 n = Vfs::read(vfsPid, handle, offset, buf, sizeof(buf));

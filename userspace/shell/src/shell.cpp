@@ -9,6 +9,7 @@
 
 #include <shell.hpp>
 #include <string.hpp>
+#include <memory.hpp>
 #include <keycode.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
@@ -66,13 +67,11 @@ void Shell::printDec(u32 val) {
 
 void Shell::printPrompt() {
     // Single blocking send for "$ "; read cursor position from reply.
+    const char* prompt = "$ ";
     Message msg = {};
     msg.type = MessageType::VgaWrite;
-    char* data = reinterpret_cast<char*>(&msg.arg1);
-    data[0] = '$';
-    data[1] = ' ';
-    data[2] = '\0';
-    IPC::send(vgaPid, &msg);
+    msg.arg1 = 2;
+    IPC::send(vgaPid, &msg, prompt, 2);
     promptCol = static_cast<u8>(msg.arg1);
     promptRow = static_cast<u8>(msg.arg2);
 }
@@ -80,20 +79,12 @@ void Shell::printPrompt() {
 void Shell::redrawLine() {
     Vga::setCursor(vgaPid, promptCol, promptRow);
 
-    // Batch characters into 20-char VgaWrite chunks.
-    u8 pos = 0;
-    while (pos < length) {
+    // Write the entire buffer in a single send.
+    if (length > 0) {
         Message msg = {};
         msg.type = MessageType::VgaWrite;
-        char* data = reinterpret_cast<char*>(&msg.arg1);
-        u8 chunk = 0;
-        while (chunk < 20 && pos + chunk < length) {
-            data[chunk] = buffer[pos + chunk];
-            ++chunk;
-        }
-        if (chunk < 20) data[chunk] = '\0';
-        IPC::send(vgaPid, &msg);
-        pos += chunk;
+        msg.arg1 = length;
+        IPC::send(vgaPid, &msg, buffer, length);
     }
 
     // Clear any leftover character from a previous longer line.
@@ -114,9 +105,7 @@ void Shell::execute() {
 
     // Make a copy for parsing (parseArgs modifies the buffer).
     char copy[SHELL_MAX_INPUT];
-    for (u8 i = 0; i <= length; ++i) {
-        copy[i] = buffer[i];
-    }
+    memcpy(copy, buffer, length + 1);
 
     const char* args[SHELL_MAX_ARGS];
     u8 argc = parseArgs(copy, length, args, SHELL_MAX_ARGS);

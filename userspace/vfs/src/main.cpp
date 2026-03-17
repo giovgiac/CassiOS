@@ -47,34 +47,6 @@ static u8 getHandle(u32 handle) {
     return handles[handle - 1];
 }
 
-static void unpackPath(const Message& msg, char* out, u32 maxLen) {
-    const char* src = reinterpret_cast<const char*>(&msg.arg1);
-    u32 limit = maxLen - 1;
-    if (limit > 20) {
-        limit = 20;
-    }
-    u32 i = 0;
-    while (i < limit && src[i] != '\0') {
-        out[i] = src[i];
-        i++;
-    }
-    out[i] = '\0';
-}
-
-static void unpackPath16(const Message& msg, char* out, u32 maxLen) {
-    const char* src = reinterpret_cast<const char*>(&msg.arg2);
-    u32 limit = maxLen - 1;
-    if (limit > 16) {
-        limit = 16;
-    }
-    u32 i = 0;
-    while (i < limit && src[i] != '\0') {
-        out[i] = src[i];
-        i++;
-    }
-    out[i] = '\0';
-}
-
 extern "C" void _start() {
     Nameserver::registerName("vfs");
     fs.init();
@@ -82,33 +54,28 @@ extern "C" void _start() {
 
     while (true) {
         Message msg;
-        i32 sender = IPC::receive(&msg);
+        char dataBuf[MAX_FILE_DATA];
+        i32 sender = IPC::receive(&msg, dataBuf, sizeof(dataBuf));
 
         Message reply = {};
 
         switch (msg.type) {
         case MessageType::VfsMkdir: {
-            char path[MAX_NAME];
-            unpackPath(msg, path, sizeof(path));
-            u8 node = fs.createDirectory(path);
+            // Path is in dataBuf (null-terminated).
+            u8 node = fs.createDirectory(dataBuf);
             reply.arg1 = (node != INVALID) ? 0 : 1;
             break;
         }
 
         case MessageType::VfsRemove: {
-            char path[MAX_NAME];
-            unpackPath(msg, path, sizeof(path));
-            reply.arg1 = fs.remove(path) ? 0 : 1;
+            reply.arg1 = fs.remove(dataBuf) ? 0 : 1;
             break;
         }
 
         case MessageType::VfsOpen: {
-            char path[MAX_NAME];
-            unpackPath(msg, path, sizeof(path));
-
-            u8 node = fs.resolve(path);
+            u8 node = fs.resolve(dataBuf);
             if (node == INVALID) {
-                node = fs.createFile(path);
+                node = fs.createFile(dataBuf);
             }
 
             if (node != INVALID && fs.isFile(node)) {
@@ -122,44 +89,49 @@ extern "C" void _start() {
         case MessageType::VfsRead: {
             u32 handle = msg.arg1;
             u32 offset = msg.arg2;
+            u32 reqLen = msg.arg3;
             u8 node = getHandle(handle);
 
-            u8* buf = reinterpret_cast<u8*>(&reply.arg2);
-            i32 bytesRead = fs.read(node, offset, buf, 16);
+            u8 readBuf[MAX_FILE_DATA];
+            u32 maxRead = reqLen < MAX_FILE_DATA ? reqLen : MAX_FILE_DATA;
+            i32 bytesRead = fs.read(node, offset, readBuf, maxRead);
             reply.arg1 = (bytesRead >= 0) ? static_cast<u32>(bytesRead) : 0;
+
+            if (sender > 0) {
+                u32 replyDataLen = bytesRead > 0
+                                 ? static_cast<u32>(bytesRead) : 0;
+                IPC::reply(static_cast<u32>(sender), &reply,
+                           readBuf, replyDataLen);
+                continue;
+            }
             break;
         }
 
         case MessageType::VfsWrite: {
             u32 handle = msg.arg1;
             u32 len = msg.arg2;
-            if (len > 12) {
-                len = 12;
-            }
             u8 node = getHandle(handle);
-            const u8* data = reinterpret_cast<const u8*>(&msg.arg3);
-            reply.arg1 = fs.write(node, data, len) ? 0 : 1;
+            reply.arg1 = fs.write(node, (const u8*)dataBuf, len) ? 0 : 1;
             break;
         }
 
         case MessageType::VfsList: {
             u32 index = msg.arg1;
-            char path[MAX_NAME];
-            unpackPath16(msg, path, sizeof(path));
+            // dataBuf contains the path (null-terminated).
 
-            u8 dir = fs.resolve(path);
+            u8 dir = fs.resolve(dataBuf);
             char name[MAX_NAME];
             NodeType type;
 
             if (fs.listEntry(dir, index, name, sizeof(name), type)) {
                 reply.arg1 = 1;
-                char* out = reinterpret_cast<char*>(&reply.arg2);
-                u32 i = 0;
-                while (i < 15 && name[i] != '\0') {
-                    out[i] = name[i];
-                    i++;
+                u32 nameLen = 0;
+                while (name[nameLen] != '\0') nameLen++;
+                if (sender > 0) {
+                    IPC::reply(static_cast<u32>(sender), &reply,
+                               name, nameLen + 1);
+                    continue;
                 }
-                out[i] = '\0';
             } else {
                 reply.arg1 = 0;
             }

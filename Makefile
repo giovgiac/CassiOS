@@ -3,8 +3,8 @@
 # license that can be found in the LICENSE file.
 
 ASMFLAGS = --32
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector
-COMMON_CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
+COMMON_CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
 LDFLAGS = -melf_i386
 
 KERNEL = bin/cassio.bin
@@ -186,6 +186,13 @@ run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) $(DI
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
 	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(USERSHELL)" \
 	    -drive file=$(DISK),format=raw,if=ide
+
+# Include auto-generated header dependencies (produced by -MMD -MP).
+-include $(objects:.o=.d)
+-include $(common_objects:.o=.d)
+-include $(cassio_lib_objects:.o=.d)
+-include $(test_objects:.o=.d)
+-include $(usertest_objects:.o=.d)
 
 .PHONY: kernel iso clean run test test-kernel test-userspace
 clean:

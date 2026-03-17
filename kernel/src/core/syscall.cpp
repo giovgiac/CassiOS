@@ -9,6 +9,7 @@
 
 #include "core/syscall.hpp"
 #include "core/process.hpp"
+#include <memory.hpp>
 #include "core/scheduler.hpp"
 #include "hardware/pit.hpp"
 #include "hardware/interrupt.hpp"
@@ -34,12 +35,7 @@ void SyscallHandler::load() {
 }
 
 static void copyMessage(const Message* src, Message* dst) {
-    dst->type = src->type;
-    dst->arg1 = src->arg1;
-    dst->arg2 = src->arg2;
-    dst->arg3 = src->arg3;
-    dst->arg4 = src->arg4;
-    dst->arg5 = src->arg5;
+    memcpy(dst, src, sizeof(Message));
 }
 
 // Copy a message to a userspace buffer that belongs to a different process.
@@ -59,7 +55,61 @@ static void copyMessageToProcess(Process* target, Message* dst, const Message* s
     }
 }
 
-i32 SyscallHandler::send(u32 targetPid, Message* msg) {
+// Copy bulk data from the current address space to a target process's address
+// space. Uses a 256-byte kernel stack buffer for chunked cross-PD transfer.
+static void copyDataToProcess(Process* target, u8* dst, const u8* src, u32 len) {
+    u32 currentCR3;
+    asm volatile("mov %%cr3, %0" : "=r"(currentCR3));
+
+    u32 targetPD = target->pageDirectory;
+    if (targetPD != 0 && targetPD != currentCR3) {
+        u8 chunk[256];
+        u32 offset = 0;
+        while (offset < len) {
+            u32 n = len - offset;
+            if (n > 256) n = 256;
+
+            memcpy(chunk, src + offset, n);
+
+            asm volatile("mov %0, %%cr3" : : "r"(targetPD) : "memory");
+            memcpy(dst + offset, chunk, n);
+            asm volatile("mov %0, %%cr3" : : "r"(currentCR3) : "memory");
+
+            offset += n;
+        }
+    } else {
+        memcpy(dst, src, len);
+    }
+}
+
+// Copy bulk data from a source process's address space to the current address
+// space. Uses a 256-byte kernel stack buffer for chunked cross-PD transfer.
+static void copyDataFromProcess(Process* source, u8* dst, const u8* src, u32 len) {
+    u32 currentCR3;
+    asm volatile("mov %%cr3, %0" : "=r"(currentCR3));
+
+    u32 sourcePD = source->pageDirectory;
+    if (sourcePD != 0 && sourcePD != currentCR3) {
+        u8 chunk[256];
+        u32 offset = 0;
+        while (offset < len) {
+            u32 n = len - offset;
+            if (n > 256) n = 256;
+
+            asm volatile("mov %0, %%cr3" : : "r"(sourcePD) : "memory");
+            memcpy(chunk, src + offset, n);
+            asm volatile("mov %0, %%cr3" : : "r"(currentCR3) : "memory");
+
+            memcpy(dst + offset, chunk, n);
+
+            offset += n;
+        }
+    } else {
+        memcpy(dst, src, len);
+    }
+}
+
+i32 SyscallHandler::send(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* sender = pm.current();
     Process* target = pm.get(targetPid);
@@ -71,11 +121,21 @@ i32 SyscallHandler::send(u32 targetPid, Message* msg) {
     // Copy outgoing message into sender's process struct.
     copyMessage(msg, &sender->msg);
     sender->msgPtr = (u32)msg;  // Reply will be written here.
+    sender->dataPtr = dataPtr;
+    sender->dataLen = dataLen;
 
     if (target->state == ProcessState::ReceiveBlocked) {
         // Target is waiting for a message -- deliver immediately.
         Message* targetBuf = (Message*)target->msgPtr;
         copyMessageToProcess(target, targetBuf, &sender->msg);
+
+        // Copy bulk data if both sides provided buffers.
+        if (dataPtr != 0 && dataLen > 0 &&
+            target->dataPtr != 0 && target->dataLen > 0) {
+            u32 copyLen = dataLen < target->dataLen ? dataLen : target->dataLen;
+            copyDataToProcess(target, (u8*)target->dataPtr,
+                              (const u8*)dataPtr, copyLen);
+        }
 
         // Set target's return value to sender PID.
         SyscallFrame* targetFrame = (SyscallFrame*)target->esp;
@@ -93,11 +153,15 @@ i32 SyscallHandler::send(u32 targetPid, Message* msg) {
     return 0;  // Caller should block.
 }
 
-i32 SyscallHandler::receive(Message* msg) {
+i32 SyscallHandler::receive(Message* msg, u32 dataPtr, u32 dataCapacity) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* receiver = pm.current();
 
-    // Check for pending IRQ notifications first.
+    // Save data buffer info (used if we block or deliver from queue).
+    receiver->dataPtr = dataPtr;
+    receiver->dataLen = dataCapacity;
+
+    // Check for pending IRQ notifications first (no bulk data).
     IrqManager& irqMgr = IrqManager::getManager();
     if (irqMgr.deliverPending(receiver->pid, msg)) {
         return -2;  // IRQ notification delivered; handleSyscall sets eax=0.
@@ -107,7 +171,8 @@ i32 SyscallHandler::receive(Message* msg) {
     // fire-and-forget messages are processed in chronological order
     // relative to blocking sends from the same source.
     u32 notifySender;
-    if (receiver->notifyPop(notifySender, *msg)) {
+    if (receiver->notifyPop(notifySender, *msg,
+                            (void*)dataPtr, dataCapacity)) {
         return -3;
     }
 
@@ -120,6 +185,16 @@ i32 SyscallHandler::receive(Message* msg) {
         }
 
         copyMessage(&sender->msg, msg);
+
+        // Copy bulk data from sender to receiver.
+        if (sender->dataPtr != 0 && sender->dataLen > 0 &&
+            dataPtr != 0 && dataCapacity > 0) {
+            u32 copyLen = sender->dataLen < dataCapacity
+                        ? sender->dataLen : dataCapacity;
+            copyDataFromProcess(sender, (u8*)dataPtr,
+                                (const u8*)sender->dataPtr, copyLen);
+        }
+
         return static_cast<i32>(senderPid);
     }
 
@@ -129,7 +204,7 @@ i32 SyscallHandler::receive(Message* msg) {
     return 0;  // Caller should block.
 }
 
-i32 SyscallHandler::reply(u32 targetPid, Message* msg) {
+i32 SyscallHandler::reply(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* target = pm.get(targetPid);
 
@@ -146,6 +221,14 @@ i32 SyscallHandler::reply(u32 targetPid, Message* msg) {
     Message* senderBuf = (Message*)target->msgPtr;
     copyMessageToProcess(target, senderBuf, &replyBuf);
 
+    // Copy reply bulk data to sender's data buffer.
+    if (dataPtr != 0 && dataLen > 0 &&
+        target->dataPtr != 0 && target->dataLen > 0) {
+        u32 copyLen = dataLen < target->dataLen ? dataLen : target->dataLen;
+        copyDataToProcess(target, (u8*)target->dataPtr,
+                          (const u8*)dataPtr, copyLen);
+    }
+
     // Set sender's return value to 0 (success).
     SyscallFrame* targetFrame = (SyscallFrame*)target->esp;
     targetFrame->eax = 0;
@@ -154,7 +237,7 @@ i32 SyscallHandler::reply(u32 targetPid, Message* msg) {
     return 0;
 }
 
-i32 SyscallHandler::notify(u32 targetPid, Message* msg) {
+i32 SyscallHandler::notify(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* sender = pm.current();
     Process* target = pm.get(targetPid);
@@ -172,14 +255,24 @@ i32 SyscallHandler::notify(u32 targetPid, Message* msg) {
         Message* targetBuf = (Message*)target->msgPtr;
         copyMessageToProcess(target, targetBuf, &temp);
 
+        // Copy bulk data if both sides provided buffers.
+        if (dataPtr != 0 && dataLen > 0 &&
+            target->dataPtr != 0 && target->dataLen > 0) {
+            u32 copyLen = dataLen < target->dataLen ? dataLen : target->dataLen;
+            copyDataToProcess(target, (u8*)target->dataPtr,
+                              (const u8*)dataPtr, copyLen);
+        }
+
         // Return 0 as sender so receiver knows not to reply.
         SyscallFrame* targetFrame = (SyscallFrame*)target->esp;
         targetFrame->eax = 0;
 
         target->state = ProcessState::Ready;
     } else {
-        // Queue for later delivery.
-        if (!target->notifyPush(sender->pid, temp)) {
+        // Queue for later delivery. Copy data to kernel heap since the
+        // sender's address space won't be available when it's delivered.
+        if (!target->notifyPush(sender->pid, temp,
+                                (const void*)dataPtr, dataLen)) {
             return -1;
         }
     }
@@ -293,7 +386,8 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
 
     switch (number) {
     case SyscallNumber::Send: {
-        i32 result = send(frame->ebx, (Message*)frame->ecx);
+        i32 result = send(frame->ebx, (Message*)frame->ecx,
+                          frame->esi, frame->edi);
         if (result == 0) {
             Scheduler& sched = Scheduler::getScheduler();
             return sched.reschedule(esp);
@@ -302,7 +396,8 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     }
     case SyscallNumber::Receive: {
-        i32 result = receive((Message*)frame->ebx);
+        i32 result = receive((Message*)frame->ebx,
+                             frame->esi, frame->edi);
         if (result == 0) {
             Scheduler& sched = Scheduler::getScheduler();
             return sched.reschedule(esp);
@@ -316,7 +411,8 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     }
     case SyscallNumber::Reply: {
-        i32 result = reply(frame->ebx, (Message*)frame->ecx);
+        i32 result = reply(frame->ebx, (Message*)frame->ecx,
+                           frame->esi, frame->edi);
         frame->eax = static_cast<u32>(result);
         return esp;
     }
@@ -349,7 +445,8 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         frame->eax = static_cast<u32>(mapDevice(frame->ebx, frame->ecx, frame->edx));
         return esp;
     case SyscallNumber::Notify:
-        frame->eax = static_cast<u32>(notify(frame->ebx, (Message*)frame->ecx));
+        frame->eax = static_cast<u32>(notify(frame->ebx, (Message*)frame->ecx,
+                                             frame->esi, frame->edi));
         return esp;
     case SyscallNumber::MemInfo: {
         u32 total, used, free;

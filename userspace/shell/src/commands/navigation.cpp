@@ -21,7 +21,7 @@ void Shell::cmdLs(const char** args, u8 argc) {
         strcpy(path, cwd, SHELL_MAX_PATH);
     }
 
-    char name[20];
+    char name[32];
     for (u32 i = 0; ; ++i) {
         if (!Vfs::list(vfsPid, path, i, name, sizeof(name))) {
             break;
