@@ -16,15 +16,14 @@ VGA = bin/vga.elf
 VFS = bin/vfs.elf
 MOUSE = bin/mouse.elf
 ATA = bin/ata.elf
-DEMO = bin/demo.elf
+USERSHELL = bin/shell.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
 LIBCOMMON = lib/libcommon.a
 
 
 # Discover all source files automatically.
-# Exclude shell and commands -- kept as reference for userspace shell migration.
-cpp_sources = $(shell find kernel/src/ -name '*.cpp' -not -path '*/commands/*' -not -name 'shell.cpp')
+cpp_sources = $(shell find kernel/src/ -name '*.cpp')
 asm_sources = $(shell find kernel/src/ -name '*.s')
 objects = $(patsubst kernel/src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
 
@@ -36,9 +35,17 @@ common_objects = $(patsubst common/src/%.cpp, obj/common/%.o, $(common_sources))
 shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 
 # Test objects are discovered from kernel/tests/**/test_*.cpp.
-# Exclude command tests (shell not compiled, kept as reference).
-test_sources = $(shell find kernel/tests/ -name 'test_*.cpp' -not -path '*/commands/*')
+test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
 test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
+
+# Userspace test: runner + all service tests + all service impls (excluding main.cpp).
+usertest_sources = userspace/test.cpp \
+    $(shell find userspace/ -path '*/tests/test_*.cpp' 2>/dev/null) \
+    $(shell find userspace/ -path '*/src/*.cpp' -not -name 'main.cpp' 2>/dev/null)
+usertest_objects = $(patsubst userspace/%.cpp, obj/userspace/usertest/%.o, $(usertest_sources))
+USERTEST_CXXFLAGS = $(COMMON_CXXFLAGS) -fno-use-cxa-atexit \
+    -Icommon/include/ -Iuserspace/include/ \
+    $(foreach dir,$(shell find userspace/ -type d -name include),-I$(dir))
 
 # Compile C++ source files.
 obj/%.o: kernel/src/%.cpp
@@ -67,25 +74,22 @@ $(NAMESERVER): $(LIBCOMMON)
 	$(MAKE) -C userspace/ns
 
 $(KBD): $(LIBCOMMON)
-	$(MAKE) -C userspace/kbd
+	$(MAKE) -C userspace/drivers/kbd
 
 $(VGA): $(LIBCOMMON)
-	$(MAKE) -C userspace/vga
+	$(MAKE) -C userspace/drivers/vga
 
 $(VFS): $(LIBCOMMON)
 	$(MAKE) -C userspace/vfs
 
 $(MOUSE): $(LIBCOMMON)
-	$(MAKE) -C userspace/mouse
+	$(MAKE) -C userspace/drivers/mouse
 
 $(ATA): $(LIBCOMMON)
-	$(MAKE) -C userspace/ata
+	$(MAKE) -C userspace/drivers/ata
 
-$(DEMO): $(LIBCOMMON)
-	$(MAKE) -C userspace/demo
-
-$(USERTEST): $(LIBCOMMON)
-	$(MAKE) -C userspace/test
+$(USERSHELL): $(LIBCOMMON)
+	$(MAKE) -C userspace/shell
 
 # Compile test files from the kernel/tests/ directory.
 obj/tests/%.o: kernel/tests/%.cpp
@@ -95,6 +99,15 @@ obj/tests/%.o: kernel/tests/%.cpp
 $(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(LIBCOMMON)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(LIBCOMMON)
+
+# Compile userspace test files (runner + service tests + service impls).
+obj/userspace/usertest/%.o: userspace/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
+
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON)
+	@mkdir -p bin
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCOMMON)
 
 $(DISK):
 	@mkdir -p bin
@@ -147,9 +160,9 @@ iso: kernel
 	grub-mkrescue --output=$(ISO) iso
 	rm -rf iso
 
-run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(DEMO) $(DISK)
+run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) $(DISK)
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(DEMO)" \
+	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(USERSHELL)" \
 	    -drive file=$(DISK),format=raw,if=ide
 
 .PHONY: kernel iso clean run test test-kernel test-userspace

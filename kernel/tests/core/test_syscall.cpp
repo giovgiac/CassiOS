@@ -1,10 +1,10 @@
 #include <core/syscall.hpp>
-#include <drivers/pit.hpp>
+#include <hardware/pit.hpp>
 #include <test.hpp>
 
 using namespace cassio;
 using namespace cassio::kernel;
-using namespace cassio::drivers;
+using namespace cassio::hardware;
 
 TEST(syscall_uptime_returns_nonnegative) {
     i32 result;

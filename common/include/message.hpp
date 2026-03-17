@@ -24,23 +24,37 @@ struct Message {
 };
 
 namespace MessageType {
+    // Kernel.
     constexpr u32 IrqNotify    = 1;
+
+    // Nameserver.
     constexpr u32 NsRegister   = 2;
     constexpr u32 NsLookup     = 3;
+
+    // Keyboard.
     constexpr u32 KbdRead      = 4;
+
+    // VGA.
     constexpr u32 VgaPutchar   = 5;
     constexpr u32 VgaWrite     = 6;
     constexpr u32 VgaClear     = 7;
     constexpr u32 VgaSetCursor = 8;
-    constexpr u32 VfsMkdir     = 9;
-    constexpr u32 VfsRemove    = 10;
-    constexpr u32 VfsOpen      = 11;
-    constexpr u32 VfsRead      = 12;
-    constexpr u32 VfsWrite     = 13;
-    constexpr u32 VfsList      = 14;
-    constexpr u32 MouseRead    = 15;
-    constexpr u32 AtaRead      = 16;
-    constexpr u32 AtaWrite     = 17;
+    constexpr u32 VgaGetCursor = 9;
+
+    // VFS.
+    constexpr u32 VfsMkdir     = 10;
+    constexpr u32 VfsRemove    = 11;
+    constexpr u32 VfsOpen      = 12;
+    constexpr u32 VfsRead      = 13;
+    constexpr u32 VfsWrite     = 14;
+    constexpr u32 VfsList      = 15;
+
+    // Mouse.
+    constexpr u32 MouseRead    = 16;
+
+    // ATA.
+    constexpr u32 AtaRead      = 17;
+    constexpr u32 AtaWrite     = 18;
 }
 
 } // cassio

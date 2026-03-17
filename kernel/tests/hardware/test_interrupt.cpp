@@ -1,6 +1,5 @@
 #include <hardware/interrupt.hpp>
 #include <hardware/irq.hpp>
-#include <hardware/driver.hpp>
 #include <core/gdt.hpp>
 #include <test.hpp>
 
@@ -16,18 +15,6 @@ TEST(interrupt_flags_values) {
 
 TEST(interrupt_irq_offset) {
     ASSERT_EQ(static_cast<u32>(IRQ_OFFSET), 0x20u);
-}
-
-TEST(interrupt_driver_type_keyboard) {
-    ASSERT_EQ(static_cast<u32>(DriverType::KeyboardController), 0x21u);
-}
-
-TEST(interrupt_driver_type_mouse) {
-    ASSERT_EQ(static_cast<u32>(DriverType::MouseController), 0x2Cu);
-}
-
-TEST(interrupt_driver_type_timer) {
-    ASSERT_EQ(static_cast<u32>(DriverType::SystemTimer), 0x20u);
 }
 
 extern cassio::kernel::GlobalDescriptorTable test_gdt;

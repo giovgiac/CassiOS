@@ -10,17 +10,17 @@
 #include "core/syscall.hpp"
 #include "core/process.hpp"
 #include "core/scheduler.hpp"
-#include "drivers/pit.hpp"
+#include "hardware/pit.hpp"
 #include "hardware/interrupt.hpp"
 #include "hardware/irq.hpp"
 #include "hardware/port.hpp"
 #include "hardware/serial.hpp"
 #include "memory/paging.hpp"
+#include "memory/physical.hpp"
 
 using namespace cassio;
-using namespace cassio::kernel;
-using namespace cassio::drivers;
 using namespace cassio::hardware;
+using namespace cassio::kernel;
 
 extern "C" void syscallEntry();
 
@@ -97,6 +97,20 @@ i32 SyscallHandler::receive(Message* msg) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* receiver = pm.current();
 
+    // Check for pending IRQ notifications first.
+    IrqManager& irqMgr = IrqManager::getManager();
+    if (irqMgr.deliverPending(receiver->pid, msg)) {
+        return -2;  // IRQ notification delivered; handleSyscall sets eax=0.
+    }
+
+    // Drain queued notifications before blocked senders so that
+    // fire-and-forget messages are processed in chronological order
+    // relative to blocking sends from the same source.
+    u32 notifySender;
+    if (receiver->notifyPop(notifySender, *msg)) {
+        return -3;
+    }
+
     if (receiver->sendQueueCount > 0) {
         // Pending sender -- deliver immediately.
         u32 senderPid = receiver->sendQueuePop();
@@ -109,20 +123,7 @@ i32 SyscallHandler::receive(Message* msg) {
         return static_cast<i32>(senderPid);
     }
 
-    // Check for pending IRQ notifications before blocking.
-    IrqManager& irqMgr = IrqManager::getManager();
-    if (irqMgr.deliverPending(receiver->pid, msg)) {
-        return -2;  // IRQ notification delivered; handleSyscall sets eax=0.
-    }
-
-    // Check for queued notifications (fire-and-forget messages).
-    // Return -3 so handleSyscall sets eax=0 (no reply expected).
-    u32 notifySender;
-    if (receiver->notifyPop(notifySender, *msg)) {
-        return -3;
-    }
-
-    // No pending senders, IRQs, or notifications -- block.
+    // No pending IRQs, notifications, or senders -- block.
     receiver->msgPtr = (u32)msg;
     receiver->state = ProcessState::ReceiveBlocked;
     return 0;  // Caller should block.
@@ -242,6 +243,13 @@ void SyscallHandler::shutdown() {
     asm volatile("hlt");
 }
 
+void SyscallHandler::memInfo(u32& total, u32& used, u32& free) {
+    memory::PhysicalMemoryManager& pmm = memory::PhysicalMemoryManager::getManager();
+    total = pmm.getTotalFrames();
+    used = pmm.getUsedFrames();
+    free = pmm.getFreeFrames();
+}
+
 void SyscallHandler::exit(u32 code) {
     Port<u8> debug_exit(PortType::QemuDebugExit);
     debug_exit.write(code == 0 ? 0x00 : 0x01);
@@ -311,6 +319,14 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
     case SyscallNumber::Notify:
         frame->eax = static_cast<u32>(notify(frame->ebx, (Message*)frame->ecx));
         return esp;
+    case SyscallNumber::MemInfo: {
+        u32 total, used, free;
+        memInfo(total, used, free);
+        frame->eax = total;
+        frame->ebx = used;
+        frame->ecx = free;
+        return esp;
+    }
     default:
         frame->eax = static_cast<u32>(-1);
         return esp;

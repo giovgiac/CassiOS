@@ -20,18 +20,20 @@ namespace hardware {
 // Offset added to PIC IRQs to avoid conflict with CPU exceptions.
 constexpr u8 IRQ_OFFSET = 0x20;
 
-class Driver; // forward declaration
+// IRQ handler function pointer: takes ESP, returns (possibly modified) ESP.
+typedef u32 (*IrqHandler)(u32 esp);
 
 /**
- * @brief Singleton that owns the PIC and dispatches hardware IRQs to drivers.
+ * @brief Singleton that owns the PIC and dispatches hardware IRQs.
  *
  * Manages the 8259 PIC pair (master and slave), routes IRQs 0-15 to
- * registered in-kernel drivers, and sends EOI after handling.
+ * registered in-kernel handlers or forwards them to userspace, and
+ * sends EOI after handling.
  *
  */
 class IrqManager final {
 private:
-    Driver* drv[16];
+    IrqHandler handlers[16];
     u32 forwardPid[16];
     bool pendingIrq[16];
 
@@ -71,22 +73,22 @@ public:
     void load();
 
     /**
-     * @brief Dispatches an IRQ to the registered driver and sends EOI.
+     * @brief Dispatches an IRQ to the registered handler and sends EOI.
      *
      */
     u32 handleIrq(u8 number, u32 esp);
 
     /**
-     * @brief Registers a driver for the given IRQ vector number.
+     * @brief Registers a handler function for the given IRQ number (0-15).
      *
      */
-    void registerDriver(u8 vector, Driver* driver);
+    void registerHandler(u8 irq, IrqHandler handler);
 
     /**
-     * @brief Unregisters a driver for the given IRQ vector number.
+     * @brief Unregisters the handler for the given IRQ number.
      *
      */
-    void unregisterDriver(u8 vector, Driver* driver);
+    void unregisterHandler(u8 irq);
 
     /**
      * @brief Registers a userspace process to receive IRQ notifications.

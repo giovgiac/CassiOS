@@ -1,14 +1,12 @@
 #include <hardware/irq.hpp>
-#include <hardware/driver.hpp>
 #include <core/process.hpp>
 #include <core/syscall.hpp>
-#include <drivers/pit.hpp>
+#include <hardware/pit.hpp>
 #include <test.hpp>
 
 using namespace cassio;
 using namespace cassio::hardware;
 using namespace cassio::kernel;
-using namespace cassio::drivers;
 
 TEST(irq_dispatch_to_pit) {
     // handleIrq(0x20) should dispatch to PitTimer and increment ticks.
@@ -27,7 +25,7 @@ TEST(irq_unregister_stops_dispatch) {
     PitTimer& pit = PitTimer::getTimer();
 
     // Unregister PitTimer from IRQ 0.
-    irq.unregisterDriver(static_cast<u8>(DriverType::SystemTimer), &pit);
+    irq.unregisterHandler(0);
 
     u32 before = pit.getTicks();
     irq.handleIrq(0x20, 0);
@@ -37,7 +35,7 @@ TEST(irq_unregister_stops_dispatch) {
     ASSERT_EQ(after, before);
 
     // Re-register so other tests are unaffected.
-    irq.registerDriver(static_cast<u8>(DriverType::SystemTimer), &pit);
+    irq.registerHandler(0, &PitTimer::irqHandler);
 }
 
 TEST(irq_register_restores_dispatch) {
@@ -45,8 +43,8 @@ TEST(irq_register_restores_dispatch) {
     PitTimer& pit = PitTimer::getTimer();
 
     // Unregister, re-register, then verify dispatch works.
-    irq.unregisterDriver(static_cast<u8>(DriverType::SystemTimer), &pit);
-    irq.registerDriver(static_cast<u8>(DriverType::SystemTimer), &pit);
+    irq.unregisterHandler(0);
+    irq.registerHandler(0, &PitTimer::irqHandler);
 
     u32 before = pit.getTicks();
     irq.handleIrq(0x20, 0);
@@ -55,26 +53,10 @@ TEST(irq_register_restores_dispatch) {
     ASSERT_EQ(after, before + 1);
 }
 
-TEST(irq_unregister_wrong_driver_is_noop) {
-    IrqManager& irq = IrqManager::getManager();
-    PitTimer& pit = PitTimer::getTimer();
-
-    // Unregister with a different pointer -- should be a no-op.
-    Driver* fake = reinterpret_cast<Driver*>(0xDEADBEEF);
-    irq.unregisterDriver(static_cast<u8>(DriverType::SystemTimer), fake);
-
-    // PitTimer should still be registered and dispatched to.
-    u32 before = pit.getTicks();
-    irq.handleIrq(0x20, 0);
-    u32 after = pit.getTicks();
-
-    ASSERT_EQ(after, before + 1);
-}
-
-TEST(irq_handleirq_returns_esp_when_no_driver) {
+TEST(irq_handleirq_returns_esp_when_no_handler) {
     IrqManager& irq = IrqManager::getManager();
 
-    // Vector 0x25 (IRQ 5) has no driver registered.
+    // Vector 0x25 (IRQ 5) has no handler registered.
     u32 esp = 0x12345678;
     u32 result = irq.handleIrq(0x25, esp);
 
@@ -122,7 +104,7 @@ TEST(irq_forward_delivers_to_receive_blocked_process) {
     SyscallFrame frame = {};
     target->esp = (u32)&frame;
 
-    // Register target for IRQ 5 (unused, no in-kernel driver).
+    // Register target for IRQ 5 (unused, no in-kernel handler).
     irqMgr.registerForward(5, target->pid);
 
     // Simulate IRQ 5 firing.
@@ -178,12 +160,12 @@ TEST(irq_forward_sets_pending_when_not_receive_blocked) {
     pm.destroy(target->pid);
 }
 
-TEST(irq_forward_coexists_with_in_kernel_driver) {
+TEST(irq_forward_coexists_with_in_kernel_handler) {
     IrqManager& irqMgr = IrqManager::getManager();
     ProcessManager& pm = ProcessManager::getManager();
     PitTimer& pit = PitTimer::getTimer();
 
-    // Register a process for IRQ 0 (PIT timer) alongside the in-kernel driver.
+    // Register a process for IRQ 0 (PIT timer) alongside the in-kernel handler.
     Process* target = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
     ASSERT(target != nullptr);
 
@@ -221,7 +203,7 @@ TEST(irq_register_forward_invalid_irq_fails) {
     ASSERT_EQ(result, static_cast<i32>(-1));
 }
 
-TEST(irq_forward_sender_queue_takes_priority_over_pending_irq) {
+TEST(irq_forward_irq_takes_priority_over_send_queue) {
     IrqManager& irqMgr = IrqManager::getManager();
     ProcessManager& pm = ProcessManager::getManager();
     SyscallHandler& sh = SyscallHandler::getSyscallHandler();
@@ -240,19 +222,19 @@ TEST(irq_forward_sender_queue_takes_priority_over_pending_irq) {
     receiver->state = ProcessState::Ready;
     irqMgr.handleIrq(0x25, 0);  // Sets pending (receiver not ReceiveBlocked).
 
-    // receive() should deliver from the send queue first.
+    // receive() should deliver the IRQ first (highest priority).
     pm.setCurrent(receiver);
     Message recvBuf = {};
     i32 result = sh.receive(&recvBuf);
 
-    ASSERT_EQ(result, static_cast<i32>(sender->pid));
-    ASSERT_EQ(recvBuf.type, 42u);
-
-    // Next receive() should deliver the pending IRQ.
-    result = sh.receive(&recvBuf);
     ASSERT_EQ(result, static_cast<i32>(-2));
     ASSERT_EQ(recvBuf.type, MessageType::IrqNotify);
     ASSERT_EQ(recvBuf.arg1, 5u);
+
+    // Next receive() should deliver from the send queue.
+    result = sh.receive(&recvBuf);
+    ASSERT_EQ(result, static_cast<i32>(sender->pid));
+    ASSERT_EQ(recvBuf.type, 42u);
 
     // Clean up.
     irqMgr.registerForward(5, 0);

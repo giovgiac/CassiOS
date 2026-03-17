@@ -56,6 +56,14 @@ public:
         msg.arg2 = row;
         IPC::send(pid, &msg);
     }
+
+    static inline void getCursor(u32 pid, u8& col, u8& row) {
+        Message msg = {};
+        msg.type = MessageType::VgaGetCursor;
+        IPC::send(pid, &msg);
+        col = static_cast<u8>(msg.arg1);
+        row = static_cast<u8>(msg.arg2);
+    }
 };
 
 } // cassio
