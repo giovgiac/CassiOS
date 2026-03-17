@@ -28,7 +28,8 @@ namespace SyscallNumber {
     constexpr u32 MapDevice   = 10;
     constexpr u32 Notify      = 11;
     constexpr u32 MemInfo     = 12;
-    constexpr u32 Count       = 13;
+    constexpr u32 Sbrk        = 13;
+    constexpr u32 Count       = 14;
 }
 
 } // cassio

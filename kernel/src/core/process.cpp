@@ -15,32 +15,53 @@ using namespace cassio::kernel;
 ProcessManager ProcessManager::instance;
 
 ProcessManager::ProcessManager()
-    : currentPid(0), nextPid(1) {
-    for (u32 i = 0; i < MAX_PROCESSES; i++) {
-        processes[i].pid = 0;
-        processes[i].state = ProcessState::Empty;
-    }
+    : currentProcess(&kernelTask), nextPid(1) {
+    kernelTask.pid = 0;
+    kernelTask.state = ProcessState::Empty;
+    kernelTask.next = nullptr;
+    kernelTask.eax = 0;
+    kernelTask.ebx = 0;
+    kernelTask.ecx = 0;
+    kernelTask.edx = 0;
+    kernelTask.esi = 0;
+    kernelTask.edi = 0;
+    kernelTask.ebp = 0;
+    kernelTask.esp = 0;
+    kernelTask.eip = 0;
+    kernelTask.eflags = 0;
+    kernelTask.cs = 0;
+    kernelTask.ds = 0;
+    kernelTask.pageDirectory = 0;
+    kernelTask.kernelEsp = 0;
+    kernelTask.heapBreak = 0;
+    kernelTask.msg = {};
+    kernelTask.msgPtr = 0;
+    processes.pushBack(&kernelTask);
 }
 
+// -- Send queue (heap-backed linked list) --
+
 bool Process::sendQueuePush(u32 senderPid) {
-    if (sendQueueCount >= SEND_QUEUE_SIZE) {
+    SendNode* node = new SendNode;
+    if (!node) {
         return false;
     }
-    u32 idx = (sendQueueHead + sendQueueCount) % SEND_QUEUE_SIZE;
-    sendQueue[idx] = senderPid;
-    sendQueueCount++;
+    node->senderPid = senderPid;
+    sendQueue.pushBack(node);
     return true;
 }
 
 u32 Process::sendQueuePop() {
-    if (sendQueueCount == 0) {
+    SendNode* node = sendQueue.popFront();
+    if (!node) {
         return 0;
     }
-    u32 pid = sendQueue[sendQueueHead];
-    sendQueueHead = (sendQueueHead + 1) % SEND_QUEUE_SIZE;
-    sendQueueCount--;
+    u32 pid = node->senderPid;
+    delete node;
     return pid;
 }
+
+// -- Notification queue (heap-backed linked list) --
 
 static void copyMsg(const Message& src, Message& dst) {
     dst.type = src.type;
@@ -52,88 +73,115 @@ static void copyMsg(const Message& src, Message& dst) {
 }
 
 bool Process::notifyPush(u32 senderPid, const Message& m) {
-    u32 next = (notifyHead + 1) % NOTIFY_QUEUE_SIZE;
-    if (next == notifyTail) {
+    NotifyNode* node = new NotifyNode;
+    if (!node) {
         return false;
     }
-    notifyQueue[notifyHead].senderPid = senderPid;
-    copyMsg(m, notifyQueue[notifyHead].msg);
-    notifyHead = next;
+    node->senderPid = senderPid;
+    copyMsg(m, node->msg);
+    notifyQueue.pushBack(node);
     return true;
 }
 
 bool Process::notifyPop(u32& senderPid, Message& m) {
-    if (notifyHead == notifyTail) {
+    NotifyNode* node = notifyQueue.popFront();
+    if (!node) {
         return false;
     }
-    senderPid = notifyQueue[notifyTail].senderPid;
-    copyMsg(notifyQueue[notifyTail].msg, m);
-    notifyTail = (notifyTail + 1) % NOTIFY_QUEUE_SIZE;
+    senderPid = node->senderPid;
+    copyMsg(node->msg, m);
+    delete node;
     return true;
 }
 
+// -- ProcessManager --
+
 Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirectory) {
-    for (u32 i = 1; i < MAX_PROCESSES; i++) {
-        if (processes[i].state == ProcessState::Empty) {
-            Process& p = processes[i];
-            p.pid = nextPid++;
-            p.state = ProcessState::Ready;
-            p.eip = eip;
-            p.esp = esp;
-            p.cs = cs;
-            p.ds = ds;
-            p.eax = 0;
-            p.ebx = 0;
-            p.ecx = 0;
-            p.edx = 0;
-            p.esi = 0;
-            p.edi = 0;
-            p.ebp = 0;
-            p.eflags = 0x202;
-            p.pageDirectory = pageDirectory;
-            p.kernelEsp = 0;
-            p.msg = {};
-            p.msgPtr = 0;
-            p.sendQueueHead = 0;
-            p.sendQueueCount = 0;
-            for (u32 j = 0; j < Process::SEND_QUEUE_SIZE; j++) {
-                p.sendQueue[j] = 0;
-            }
-            p.notifyHead = 0;
-            p.notifyTail = 0;
-            return &p;
-        }
+    Process* p = new Process;
+    if (!p) {
+        return nullptr;
     }
-    return nullptr;
+
+    p->pid = nextPid++;
+    p->state = ProcessState::Ready;
+    p->next = nullptr;
+    p->eip = eip;
+    p->esp = esp;
+    p->cs = cs;
+    p->ds = ds;
+    p->eax = 0;
+    p->ebx = 0;
+    p->ecx = 0;
+    p->edx = 0;
+    p->esi = 0;
+    p->edi = 0;
+    p->ebp = 0;
+    p->eflags = 0x202;
+    p->pageDirectory = pageDirectory;
+    p->kernelEsp = 0;
+    p->heapBreak = 0;
+    p->msg = {};
+    p->msgPtr = 0;
+
+    processes.pushBack(p);
+    return p;
 }
 
 void ProcessManager::destroy(u32 pid) {
-    for (u32 i = 1; i < MAX_PROCESSES; i++) {
-        if (processes[i].pid == pid && processes[i].state != ProcessState::Empty) {
-            processes[i].state = ProcessState::Empty;
-            return;
-        }
+    if (pid == 0) {
+        return;
     }
+
+    // Find the process by PID.
+    Process* p = processes.getHead();
+    while (p) {
+        if (p->pid == pid && p->state != ProcessState::Empty) {
+            break;
+        }
+        p = p->next;
+    }
+    if (!p) {
+        return;
+    }
+
+    // Drain send queue.
+    while (!p->sendQueue.isEmpty()) {
+        delete p->sendQueue.popFront();
+    }
+
+    // Drain notify queue.
+    while (!p->notifyQueue.isEmpty()) {
+        delete p->notifyQueue.popFront();
+    }
+
+    // Unlink from process list and free.
+    processes.remove(p);
+    delete p;
 }
 
 Process* ProcessManager::current() {
-    return &processes[currentPid];
+    return currentProcess;
 }
 
 Process* ProcessManager::get(u32 pid) {
-    for (u32 i = 0; i < MAX_PROCESSES; i++) {
-        if (processes[i].pid == pid && processes[i].state != ProcessState::Empty) {
-            return &processes[i];
+    Process* p = processes.getHead();
+    while (p) {
+        if (p->pid == pid && p->state != ProcessState::Empty) {
+            return p;
         }
+        p = p->next;
     }
     return nullptr;
 }
 
 void ProcessManager::setCurrent(Process* process) {
-    for (u32 i = 0; i < MAX_PROCESSES; i++) {
-        if (&processes[i] == process) {
-            currentPid = i;
-            return;
-        }
-    }
+    currentProcess = process;
+}
+
+Process* ProcessManager::getHead() {
+    return processes.getHead();
+}
+
+u32 ProcessManager::getProcessCount() const {
+    return processes.getCount();
 }

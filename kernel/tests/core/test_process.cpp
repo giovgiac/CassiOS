@@ -29,19 +29,22 @@ TEST(process_create_unique_pids) {
     pm.destroy(p2->pid);
 }
 
-TEST(process_create_fills_table) {
+TEST(process_create_beyond_old_limit) {
     ProcessManager& pm = ProcessManager::getManager();
-    // Slots 1..15 = 15 available slots (slot 0 is reserved for kernel task).
-    Process* procs[15];
-    for (u32 i = 0; i < 15; i++) {
+    // Should be able to create more than the old fixed limit of 15.
+    Process* procs[20];
+    for (u32 i = 0; i < 20; i++) {
         procs[i] = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
         ASSERT(procs[i] != nullptr);
     }
-    // Table is full, next create should return null.
-    Process* overflow = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
-    ASSERT(overflow == nullptr);
-    // Clean up.
-    for (u32 i = 0; i < 15; i++) {
+    // Verify all have unique PIDs and are accessible.
+    for (u32 i = 0; i < 20; i++) {
+        ASSERT(pm.get(procs[i]->pid) == procs[i]);
+        for (u32 j = i + 1; j < 20; j++) {
+            ASSERT(procs[i]->pid != procs[j]->pid);
+        }
+    }
+    for (u32 i = 0; i < 20; i++) {
         pm.destroy(procs[i]->pid);
     }
 }
@@ -58,7 +61,7 @@ TEST(process_destroy_frees_slot) {
 
 TEST(process_current_returns_kernel_task) {
     ProcessManager& pm = ProcessManager::getManager();
-    // Before any scheduling, current() returns the kernel task (slot 0).
+    // Before any scheduling, current() returns the kernel task (PID 0).
     Process* cur = pm.current();
     ASSERT(cur != nullptr);
     ASSERT(cur->state == ProcessState::Empty || cur->state == ProcessState::Running

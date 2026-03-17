@@ -20,6 +20,7 @@ USERSHELL = bin/shell.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
 LIBCOMMON = lib/libcommon.a
+LIBCASSIO = lib/libcassio.a
 
 
 # Discover all source files automatically.
@@ -38,13 +39,17 @@ shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
 test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 
-# Userspace test: runner + all service tests + all service impls (excluding main.cpp).
+# Userspace shared library sources.
+cassio_lib_sources = $(shell find userspace/libs/libcassio/src/ -name '*.cpp' 2>/dev/null)
+cassio_lib_objects = $(patsubst userspace/libs/libcassio/src/%.cpp, obj/userspace/libs/libcassio/%.o, $(cassio_lib_sources))
+
+# Userspace test: runner + all service tests + all service impls (excluding main.cpp and shared lib).
 usertest_sources = userspace/test.cpp \
     $(shell find userspace/ -path '*/tests/test_*.cpp' 2>/dev/null) \
-    $(shell find userspace/ -path '*/src/*.cpp' -not -name 'main.cpp' 2>/dev/null)
+    $(shell find userspace/ -path '*/src/*.cpp' -not -name 'main.cpp' -not -path 'userspace/libs/*' 2>/dev/null)
 usertest_objects = $(patsubst userspace/%.cpp, obj/userspace/usertest/%.o, $(usertest_sources))
 USERTEST_CXXFLAGS = $(COMMON_CXXFLAGS) -fno-use-cxa-atexit \
-    -Icommon/include/ -Iuserspace/include/ \
+    -Icommon/include/ -Iuserspace/libs/libcassio/include/ \
     $(foreach dir,$(shell find userspace/ -type d -name include),-I$(dir))
 
 # Compile C++ source files.
@@ -66,11 +71,20 @@ $(LIBCOMMON): $(common_objects)
 	@mkdir -p lib
 	ar rcs $@ $(common_objects)
 
+# Compile libcassio source files.
+obj/userspace/libs/libcassio/%.o: userspace/libs/libcassio/src/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(COMMON_CXXFLAGS) -fno-use-cxa-atexit -o $@ -c $< -Icommon/include/ -Iuserspace/libs/libcassio/include/
+
+$(LIBCASSIO): $(cassio_lib_objects)
+	@mkdir -p lib
+	ar rcs $@ $(cassio_lib_objects)
+
 kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBCOMMON)
 
-$(NAMESERVER): $(LIBCOMMON)
+$(NAMESERVER): $(LIBCOMMON) $(LIBCASSIO)
 	$(MAKE) -C userspace/ns
 
 $(KBD): $(LIBCOMMON)
@@ -105,9 +119,9 @@ obj/userspace/usertest/%.o: userspace/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
 
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON)
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBCASSIO)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBCOMMON)
 
 $(DISK):
 	@mkdir -p bin

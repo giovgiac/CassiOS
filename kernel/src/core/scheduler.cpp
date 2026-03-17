@@ -15,29 +15,16 @@ using namespace cassio::kernel;
 Scheduler Scheduler::instance;
 
 Scheduler::Scheduler()
-    : gdt(nullptr), tickCount(0), timeSlice(DEFAULT_TIME_SLICE),
-      numProcesses(0), currentIndex(0) {
-    for (u32 i = 0; i < ProcessManager::MAX_PROCESSES; i++) {
-        processes[i] = nullptr;
-    }
-}
+    : gdt(nullptr), tickCount(0), timeSlice(DEFAULT_TIME_SLICE) {}
 
 void Scheduler::init(GlobalDescriptorTable& gdt) {
     this->gdt = &gdt;
 }
 
-void Scheduler::addProcess(Process* process) {
-    if (numProcesses < ProcessManager::MAX_PROCESSES) {
-        processes[numProcesses++] = process;
-    }
-}
-
-u32 Scheduler::switchTo(u32 nextIndex, Process* current, u32 currentEsp) {
+u32 Scheduler::switchTo(Process* next, Process* current, u32 currentEsp) {
     current->esp = currentEsp;
 
-    Process* next = processes[nextIndex];
     next->state = ProcessState::Running;
-    currentIndex = nextIndex;
 
     // Load new page directory if it differs from the current one.
     if (next->pageDirectory != current->pageDirectory && next->pageDirectory != 0) {
@@ -55,20 +42,32 @@ u32 Scheduler::switchTo(u32 nextIndex, Process* current, u32 currentEsp) {
     return next->esp;
 }
 
-u32 Scheduler::findNextReady(u32 fromIndex) {
-    u32 nextIndex = fromIndex;
-    for (u32 i = 0; i < numProcesses; i++) {
-        nextIndex = (nextIndex + 1) % numProcesses;
-        if (processes[nextIndex]->state == ProcessState::Ready) {
-            return nextIndex;
+Process* Scheduler::findNextReady(Process* current) {
+    ProcessManager& pm = ProcessManager::getManager();
+
+    // Start at the next process in the list, wrapping to head.
+    Process* candidate = current->next;
+    if (!candidate) {
+        candidate = pm.getHead();
+    }
+
+    while (candidate != current) {
+        if (candidate->state == ProcessState::Ready) {
+            return candidate;
+        }
+        candidate = candidate->next;
+        if (!candidate) {
+            candidate = pm.getHead();
         }
     }
-    // No Ready process found; stay on current.
-    return fromIndex;
+
+    // No other Ready process found; stay on current.
+    return current;
 }
 
 u32 Scheduler::schedule(u32 currentEsp) {
-    if (numProcesses <= 1) {
+    ProcessManager& pm = ProcessManager::getManager();
+    if (pm.getProcessCount() <= 1) {
         return currentEsp;
     }
 
@@ -78,35 +77,31 @@ u32 Scheduler::schedule(u32 currentEsp) {
     }
     tickCount = 0;
 
-    Process* current = processes[currentIndex];
+    Process* current = pm.current();
 
     // Only demote Running -> Ready. Leave SendBlocked/ReceiveBlocked alone.
     if (current->state == ProcessState::Running) {
         current->state = ProcessState::Ready;
     }
 
-    u32 nextIndex = findNextReady(currentIndex);
-    return switchTo(nextIndex, current, currentEsp);
+    Process* next = findNextReady(current);
+    return switchTo(next, current, currentEsp);
 }
 
 u32 Scheduler::reschedule(u32 currentEsp) {
-    if (numProcesses <= 1) {
+    ProcessManager& pm = ProcessManager::getManager();
+    if (pm.getProcessCount() <= 1) {
         return currentEsp;
     }
 
-    Process* current = processes[currentIndex];
+    Process* current = pm.current();
     // State already set by caller (SendBlocked/ReceiveBlocked).
 
-    u32 nextIndex = findNextReady(currentIndex);
+    Process* next = findNextReady(current);
     tickCount = 0;
-    return switchTo(nextIndex, current, currentEsp);
+    return switchTo(next, current, currentEsp);
 }
 
 void Scheduler::reset() {
     tickCount = 0;
-    numProcesses = 0;
-    currentIndex = 0;
-    for (u32 i = 0; i < ProcessManager::MAX_PROCESSES; i++) {
-        processes[i] = nullptr;
-    }
 }

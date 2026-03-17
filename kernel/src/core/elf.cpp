@@ -17,7 +17,7 @@ using namespace cassio::kernel;
 using namespace cassio::memory;
 
 ElfLoadResult ElfLoader::load(u32 pdPhysical, const u8* elfData, u32 elfSize) {
-    ElfLoadResult result = {0, false};
+    ElfLoadResult result = {0, 0, false};
 
     if (elfSize < sizeof(Elf32Header)) {
         return result;
@@ -51,6 +51,8 @@ ElfLoadResult ElfLoader::load(u32 pdPhysical, const u8* elfData, u32 elfSize) {
     u16 phnum = header->e_phnum;
     u16 phentsize = header->e_phentsize;
 
+    u32 highestEnd = 0;
+
     for (u16 i = 0; i < phnum; i++) {
         u32 offset = phoff + i * phentsize;
         if (offset + sizeof(Elf32ProgramHeader) > elfSize) {
@@ -61,6 +63,12 @@ ElfLoadResult ElfLoader::load(u32 pdPhysical, const u8* elfData, u32 elfSize) {
 
         if (ph->p_type != PT_LOAD) {
             continue;
+        }
+
+        // Track the highest virtual address for heap placement.
+        u32 segEnd = ph->p_vaddr + ph->p_memsz;
+        if (segEnd > highestEnd) {
+            highestEnd = segEnd;
         }
 
         // Allocate physical frames and map into the target address space.
@@ -91,6 +99,7 @@ ElfLoadResult ElfLoader::load(u32 pdPhysical, const u8* elfData, u32 elfSize) {
     }
 
     result.entryPoint = header->e_entry;
+    result.heapStart = (highestEnd + FRAME_SIZE - 1) & ~(FRAME_SIZE - 1);
     result.success = true;
     return result;
 }

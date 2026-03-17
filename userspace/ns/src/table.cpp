@@ -9,35 +9,38 @@
 
 #include <table.hpp>
 #include <string.hpp>
+#include <userheap.hpp>
 
 using namespace cassio;
 
-NsTable::NsTable() : entryCount(0) {
-    for (u32 i = 0; i < MAX_ENTRIES; i++) {
-        entries[i].name[0] = '\0';
-        entries[i].pid = 0;
-    }
-}
+NsTable::NsTable() {}
 
 u32 NsTable::registerName(const char* name, u32 pid) {
-    if (entryCount >= MAX_ENTRIES || lookup(name) != 0) {
+    if (lookup(name) != 0) {
         return 0;
     }
-    strcpy(entries[entryCount].name, name, MAX_NAME_LEN + 1);
-    entries[entryCount].pid = pid;
-    entryCount++;
+
+    void* mem = UserHeap::alloc(sizeof(Entry));
+    if (!mem) {
+        return 0;
+    }
+
+    Entry* entry = (Entry*)mem;
+    strcpy(entry->name, name, MAX_NAME_LEN + 1);
+    entry->pid = pid;
+    entries.pushFront(entry);
     return 1;
 }
 
 u32 NsTable::lookup(const char* name) {
-    for (u32 i = 0; i < entryCount; i++) {
-        if (streq(entries[i].name, name)) {
-            return entries[i].pid;
+    for (Entry* e = entries.getHead(); e; e = e->next) {
+        if (streq(e->name, name)) {
+            return e->pid;
         }
     }
     return 0;
 }
 
 u32 NsTable::count() const {
-    return entryCount;
+    return entries.getCount();
 }

@@ -20,10 +20,10 @@ namespace kernel {
 /**
  * @brief Preemptive round-robin scheduler driven by the PIT timer.
  *
- * Maintains a list of schedulable processes and switches between them
- * when the configured time slice expires. Context switching is done
- * by returning a different ESP from schedule(), which the interrupt
- * stub uses to restore the next process's register state.
+ * Iterates the ProcessManager's linked list to find the next Ready
+ * process. Context switching is done by returning a different ESP
+ * from schedule(), which the interrupt stub uses to restore the
+ * next process's register state.
  *
  */
 class Scheduler {
@@ -47,12 +47,6 @@ public:
      *
      */
     u32 schedule(u32 currentEsp);
-
-    /**
-     * @brief Registers a process for scheduling.
-     *
-     */
-    void addProcess(Process* process);
 
     /**
      * @brief Immediate context switch without waiting for the time slice.
@@ -80,18 +74,14 @@ public:
 private:
     Scheduler();
 
-    u32 findNextReady(u32 fromIndex);
-    u32 switchTo(u32 nextIndex, Process* current, u32 currentEsp);
+    Process* findNextReady(Process* current);
+    u32 switchTo(Process* next, Process* current, u32 currentEsp);
 
     static Scheduler instance;
 
     GlobalDescriptorTable* gdt;
     u32 tickCount;
     u32 timeSlice;
-
-    Process* processes[ProcessManager::MAX_PROCESSES];
-    u32 numProcesses;
-    u32 currentIndex;
 };
 
 } // kernel

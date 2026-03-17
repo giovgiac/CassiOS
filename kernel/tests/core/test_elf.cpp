@@ -63,6 +63,8 @@ TEST(elf_load_valid_returns_entry_point) {
     ElfLoadResult result = ElfLoader::load(pd, buf, size);
     ASSERT(result.success);
     ASSERT_EQ(result.entryPoint, 0x00400000u);
+    // Segment at 0x00400000 with 4 bytes -> heapStart = 0x00401000 (page-aligned).
+    ASSERT_EQ(result.heapStart, 0x00401000u);
 
     pm.destroyAddressSpace(pd);
 }

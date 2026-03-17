@@ -79,6 +79,14 @@ public:
                      : "memory");
         return ret;
     }
+
+    static inline void* sbrk(u32 increment) {
+        u32 ret;
+        asm volatile("int $0x80" : "=a"(ret)
+                     : "a"(SyscallNumber::Sbrk), "b"(increment)
+                     : "memory");
+        return (void*)ret;
+    }
 };
 
 } // cassio

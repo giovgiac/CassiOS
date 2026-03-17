@@ -31,15 +31,16 @@ TEST(ns_table_register_duplicate_fails) {
     ASSERT_EQ(table.lookup("dup"), 1u);
 }
 
-TEST(ns_table_full_capacity) {
+TEST(ns_table_beyond_old_limit) {
     NsTable table;
-    char name[3];
-    for (u32 i = 0; i < NsTable::MAX_ENTRIES; i++) {
+    char name[4];
+    // Should be able to register more than the old fixed limit of 16.
+    for (u32 i = 0; i < 20; i++) {
         name[0] = 'a' + static_cast<char>(i / 26);
         name[1] = 'a' + static_cast<char>(i % 26);
-        name[2] = '\0';
+        name[2] = 'x';
+        name[3] = '\0';
         ASSERT_EQ(table.registerName(name, i + 1), 1u);
     }
-    ASSERT_EQ(table.count(), NsTable::MAX_ENTRIES);
-    ASSERT_EQ(table.registerName("overflow", 99), 0u);
+    ASSERT_EQ(table.count(), 20u);
 }

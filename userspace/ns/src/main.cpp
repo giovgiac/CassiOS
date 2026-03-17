@@ -14,13 +14,21 @@
 #include <message.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
+#include <system.hpp>
+#include <userheap.hpp>
 #include <table.hpp>
 
 using namespace cassio;
 
+static void* sbrkGrow(u32 size) {
+    return System::sbrk(size);
+}
+
 static NsTable table;
 
 extern "C" void _start() {
+    UserHeap::init(sbrkGrow, 4096);
+
     while (true) {
         Message msg;
         i32 sender = IPC::receive(&msg);
