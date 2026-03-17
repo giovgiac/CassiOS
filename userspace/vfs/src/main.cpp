@@ -5,7 +5,7 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
- * Userspace in-memory filesystem service. Registers as "vfs" with
+ * Userspace FAT32 filesystem service. Registers as "vfs" with
  * the nameserver and handles filesystem requests via IPC.
  *
  */
@@ -14,75 +14,56 @@
 #include <message.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
-#include <filesystem.hpp>
+#include <system.hpp>
+#include <userheap.hpp>
+#include <string.hpp>
+#include <fat32.hpp>
 
 using namespace cassio;
 using namespace cassio::vfs;
 
-static Filesystem fs;
-
-static constexpr u32 MAX_HANDLES = 16;
-static u8 handles[MAX_HANDLES];
-
-static void initHandles() {
-    for (u32 i = 0; i < MAX_HANDLES; i++) {
-        handles[i] = INVALID;
-    }
+static void* sbrkGrow(u32 size) {
+    return System::sbrk(size);
 }
 
-static u32 openHandle(u8 nodeIndex) {
-    for (u32 i = 0; i < MAX_HANDLES; i++) {
-        if (handles[i] == INVALID) {
-            handles[i] = nodeIndex;
-            return i + 1;
-        }
-    }
-    return 0;
-}
-
-static u8 getHandle(u32 handle) {
-    if (handle == 0 || handle > MAX_HANDLES) {
-        return INVALID;
-    }
-    return handles[handle - 1];
-}
+static Fat32 fs;
 
 extern "C" void _start() {
+    UserHeap::init(sbrkGrow, 4096);
     Nameserver::registerName("vfs");
-    fs.init();
-    initHandles();
+
+    u32 ataPid = Nameserver::lookup("ata");
+    if (!fs.mount(ataPid)) {
+        // Mount failed -- hang.
+        while (true) {
+            Message msg;
+            IPC::receive(&msg);
+        }
+    }
+
+    // Data buffer for IPC messages -- large enough for file I/O.
+    constexpr u32 BUF_SIZE = 4096;
+    u8* dataBuf = static_cast<u8*>(UserHeap::alloc(BUF_SIZE));
 
     while (true) {
         Message msg;
-        char dataBuf[MAX_FILE_DATA];
-        i32 sender = IPC::receive(&msg, dataBuf, sizeof(dataBuf));
+        i32 sender = IPC::receive(&msg, dataBuf, BUF_SIZE);
 
         Message reply = {};
 
         switch (msg.type) {
         case MessageType::VfsMkdir: {
-            // Path is in dataBuf (null-terminated).
-            u8 node = fs.createDirectory(dataBuf);
-            reply.arg1 = (node != INVALID) ? 0 : 1;
+            reply.arg1 = fs.createDirectory(reinterpret_cast<char*>(dataBuf)) ? 0 : 1;
             break;
         }
 
         case MessageType::VfsRemove: {
-            reply.arg1 = fs.remove(dataBuf) ? 0 : 1;
+            reply.arg1 = fs.remove(reinterpret_cast<char*>(dataBuf)) ? 0 : 1;
             break;
         }
 
         case MessageType::VfsOpen: {
-            u8 node = fs.resolve(dataBuf);
-            if (node == INVALID) {
-                node = fs.createFile(dataBuf);
-            }
-
-            if (node != INVALID && fs.isFile(node)) {
-                reply.arg1 = openHandle(node);
-            } else {
-                reply.arg1 = 0;
-            }
+            reply.arg1 = fs.open(reinterpret_cast<char*>(dataBuf));
             break;
         }
 
@@ -90,18 +71,16 @@ extern "C" void _start() {
             u32 handle = msg.arg1;
             u32 offset = msg.arg2;
             u32 reqLen = msg.arg3;
-            u8 node = getHandle(handle);
+            u32 maxRead = (reqLen < BUF_SIZE) ? reqLen : BUF_SIZE;
 
-            u8 readBuf[MAX_FILE_DATA];
-            u32 maxRead = reqLen < MAX_FILE_DATA ? reqLen : MAX_FILE_DATA;
-            i32 bytesRead = fs.read(node, offset, readBuf, maxRead);
+            i32 bytesRead = fs.read(handle, offset, dataBuf, maxRead);
             reply.arg1 = (bytesRead >= 0) ? static_cast<u32>(bytesRead) : 0;
 
             if (sender > 0) {
-                u32 replyDataLen = bytesRead > 0
+                u32 replyDataLen = (bytesRead > 0)
                                  ? static_cast<u32>(bytesRead) : 0;
                 IPC::reply(static_cast<u32>(sender), &reply,
-                           readBuf, replyDataLen);
+                           dataBuf, replyDataLen);
                 continue;
             }
             break;
@@ -110,23 +89,18 @@ extern "C" void _start() {
         case MessageType::VfsWrite: {
             u32 handle = msg.arg1;
             u32 len = msg.arg2;
-            u8 node = getHandle(handle);
-            reply.arg1 = fs.write(node, (const u8*)dataBuf, len) ? 0 : 1;
+            reply.arg1 = fs.write(handle, dataBuf, len) ? 0 : 1;
             break;
         }
 
         case MessageType::VfsList: {
             u32 index = msg.arg1;
-            // dataBuf contains the path (null-terminated).
-
-            u8 dir = fs.resolve(dataBuf);
             char name[MAX_NAME];
-            NodeType type;
 
-            if (fs.listEntry(dir, index, name, sizeof(name), type)) {
+            if (fs.listEntry(reinterpret_cast<char*>(dataBuf), index,
+                             name, sizeof(name))) {
                 reply.arg1 = 1;
-                u32 nameLen = 0;
-                while (name[nameLen] != '\0') nameLen++;
+                u32 nameLen = strlen(name);
                 if (sender > 0) {
                     IPC::reply(static_cast<u32>(sender), &reply,
                                name, nameLen + 1);
