@@ -69,25 +69,20 @@ public:
     const char* getModel() const;
 
     /**
-     * @brief Read up to len bytes from a sector at the given byte offset.
-     *
-     * Reads the full sector from hardware (cached) and copies
-     * the requested portion into buf.
-     *
-     * @return Bytes read, or -1 on error.
-     *
-     */
-    i32 read(u32 lba, u32 offset, u8* buf, u32 len);
-
-    /**
-     * @brief Write up to len bytes into a sector at the given byte offset.
-     *
-     * Reads the sector, patches the bytes, writes it back.
+     * @brief Read a full 512-byte sector into buf.
      *
      * @return true on success.
      *
      */
-    bool write(u32 lba, u32 offset, const u8* buf, u32 len);
+    bool readSector(u32 lba, u8* buf);
+
+    /**
+     * @brief Write a full 512-byte sector from buf to disk.
+     *
+     * @return true on success.
+     *
+     */
+    bool writeSector(u32 lba, const u8* buf);
 };
 
 } // ata

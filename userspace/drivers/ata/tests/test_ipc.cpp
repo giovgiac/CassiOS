@@ -11,6 +11,7 @@
 #include <ns.hpp>
 #include <ipc.hpp>
 #include <message.hpp>
+#include <ata_client.hpp>
 
 using namespace cassio;
 
@@ -19,17 +20,38 @@ TEST(ata_ipc_service_registered) {
     ASSERT(pid != 0);
 }
 
-TEST(ata_ipc_read_replies) {
+TEST(ata_ipc_read_sector_succeeds) {
     u32 pid = Nameserver::lookup("ata");
     ASSERT(pid != 0);
 
-    Message msg = {};
-    msg.type = MessageType::AtaRead;
-    msg.arg1 = 0;  // LBA 0
-    msg.arg2 = 0;  // byte offset 0
-    i32 ret = IPC::send(pid, &msg);
-    ASSERT_EQ(ret, 0);
+    u8 buf[512];
+    bool ok = AtaClient::readSector(pid, 0, buf);
+    ASSERT(ok);
+}
 
-    // With a disk present, should read 16 bytes.
-    ASSERT_EQ(msg.arg1, 16u);
+TEST(ata_ipc_write_then_read_sector) {
+    u32 pid = Nameserver::lookup("ata");
+    ASSERT(pid != 0);
+
+    // Use an LBA within the 1 MiB test disk (2048 sectors).
+    const u32 testLba = 100;
+
+    // Write a known pattern.
+    u8 writeBuf[512];
+    for (u32 i = 0; i < 512; ++i) writeBuf[i] = static_cast<u8>(i & 0xFF);
+    bool ok = AtaClient::writeSector(pid, testLba, writeBuf);
+    ASSERT(ok);
+
+    // Read it back.
+    u8 readBuf[512];
+    for (u32 i = 0; i < 512; ++i) readBuf[i] = 0;
+    ok = AtaClient::readSector(pid, testLba, readBuf);
+    ASSERT(ok);
+
+    // Verify contents match.
+    bool match = true;
+    for (u32 i = 0; i < 512; ++i) {
+        if (readBuf[i] != writeBuf[i]) { match = false; break; }
+    }
+    ASSERT(match);
 }
