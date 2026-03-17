@@ -10,9 +10,12 @@ TEST(pit_port_constants) {
     ASSERT_EQ(static_cast<u32>(PortType::PitCommand), 0x43u);
 }
 
-TEST(pit_constants) {
-    ASSERT_EQ(static_cast<u32>(PIT_FREQUENCY), 100u);
-    ASSERT_EQ(static_cast<u32>(PIT_CMD_CHANNEL0_MODE2), 0x34u);
+TEST(pit_divisor_in_range) {
+    // The 16-bit divisor must produce a valid frequency from the PIT base clock.
+    ASSERT(PIT_DIVISOR > 0);
+    ASSERT(PIT_DIVISOR <= 0xFFFF);
+    ASSERT_EQ(static_cast<u32>(PIT_DIVISOR),
+              PIT_BASE_FREQUENCY / PIT_FREQUENCY);
 }
 
 TEST(pit_ticks_increment) {

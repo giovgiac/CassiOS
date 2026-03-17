@@ -21,7 +21,7 @@ namespace hardware {
 constexpr u32 PIT_BASE_FREQUENCY = 1193182;
 
 // Target tick frequency in Hz.
-constexpr u32 PIT_FREQUENCY = 100;
+constexpr u32 PIT_FREQUENCY = 1000;
 
 // Divisor to achieve the target frequency.
 constexpr u16 PIT_DIVISOR = PIT_BASE_FREQUENCY / PIT_FREQUENCY;
