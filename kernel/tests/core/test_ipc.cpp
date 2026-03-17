@@ -15,16 +15,16 @@ TEST(ipc_send_queue_push_pop) {
     Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
     ASSERT(p != nullptr);
 
-    ASSERT_EQ(p->sendQueueCount, 0u);
+    ASSERT_EQ(p->sendQueue.getCount(), 0u);
     ASSERT(p->sendQueuePush(1));
     ASSERT(p->sendQueuePush(2));
     ASSERT(p->sendQueuePush(3));
-    ASSERT_EQ(p->sendQueueCount, 3u);
+    ASSERT_EQ(p->sendQueue.getCount(), 3u);
 
     ASSERT_EQ(p->sendQueuePop(), 1u);
     ASSERT_EQ(p->sendQueuePop(), 2u);
     ASSERT_EQ(p->sendQueuePop(), 3u);
-    ASSERT_EQ(p->sendQueueCount, 0u);
+    ASSERT_EQ(p->sendQueue.getCount(), 0u);
     ASSERT_EQ(p->sendQueuePop(), 0u);  // Empty queue returns 0.
 
     pm.destroy(p->pid);
@@ -39,7 +39,7 @@ TEST(ipc_send_queue_beyond_old_limit) {
     for (u32 i = 0; i < 20; i++) {
         ASSERT(p->sendQueuePush(i + 1));
     }
-    ASSERT_EQ(p->sendQueueCount, 20u);
+    ASSERT_EQ(p->sendQueue.getCount(), 20u);
 
     // Drain and verify FIFO order.
     for (u32 i = 0; i < 20; i++) {
@@ -60,7 +60,7 @@ TEST(ipc_send_queue_interleaved_push_pop) {
     ASSERT_EQ(p->sendQueuePop(), 3u);
 
     for (u32 i = 0; i < 5; i++) p->sendQueuePush(i + 10);
-    ASSERT_EQ(p->sendQueueCount, 7u);
+    ASSERT_EQ(p->sendQueue.getCount(), 7u);
 
     // FIFO order: 4, 5, 10, 11, 12, 13, 14
     ASSERT_EQ(p->sendQueuePop(), 4u);
@@ -175,9 +175,9 @@ TEST(ipc_send_to_non_blocked_queues_sender) {
     ASSERT(sender->state == ProcessState::SendBlocked);
 
     // Sender should be in receiver's send queue.
-    ASSERT_EQ(receiver->sendQueueCount, 1u);
-    ASSERT(receiver->sendHead != nullptr);
-    ASSERT_EQ(receiver->sendHead->senderPid, sender->pid);
+    ASSERT_EQ(receiver->sendQueue.getCount(), 1u);
+    ASSERT(receiver->sendQueue.getHead() != nullptr);
+    ASSERT_EQ(receiver->sendQueue.getHead()->senderPid, sender->pid);
 
     pm.destroy(sender->pid);
     pm.destroy(receiver->pid);
@@ -209,7 +209,7 @@ TEST(ipc_receive_with_pending_sender) {
 
     // Receiver stays Ready (no blocking).
     ASSERT(receiver->state == ProcessState::Ready);
-    ASSERT_EQ(receiver->sendQueueCount, 0u);
+    ASSERT_EQ(receiver->sendQueue.getCount(), 0u);
 
     pm.destroy(sender->pid);
     pm.destroy(receiver->pid);

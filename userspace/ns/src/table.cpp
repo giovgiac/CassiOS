@@ -13,7 +13,7 @@
 
 using namespace cassio;
 
-NsTable::NsTable() : head(nullptr), entryCount(0) {}
+NsTable::NsTable() {}
 
 u32 NsTable::registerName(const char* name, u32 pid) {
     if (lookup(name) != 0) {
@@ -28,23 +28,19 @@ u32 NsTable::registerName(const char* name, u32 pid) {
     Entry* entry = (Entry*)mem;
     strcpy(entry->name, name, MAX_NAME_LEN + 1);
     entry->pid = pid;
-    entry->next = head;
-    head = entry;
-    entryCount++;
+    entries.pushFront(entry);
     return 1;
 }
 
 u32 NsTable::lookup(const char* name) {
-    Entry* e = head;
-    while (e) {
+    for (Entry* e = entries.getHead(); e; e = e->next) {
         if (streq(e->name, name)) {
             return e->pid;
         }
-        e = e->next;
     }
     return 0;
 }
 
 u32 NsTable::count() const {
-    return entryCount;
+    return entries.getCount();
 }

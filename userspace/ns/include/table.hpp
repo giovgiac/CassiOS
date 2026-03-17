@@ -11,12 +11,19 @@
 #define NS_TABLE_HPP_
 
 #include <types.hpp>
+#include <list.hpp>
 
 namespace cassio {
 
 class NsTable {
 public:
     static constexpr u32 MAX_NAME_LEN = 16;
+
+    struct Entry {
+        char name[MAX_NAME_LEN + 1];
+        u32 pid;
+        Entry* next;
+    };
 
     NsTable();
 
@@ -28,14 +35,7 @@ public:
     NsTable& operator=(const NsTable&) = delete;
 
 private:
-    struct Entry {
-        char name[MAX_NAME_LEN + 1];
-        u32 pid;
-        Entry* next;
-    };
-
-    Entry* head;
-    u32 entryCount;
+    LinkedList<Entry> entries;
 };
 
 } // cassio

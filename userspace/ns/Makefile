@@ -8,13 +8,14 @@ LDFLAGS  = -melf_i386
 OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
 BINDIR   = $(ROOT)/bin
 OUTPUT   = $(BINDIR)/$(SERVICE).elf
-LIBCOMMON = $(ROOT)/lib/libcommon.a
+LIBCOMMON    = $(ROOT)/lib/libcommon.a
+LIBUSERSPACE = $(ROOT)/lib/libuserspace.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON)
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBUSERSPACE)
 	@mkdir -p $(BINDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBCOMMON)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBUSERSPACE) $(LIBCOMMON)
 
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)

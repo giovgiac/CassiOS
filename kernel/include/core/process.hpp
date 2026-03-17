@@ -12,6 +12,7 @@
 
 #include <types.hpp>
 #include <message.hpp>
+#include <list.hpp>
 
 namespace cassio {
 namespace kernel {
@@ -57,16 +58,13 @@ struct Process {
     u32 msgPtr;         // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
 
     // Send queue: PIDs of processes waiting to send to this process.
-    SendNode* sendHead;
-    SendNode* sendTail;
-    u32 sendQueueCount;
+    LinkedList<SendNode> sendQueue;
 
     bool sendQueuePush(u32 senderPid);
     u32 sendQueuePop();
 
     // Notification queue: fire-and-forget messages (no reply expected).
-    NotifyNode* notifyHead;
-    NotifyNode* notifyTail;
+    LinkedList<NotifyNode> notifyQueue;
 
     bool notifyPush(u32 senderPid, const Message& msg);
     bool notifyPop(u32& senderPid, Message& msg);
@@ -141,10 +139,9 @@ private:
     static ProcessManager instance;
 
     Process kernelTask;
-    Process* head;
+    LinkedList<Process> processes;
     Process* currentProcess;
     u32 nextPid;
-    u32 processCount;
 };
 
 } // kernel

@@ -15,7 +15,7 @@ using namespace cassio::kernel;
 ProcessManager ProcessManager::instance;
 
 ProcessManager::ProcessManager()
-    : currentProcess(&kernelTask), nextPid(1), processCount(1) {
+    : currentProcess(&kernelTask), nextPid(1) {
     kernelTask.pid = 0;
     kernelTask.state = ProcessState::Empty;
     kernelTask.next = nullptr;
@@ -36,12 +36,7 @@ ProcessManager::ProcessManager()
     kernelTask.heapBreak = 0;
     kernelTask.msg = {};
     kernelTask.msgPtr = 0;
-    kernelTask.sendHead = nullptr;
-    kernelTask.sendTail = nullptr;
-    kernelTask.sendQueueCount = 0;
-    kernelTask.notifyHead = nullptr;
-    kernelTask.notifyTail = nullptr;
-    head = &kernelTask;
+    processes.pushBack(&kernelTask);
 }
 
 // -- Send queue (heap-backed linked list) --
@@ -52,28 +47,16 @@ bool Process::sendQueuePush(u32 senderPid) {
         return false;
     }
     node->senderPid = senderPid;
-    node->next = nullptr;
-    if (sendTail) {
-        sendTail->next = node;
-    } else {
-        sendHead = node;
-    }
-    sendTail = node;
-    sendQueueCount++;
+    sendQueue.pushBack(node);
     return true;
 }
 
 u32 Process::sendQueuePop() {
-    if (!sendHead) {
+    SendNode* node = sendQueue.popFront();
+    if (!node) {
         return 0;
     }
-    SendNode* node = sendHead;
     u32 pid = node->senderPid;
-    sendHead = node->next;
-    if (!sendHead) {
-        sendTail = nullptr;
-    }
-    sendQueueCount--;
     delete node;
     return pid;
 }
@@ -96,27 +79,17 @@ bool Process::notifyPush(u32 senderPid, const Message& m) {
     }
     node->senderPid = senderPid;
     copyMsg(m, node->msg);
-    node->next = nullptr;
-    if (notifyTail) {
-        notifyTail->next = node;
-    } else {
-        notifyHead = node;
-    }
-    notifyTail = node;
+    notifyQueue.pushBack(node);
     return true;
 }
 
 bool Process::notifyPop(u32& senderPid, Message& m) {
-    if (!notifyHead) {
+    NotifyNode* node = notifyQueue.popFront();
+    if (!node) {
         return false;
     }
-    NotifyNode* node = notifyHead;
     senderPid = node->senderPid;
     copyMsg(node->msg, m);
-    notifyHead = node->next;
-    if (!notifyHead) {
-        notifyTail = nullptr;
-    }
     delete node;
     return true;
 }
@@ -149,20 +122,8 @@ Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirect
     p->heapBreak = 0;
     p->msg = {};
     p->msgPtr = 0;
-    p->sendHead = nullptr;
-    p->sendTail = nullptr;
-    p->sendQueueCount = 0;
-    p->notifyHead = nullptr;
-    p->notifyTail = nullptr;
 
-    // Append to end of list.
-    Process* tail = head;
-    while (tail->next) {
-        tail = tail->next;
-    }
-    tail->next = p;
-    processCount++;
-
+    processes.pushBack(p);
     return p;
 }
 
@@ -171,41 +132,31 @@ void ProcessManager::destroy(u32 pid) {
         return;
     }
 
-    Process* prev = nullptr;
-    Process* p = head;
+    // Find the process by PID.
+    Process* p = processes.getHead();
     while (p) {
         if (p->pid == pid && p->state != ProcessState::Empty) {
-            // Drain send queue.
-            while (p->sendHead) {
-                Process::SendNode* node = p->sendHead;
-                p->sendHead = node->next;
-                delete node;
-            }
-            p->sendTail = nullptr;
-            p->sendQueueCount = 0;
-
-            // Drain notify queue.
-            while (p->notifyHead) {
-                Process::NotifyNode* node = p->notifyHead;
-                p->notifyHead = node->next;
-                delete node;
-            }
-            p->notifyTail = nullptr;
-
-            // Unlink from list.
-            if (prev) {
-                prev->next = p->next;
-            } else {
-                head = p->next;
-            }
-
-            processCount--;
-            delete p;
-            return;
+            break;
         }
-        prev = p;
         p = p->next;
     }
+    if (!p) {
+        return;
+    }
+
+    // Drain send queue.
+    while (!p->sendQueue.isEmpty()) {
+        delete p->sendQueue.popFront();
+    }
+
+    // Drain notify queue.
+    while (!p->notifyQueue.isEmpty()) {
+        delete p->notifyQueue.popFront();
+    }
+
+    // Unlink from process list and free.
+    processes.remove(p);
+    delete p;
 }
 
 Process* ProcessManager::current() {
@@ -213,7 +164,7 @@ Process* ProcessManager::current() {
 }
 
 Process* ProcessManager::get(u32 pid) {
-    Process* p = head;
+    Process* p = processes.getHead();
     while (p) {
         if (p->pid == pid && p->state != ProcessState::Empty) {
             return p;
@@ -228,9 +179,9 @@ void ProcessManager::setCurrent(Process* process) {
 }
 
 Process* ProcessManager::getHead() {
-    return head;
+    return processes.getHead();
 }
 
 u32 ProcessManager::getProcessCount() const {
-    return processCount;
+    return processes.getCount();
 }

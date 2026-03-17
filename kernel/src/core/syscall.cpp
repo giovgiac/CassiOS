@@ -111,7 +111,7 @@ i32 SyscallHandler::receive(Message* msg) {
         return -3;
     }
 
-    if (receiver->sendQueueCount > 0) {
+    if (!receiver->sendQueue.isEmpty()) {
         // Pending sender -- deliver immediately.
         u32 senderPid = receiver->sendQueuePop();
         Process* sender = pm.get(senderPid);
