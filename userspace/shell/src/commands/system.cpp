@@ -8,6 +8,7 @@
  */
 
 #include <shell.hpp>
+#include <timer.hpp>
 #include <vga.hpp>
 #include <system.hpp>
 
@@ -69,7 +70,7 @@ void Shell::cmdMem() {
 
 void Shell::cmdUptime() {
     i32 ticks = System::uptime();
-    u32 total_ms = (static_cast<u32>(ticks) * 1000) / 100;
+    u32 total_ms = (static_cast<u32>(ticks) * 1000) / TICK_FREQUENCY;
     u32 seconds = total_ms / 1000;
     u32 ms = total_ms % 1000;
 

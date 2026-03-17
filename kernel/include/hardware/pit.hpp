@@ -11,6 +11,7 @@
 #define HARDWARE_PIT_HPP_
 
 #include <types.hpp>
+#include <timer.hpp>
 #include <hardware/irq.hpp>
 #include <hardware/port.hpp>
 
@@ -20,8 +21,8 @@ namespace hardware {
 // PIT oscillator base frequency in Hz.
 constexpr u32 PIT_BASE_FREQUENCY = 1193182;
 
-// Target tick frequency in Hz.
-constexpr u32 PIT_FREQUENCY = 1000;
+// Target tick frequency derived from the shared system constant.
+constexpr u32 PIT_FREQUENCY = TICK_FREQUENCY;
 
 // Divisor to achieve the target frequency.
 constexpr u16 PIT_DIVISOR = PIT_BASE_FREQUENCY / PIT_FREQUENCY;
