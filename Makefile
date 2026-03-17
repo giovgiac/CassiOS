@@ -38,6 +38,15 @@ shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
 test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 
+# Userspace test: runner + all service tests + all service impls (excluding main.cpp).
+usertest_sources = userspace/test.cpp \
+    $(shell find userspace/*/tests/ -name 'test_*.cpp' 2>/dev/null) \
+    $(shell find userspace/*/src/ -name '*.cpp' -not -name 'main.cpp' 2>/dev/null)
+usertest_objects = $(patsubst userspace/%.cpp, obj/userspace/usertest/%.o, $(usertest_sources))
+USERTEST_CXXFLAGS = $(COMMON_CXXFLAGS) -fno-use-cxa-atexit \
+    -Icommon/include/ -Iuserspace/include/ \
+    $(foreach dir,$(wildcard userspace/*/include),-I$(dir))
+
 # Compile C++ source files.
 obj/%.o: kernel/src/%.cpp
 	@mkdir -p $(dir $@)
@@ -82,9 +91,6 @@ $(ATA): $(LIBCOMMON)
 $(USERSHELL): $(LIBCOMMON)
 	$(MAKE) -C userspace/shell
 
-$(USERTEST): $(LIBCOMMON)
-	$(MAKE) -C userspace/test
-
 # Compile test files from the kernel/tests/ directory.
 obj/tests/%.o: kernel/tests/%.cpp
 	@mkdir -p $(dir $@)
@@ -93,6 +99,15 @@ obj/tests/%.o: kernel/tests/%.cpp
 $(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(LIBCOMMON)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(LIBCOMMON)
+
+# Compile userspace test files (runner + service tests + service impls).
+obj/userspace/usertest/%.o: userspace/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
+
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON)
+	@mkdir -p bin
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCOMMON)
 
 $(DISK):
 	@mkdir -p bin
