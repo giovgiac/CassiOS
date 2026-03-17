@@ -14,6 +14,7 @@ NAMESERVER = bin/ns.elf
 KBD = bin/kbd.elf
 VGA = bin/vga.elf
 VFS = bin/vfs.elf
+MOUSE = bin/mouse.elf
 DEMO = bin/demo.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
@@ -73,6 +74,9 @@ $(VGA): $(LIBCOMMON)
 $(VFS): $(LIBCOMMON)
 	$(MAKE) -C userspace/vfs
 
+$(MOUSE): $(LIBCOMMON)
+	$(MAKE) -C userspace/mouse
+
 $(DEMO): $(LIBCOMMON)
 	$(MAKE) -C userspace/demo
 
@@ -106,9 +110,9 @@ test-kernel: $(TEST_KERNEL)
 	cat /tmp/cassio-test-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
-test-userspace: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(USERTEST)
+test-userspace: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(USERTEST)
 	@qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(USERTEST)" \
+	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -no-reboot; \
@@ -132,9 +136,9 @@ iso: kernel
 	grub-mkrescue --output=$(ISO) iso
 	rm -rf iso
 
-run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(DEMO) $(DISK)
+run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(DEMO) $(DISK)
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(DEMO)" \
+	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(DEMO)" \
 	    -drive file=$(DISK),format=raw,if=ide
 
 .PHONY: kernel iso clean run test test-kernel test-userspace
