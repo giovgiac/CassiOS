@@ -38,6 +38,7 @@ namespace MessageType {
     constexpr u32 VfsRead      = 12;
     constexpr u32 VfsWrite     = 13;
     constexpr u32 VfsList      = 14;
+    constexpr u32 MouseRead    = 15;
 }
 
 } // cassio
