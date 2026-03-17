@@ -40,12 +40,12 @@ test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 
 # Userspace test: runner + all service tests + all service impls (excluding main.cpp).
 usertest_sources = userspace/test.cpp \
-    $(shell find userspace/*/tests/ -name 'test_*.cpp' 2>/dev/null) \
-    $(shell find userspace/*/src/ -name '*.cpp' -not -name 'main.cpp' 2>/dev/null)
+    $(shell find userspace/ -path '*/tests/test_*.cpp' 2>/dev/null) \
+    $(shell find userspace/ -path '*/src/*.cpp' -not -name 'main.cpp' 2>/dev/null)
 usertest_objects = $(patsubst userspace/%.cpp, obj/userspace/usertest/%.o, $(usertest_sources))
 USERTEST_CXXFLAGS = $(COMMON_CXXFLAGS) -fno-use-cxa-atexit \
     -Icommon/include/ -Iuserspace/include/ \
-    $(foreach dir,$(wildcard userspace/*/include),-I$(dir))
+    $(foreach dir,$(shell find userspace/ -type d -name include),-I$(dir))
 
 # Compile C++ source files.
 obj/%.o: kernel/src/%.cpp
@@ -74,19 +74,19 @@ $(NAMESERVER): $(LIBCOMMON)
 	$(MAKE) -C userspace/ns
 
 $(KBD): $(LIBCOMMON)
-	$(MAKE) -C userspace/kbd
+	$(MAKE) -C userspace/drivers/kbd
 
 $(VGA): $(LIBCOMMON)
-	$(MAKE) -C userspace/vga
+	$(MAKE) -C userspace/drivers/vga
 
 $(VFS): $(LIBCOMMON)
 	$(MAKE) -C userspace/vfs
 
 $(MOUSE): $(LIBCOMMON)
-	$(MAKE) -C userspace/mouse
+	$(MAKE) -C userspace/drivers/mouse
 
 $(ATA): $(LIBCOMMON)
-	$(MAKE) -C userspace/ata
+	$(MAKE) -C userspace/drivers/ata
 
 $(USERSHELL): $(LIBCOMMON)
 	$(MAKE) -C userspace/shell

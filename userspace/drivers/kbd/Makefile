@@ -1,7 +1,7 @@
 SERVICE = kbd
 SOURCES = main.cpp keyboard.cpp
 
-ROOT     = $(dir $(lastword $(MAKEFILE_LIST)))../..
+ROOT     = $(dir $(lastword $(MAKEFILE_LIST)))../../..
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -Iinclude/
 LDFLAGS  = -melf_i386
 
