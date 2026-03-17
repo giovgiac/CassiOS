@@ -84,6 +84,18 @@ void Ata::init() {
     sectors = static_cast<u32>(identify[60]) |
               (static_cast<u32>(identify[61]) << 16);
 
+    // Extract model string from words 27-46 (40 ASCII chars, byte-swapped).
+    for (u32 i = 0; i < 20; ++i) {
+        model[i * 2]     = static_cast<char>(identify[27 + i] >> 8);
+        model[i * 2 + 1] = static_cast<char>(identify[27 + i] & 0xFF);
+    }
+    model[40] = '\0';
+
+    // Trim trailing spaces.
+    for (i32 i = 39; i >= 0 && model[i] == ' '; --i) {
+        model[i] = '\0';
+    }
+
     present = true;
 }
 
@@ -97,6 +109,10 @@ bool Ata::isPresent() const {
 
 u32 Ata::getSectors() const {
     return sectors;
+}
+
+const char* Ata::getModel() const {
+    return model;
 }
 
 bool Ata::readSectorInternal(u32 lba) {

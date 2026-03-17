@@ -48,6 +48,7 @@ private:
 
     bool present;
     u32 sectors;
+    char model[41];
 
     u8 sectorBuf[SECTOR_SIZE];
     u32 cachedLba;
@@ -65,6 +66,7 @@ public:
 
     bool isPresent() const;
     u32 getSectors() const;
+    const char* getModel() const;
 
     /**
      * @brief Read up to len bytes from a sector at the given byte offset.
