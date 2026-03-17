@@ -2,6 +2,8 @@
 # Use of this source code is governed by a MIT-style
 # license that can be found in the LICENSE file.
 
+DISK_SIZE_MB ?= 32
+
 ASMFLAGS = --32
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
 COMMON_CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
@@ -125,14 +127,26 @@ $(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBCASSIO)
 
 $(DISK):
 	@mkdir -p bin
-	qemu-img create -f raw $(DISK) 1M
+	dd if=/dev/zero of=$(DISK) bs=1M count=$(DISK_SIZE_MB) 2>/dev/null
+	mkfs.fat -F 32 $(DISK) >/dev/null 2>&1
+	@if [ -d disk ]; then \
+	    for f in $$(find disk/ -type f); do \
+	        rel=$${f#disk/}; \
+	        dir=$$(dirname "$$rel"); \
+	        if [ "$$dir" != "." ]; then \
+	            mmd -i $(DISK) "::/$${dir}" 2>/dev/null || true; \
+	        fi; \
+	        mcopy -i $(DISK) "$$f" "::/$${rel}"; \
+	    done; \
+	fi
 
 test: test-kernel test-userspace
 
 test-kernel:
 	@$(MAKE) --no-print-directory $(TEST_KERNEL) > /tmp/cassio-build.log 2>&1 \
 	    || (cat /tmp/cassio-build.log; exit 1); \
-	qemu-img create -f raw /tmp/cassio-test-disk.img 1M 2>/dev/null; \
+	dd if=/dev/zero of=/tmp/cassio-test-disk.img bs=1M count=32 2>/dev/null; \
+	mkfs.fat -F 32 /tmp/cassio-test-disk.img >/dev/null 2>&1; \
 	qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
@@ -146,7 +160,8 @@ test-kernel:
 test-userspace:
 	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERTEST) \
 	    > /tmp/cassio-build.log 2>&1 || (cat /tmp/cassio-build.log; exit 1); \
-	qemu-img create -f raw /tmp/cassio-usertest-disk.img 1M 2>/dev/null; \
+	dd if=/dev/zero of=/tmp/cassio-usertest-disk.img bs=1M count=32 2>/dev/null; \
+	mkfs.fat -F 32 /tmp/cassio-usertest-disk.img >/dev/null 2>&1; \
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
 	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
