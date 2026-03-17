@@ -15,6 +15,7 @@ KBD = bin/kbd.elf
 VGA = bin/vga.elf
 VFS = bin/vfs.elf
 MOUSE = bin/mouse.elf
+ATA = bin/ata.elf
 DEMO = bin/demo.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
@@ -77,6 +78,9 @@ $(VFS): $(LIBCOMMON)
 $(MOUSE): $(LIBCOMMON)
 	$(MAKE) -C userspace/mouse
 
+$(ATA): $(LIBCOMMON)
+	$(MAKE) -C userspace/ata
+
 $(DEMO): $(LIBCOMMON)
 	$(MAKE) -C userspace/demo
 
@@ -98,8 +102,10 @@ $(DISK):
 
 test: test-kernel test-userspace
 
-test-kernel: $(TEST_KERNEL)
-	@qemu-img create -f raw /tmp/cassio-test-disk.img 1M 2>/dev/null; \
+test-kernel:
+	@$(MAKE) --no-print-directory $(TEST_KERNEL) > /tmp/cassio-build.log 2>&1 \
+	    || (cat /tmp/cassio-build.log; exit 1); \
+	qemu-img create -f raw /tmp/cassio-test-disk.img 1M 2>/dev/null; \
 	qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
@@ -110,13 +116,18 @@ test-kernel: $(TEST_KERNEL)
 	cat /tmp/cassio-test-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
-test-userspace: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(USERTEST)
-	@qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(USERTEST)" \
+test-userspace:
+	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERTEST) \
+	    > /tmp/cassio-build.log 2>&1 || (cat /tmp/cassio-build.log; exit 1); \
+	qemu-img create -f raw /tmp/cassio-usertest-disk.img 1M 2>/dev/null; \
+	qemu-system-i386 -machine pc -kernel $(KERNEL) \
+	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
+	    -drive file=/tmp/cassio-usertest-disk.img,format=raw,if=ide \
 	    -no-reboot; \
 	EXIT_CODE=$$?; \
+	rm -f /tmp/cassio-usertest-disk.img; \
 	cat /tmp/cassio-usertest-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
@@ -136,9 +147,9 @@ iso: kernel
 	grub-mkrescue --output=$(ISO) iso
 	rm -rf iso
 
-run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(DEMO) $(DISK)
+run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(DEMO) $(DISK)
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(DEMO)" \
+	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(DEMO)" \
 	    -drive file=$(DISK),format=raw,if=ide
 
 .PHONY: kernel iso clean run test test-kernel test-userspace
