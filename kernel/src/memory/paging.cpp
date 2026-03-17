@@ -10,6 +10,7 @@
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
 #include "memory/virtual.hpp"
+#include <memory.hpp>
 
 using namespace cassio;
 using namespace cassio::memory;
@@ -17,9 +18,7 @@ using namespace cassio::memory;
 PagingManager PagingManager::instance;
 
 PagingManager::PagingManager() {
-    for (u32 i = 0; i < 1024; i++) {
-        pageDirectory[i] = 0;
-    }
+    memset(pageDirectory, 0, sizeof(pageDirectory));
 }
 
 void PagingManager::init(MultibootInfo* multibootInfo) {
@@ -85,9 +84,7 @@ void PagingManager::mapPage(u32 virtualAddr, u32 physicalAddr, u16 flags) {
         // Zero the new page table. allocFrame() returns a physical address;
         // add KERNEL_VBASE to get a dereferenceable virtual pointer.
         u32* pageTable = (u32*)((u32)frame + KERNEL_VBASE);
-        for (u32 i = 0; i < 1024; i++) {
-            pageTable[i] = 0;
-        }
+        memset(pageTable, 0, 1024 * sizeof(u32));
 
         // Store the physical address in the PDE (hardware requirement).
         pageDirectory[pdIndex] = (u32)frame | PAGE_PRESENT | PAGE_READWRITE;
@@ -126,14 +123,10 @@ u32 PagingManager::createAddressSpace() {
     u32* newPd = (u32*)((u32)frame + KERNEL_VBASE);
 
     // Zero user PDEs (0-767).
-    for (u32 i = 0; i < 768; i++) {
-        newPd[i] = 0;
-    }
+    memset(newPd, 0, 768 * sizeof(u32));
 
     // Copy kernel PDEs (768-1023) so kernel mappings are shared.
-    for (u32 i = 768; i < 1024; i++) {
-        newPd[i] = pageDirectory[i];
-    }
+    memcpy(&newPd[768], &pageDirectory[768], 256 * sizeof(u32));
 
     return (u32)frame;
 }

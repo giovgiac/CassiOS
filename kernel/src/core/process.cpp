@@ -8,6 +8,7 @@
  */
 
 #include "core/process.hpp"
+#include <memory.hpp>
 
 using namespace cassio;
 using namespace cassio::kernel;
@@ -66,12 +67,7 @@ u32 Process::sendQueuePop() {
 // -- Notification queue (heap-backed linked list) --
 
 static void copyMsg(const Message& src, Message& dst) {
-    dst.type = src.type;
-    dst.arg1 = src.arg1;
-    dst.arg2 = src.arg2;
-    dst.arg3 = src.arg3;
-    dst.arg4 = src.arg4;
-    dst.arg5 = src.arg5;
+    memcpy(&dst, &src, sizeof(Message));
 }
 
 bool Process::notifyPush(u32 senderPid, const Message& m,
@@ -90,10 +86,7 @@ bool Process::notifyPush(u32 senderPid, const Message& m,
             delete node;
             return false;
         }
-        const u8* src = static_cast<const u8*>(data);
-        for (u32 i = 0; i < dataLen; i++) {
-            node->data[i] = src[i];
-        }
+        memcpy(node->data, data, dataLen);
         node->dataLen = dataLen;
     }
     notifyQueue.pushBack(node);
@@ -111,10 +104,7 @@ bool Process::notifyPop(u32& senderPid, Message& m,
     if (node->data != nullptr && node->dataLen > 0 &&
         dataDst != nullptr && dataCapacity > 0) {
         u32 copyLen = node->dataLen < dataCapacity ? node->dataLen : dataCapacity;
-        u8* dst = static_cast<u8*>(dataDst);
-        for (u32 i = 0; i < copyLen; i++) {
-            dst[i] = node->data[i];
-        }
+        memcpy(dataDst, node->data, copyLen);
     }
     operator delete(node->data);
     delete node;

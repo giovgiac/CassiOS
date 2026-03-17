@@ -9,6 +9,7 @@
 
 #include <filesystem.hpp>
 #include <string.hpp>
+#include <memory.hpp>
 
 using namespace cassio;
 using namespace cassio::vfs;
@@ -243,9 +244,7 @@ i32 Filesystem::read(u8 node, u32 offset, u8* buf, u32 len) {
     u32 available = nodes[node].size - offset;
     u32 toRead = len < available ? len : available;
 
-    for (u32 i = 0; i < toRead; i++) {
-        buf[i] = nodes[node].data[offset + i];
-    }
+    memcpy(buf, &nodes[node].data[offset], toRead);
 
     return static_cast<i32>(toRead);
 }
@@ -258,9 +257,7 @@ bool Filesystem::write(u8 node, const u8* data, u32 len) {
         return false;
     }
 
-    for (u32 i = 0; i < len; i++) {
-        nodes[node].data[i] = data[i];
-    }
+    memcpy(nodes[node].data, data, len);
     nodes[node].size = len;
     return true;
 }

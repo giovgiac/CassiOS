@@ -9,6 +9,7 @@
 
 #include "core/syscall.hpp"
 #include "core/process.hpp"
+#include <memory.hpp>
 #include "core/scheduler.hpp"
 #include "hardware/pit.hpp"
 #include "hardware/interrupt.hpp"
@@ -34,12 +35,7 @@ void SyscallHandler::load() {
 }
 
 static void copyMessage(const Message* src, Message* dst) {
-    dst->type = src->type;
-    dst->arg1 = src->arg1;
-    dst->arg2 = src->arg2;
-    dst->arg3 = src->arg3;
-    dst->arg4 = src->arg4;
-    dst->arg5 = src->arg5;
+    memcpy(dst, src, sizeof(Message));
 }
 
 // Copy a message to a userspace buffer that belongs to a different process.
@@ -73,22 +69,16 @@ static void copyDataToProcess(Process* target, u8* dst, const u8* src, u32 len) 
             u32 n = len - offset;
             if (n > 256) n = 256;
 
-            for (u32 i = 0; i < n; i++) {
-                chunk[i] = src[offset + i];
-            }
+            memcpy(chunk, src + offset, n);
 
             asm volatile("mov %0, %%cr3" : : "r"(targetPD) : "memory");
-            for (u32 i = 0; i < n; i++) {
-                dst[offset + i] = chunk[i];
-            }
+            memcpy(dst + offset, chunk, n);
             asm volatile("mov %0, %%cr3" : : "r"(currentCR3) : "memory");
 
             offset += n;
         }
     } else {
-        for (u32 i = 0; i < len; i++) {
-            dst[i] = src[i];
-        }
+        memcpy(dst, src, len);
     }
 }
 
@@ -107,21 +97,15 @@ static void copyDataFromProcess(Process* source, u8* dst, const u8* src, u32 len
             if (n > 256) n = 256;
 
             asm volatile("mov %0, %%cr3" : : "r"(sourcePD) : "memory");
-            for (u32 i = 0; i < n; i++) {
-                chunk[i] = src[offset + i];
-            }
+            memcpy(chunk, src + offset, n);
             asm volatile("mov %0, %%cr3" : : "r"(currentCR3) : "memory");
 
-            for (u32 i = 0; i < n; i++) {
-                dst[offset + i] = chunk[i];
-            }
+            memcpy(dst + offset, chunk, n);
 
             offset += n;
         }
     } else {
-        for (u32 i = 0; i < len; i++) {
-            dst[i] = src[i];
-        }
+        memcpy(dst, src, len);
     }
 }
 
