@@ -97,6 +97,20 @@ i32 SyscallHandler::receive(Message* msg) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* receiver = pm.current();
 
+    // Check for pending IRQ notifications first.
+    IrqManager& irqMgr = IrqManager::getManager();
+    if (irqMgr.deliverPending(receiver->pid, msg)) {
+        return -2;  // IRQ notification delivered; handleSyscall sets eax=0.
+    }
+
+    // Drain queued notifications before blocked senders so that
+    // fire-and-forget messages are processed in chronological order
+    // relative to blocking sends from the same source.
+    u32 notifySender;
+    if (receiver->notifyPop(notifySender, *msg)) {
+        return -3;
+    }
+
     if (receiver->sendQueueCount > 0) {
         // Pending sender -- deliver immediately.
         u32 senderPid = receiver->sendQueuePop();
@@ -109,20 +123,7 @@ i32 SyscallHandler::receive(Message* msg) {
         return static_cast<i32>(senderPid);
     }
 
-    // Check for pending IRQ notifications before blocking.
-    IrqManager& irqMgr = IrqManager::getManager();
-    if (irqMgr.deliverPending(receiver->pid, msg)) {
-        return -2;  // IRQ notification delivered; handleSyscall sets eax=0.
-    }
-
-    // Check for queued notifications (fire-and-forget messages).
-    // Return -3 so handleSyscall sets eax=0 (no reply expected).
-    u32 notifySender;
-    if (receiver->notifyPop(notifySender, *msg)) {
-        return -3;
-    }
-
-    // No pending senders, IRQs, or notifications -- block.
+    // No pending IRQs, notifications, or senders -- block.
     receiver->msgPtr = (u32)msg;
     receiver->state = ProcessState::ReceiveBlocked;
     return 0;  // Caller should block.

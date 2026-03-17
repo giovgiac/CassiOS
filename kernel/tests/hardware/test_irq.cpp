@@ -204,7 +204,7 @@ TEST(irq_register_forward_invalid_irq_fails) {
     ASSERT_EQ(result, static_cast<i32>(-1));
 }
 
-TEST(irq_forward_sender_queue_takes_priority_over_pending_irq) {
+TEST(irq_forward_irq_takes_priority_over_send_queue) {
     IrqManager& irqMgr = IrqManager::getManager();
     ProcessManager& pm = ProcessManager::getManager();
     SyscallHandler& sh = SyscallHandler::getSyscallHandler();
@@ -223,19 +223,19 @@ TEST(irq_forward_sender_queue_takes_priority_over_pending_irq) {
     receiver->state = ProcessState::Ready;
     irqMgr.handleIrq(0x25, 0);  // Sets pending (receiver not ReceiveBlocked).
 
-    // receive() should deliver from the send queue first.
+    // receive() should deliver the IRQ first (highest priority).
     pm.setCurrent(receiver);
     Message recvBuf = {};
     i32 result = sh.receive(&recvBuf);
 
-    ASSERT_EQ(result, static_cast<i32>(sender->pid));
-    ASSERT_EQ(recvBuf.type, 42u);
-
-    // Next receive() should deliver the pending IRQ.
-    result = sh.receive(&recvBuf);
     ASSERT_EQ(result, static_cast<i32>(-2));
     ASSERT_EQ(recvBuf.type, MessageType::IrqNotify);
     ASSERT_EQ(recvBuf.arg1, 5u);
+
+    // Next receive() should deliver from the send queue.
+    result = sh.receive(&recvBuf);
+    ASSERT_EQ(result, static_cast<i32>(sender->pid));
+    ASSERT_EQ(recvBuf.type, 42u);
 
     // Clean up.
     irqMgr.registerForward(5, 0);

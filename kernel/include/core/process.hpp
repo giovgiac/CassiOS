@@ -56,7 +56,7 @@ struct Process {
         Message msg;
     };
 
-    static constexpr u32 NOTIFY_QUEUE_SIZE = 8;
+    static constexpr u32 NOTIFY_QUEUE_SIZE = 32;
     Notification notifyQueue[NOTIFY_QUEUE_SIZE];
     u32 notifyHead;
     u32 notifyTail;

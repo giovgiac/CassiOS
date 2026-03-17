@@ -28,30 +28,17 @@ Shell::Shell(u32 kbd, u32 vga, u32 vfs)
     }
 }
 
-// --- VGA helpers (blocking send for ordering) ---
+// --- VGA helpers ---
+// Use fire-and-forget notify for output (no round-trip, fast).
+// Only printPrompt and redrawLine use blocking send (need cursor position
+// or ordering with setCursor).
 
 void Shell::print(const char* str) {
-    // Use blocking send (not notify) for correct ordering with setCursor.
-    while (*str != '\0') {
-        Message msg = {};
-        msg.type = MessageType::VgaWrite;
-        char* data = reinterpret_cast<char*>(&msg.arg1);
-        u32 i = 0;
-        while (i < 20 && str[i] != '\0') {
-            data[i] = str[i];
-            ++i;
-        }
-        if (i < 20) data[i] = '\0';
-        IPC::send(vgaPid, &msg);
-        str += i;
-    }
+    Vga::write(vgaPid, str);
 }
 
 void Shell::putchar(char ch) {
-    Message msg = {};
-    msg.type = MessageType::VgaPutchar;
-    msg.arg1 = static_cast<u8>(ch);
-    IPC::send(vgaPid, &msg);
+    Vga::putchar(vgaPid, ch);
 }
 
 void Shell::printDec(u32 val) {
