@@ -7,15 +7,15 @@
  *
  */
 
-#ifndef DRIVERS_PIT_HPP_
-#define DRIVERS_PIT_HPP_
+#ifndef HARDWARE_PIT_HPP_
+#define HARDWARE_PIT_HPP_
 
 #include <types.hpp>
 #include <hardware/irq.hpp>
 #include <hardware/port.hpp>
 
 namespace cassio {
-namespace drivers {
+namespace hardware {
 
 // PIT oscillator base frequency in Hz.
 constexpr u32 PIT_BASE_FREQUENCY = 1193182;
@@ -94,7 +94,7 @@ public:
     PitTimer& operator=(PitTimer&&) = delete;
 };
 
-} // drivers
+} // hardware
 } // cassio
 
-#endif // DRIVERS_PIT_HPP_
+#endif // HARDWARE_PIT_HPP_

@@ -11,14 +11,13 @@
 #include "core/kernel.hpp"
 #include "core/process.hpp"
 #include "core/scheduler.hpp"
-#include "drivers/pit.hpp"
+#include "hardware/pit.hpp"
 #include "memory/heap.hpp"
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
 #include "memory/virtual.hpp"
 
 using namespace cassio;
-using namespace cassio::drivers;
 using namespace cassio::hardware;
 using namespace cassio::kernel;
 using namespace cassio::memory;

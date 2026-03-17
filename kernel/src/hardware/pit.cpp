@@ -7,11 +7,11 @@
  *
  */
 
-#include "drivers/pit.hpp"
+#include "hardware/pit.hpp"
 #include "core/scheduler.hpp"
 
 using namespace cassio;
-using namespace cassio::drivers;
+using namespace cassio::hardware;
 using namespace cassio::hardware;
 
 PitTimer PitTimer::instance;

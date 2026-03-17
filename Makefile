@@ -16,7 +16,6 @@ VGA = bin/vga.elf
 VFS = bin/vfs.elf
 MOUSE = bin/mouse.elf
 ATA = bin/ata.elf
-DEMO = bin/demo.elf
 USERSHELL = bin/shell.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
@@ -79,9 +78,6 @@ $(MOUSE): $(LIBCOMMON)
 
 $(ATA): $(LIBCOMMON)
 	$(MAKE) -C userspace/ata
-
-$(DEMO): $(LIBCOMMON)
-	$(MAKE) -C userspace/demo
 
 $(USERSHELL): $(LIBCOMMON)
 	$(MAKE) -C userspace/shell

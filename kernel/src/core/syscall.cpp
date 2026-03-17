@@ -10,7 +10,7 @@
 #include "core/syscall.hpp"
 #include "core/process.hpp"
 #include "core/scheduler.hpp"
-#include "drivers/pit.hpp"
+#include "hardware/pit.hpp"
 #include "hardware/interrupt.hpp"
 #include "hardware/irq.hpp"
 #include "hardware/port.hpp"
@@ -18,9 +18,8 @@
 #include "memory/paging.hpp"
 
 using namespace cassio;
-using namespace cassio::kernel;
-using namespace cassio::drivers;
 using namespace cassio::hardware;
+using namespace cassio::kernel;
 
 extern "C" void syscallEntry();
 

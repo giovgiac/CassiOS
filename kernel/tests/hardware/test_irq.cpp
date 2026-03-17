@@ -1,13 +1,12 @@
 #include <hardware/irq.hpp>
 #include <core/process.hpp>
 #include <core/syscall.hpp>
-#include <drivers/pit.hpp>
+#include <hardware/pit.hpp>
 #include <test.hpp>
 
 using namespace cassio;
 using namespace cassio::hardware;
 using namespace cassio::kernel;
-using namespace cassio::drivers;
 
 TEST(irq_dispatch_to_pit) {
     // handleIrq(0x20) should dispatch to PitTimer and increment ticks.

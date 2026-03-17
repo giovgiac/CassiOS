@@ -1,5 +1,5 @@
 SERVICE = shell
-SOURCES = main.cpp shell.cpp
+SOURCES = main.cpp shell.cpp commands/system.cpp commands/navigation.cpp commands/file.cpp
 
 ROOT     = $(dir $(lastword $(MAKEFILE_LIST)))../..
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/include/ -Iinclude/

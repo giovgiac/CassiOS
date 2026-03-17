@@ -55,7 +55,7 @@ ATA_TEST_OBJECTS = $(patsubst $(ATA_DIR)/tests/%.cpp, $(OBJDIR)/ata/tests/%.o, $
 
 # Shell tests and implementation (compiled from shell/).
 SHELL_TEST_SOURCES = $(wildcard $(SHELL_DIR)/tests/test_*.cpp)
-SHELL_IMPL_SOURCES = $(SHELL_DIR)/src/shell.cpp
+SHELL_IMPL_SOURCES = $(SHELL_DIR)/src/shell.cpp $(wildcard $(SHELL_DIR)/src/commands/*.cpp)
 SHELL_TEST_OBJECTS = $(patsubst $(SHELL_DIR)/tests/%.cpp, $(OBJDIR)/shell/tests/%.o, $(SHELL_TEST_SOURCES))
 SHELL_IMPL_OBJECTS = $(patsubst $(SHELL_DIR)/src/%.cpp, $(OBJDIR)/shell/src/%.o, $(SHELL_IMPL_SOURCES))
 

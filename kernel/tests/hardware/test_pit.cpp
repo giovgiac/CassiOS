@@ -1,8 +1,8 @@
-#include <drivers/pit.hpp>
+#include <hardware/pit.hpp>
 #include <test.hpp>
 
 using namespace cassio;
-using namespace cassio::drivers;
+using namespace cassio::hardware;
 using namespace cassio::hardware;
 
 TEST(pit_port_constants) {
