@@ -23,6 +23,8 @@ private:
     i32 dy;
 
 public:
+    Mouse() = default;
+
     void init();
 
     /**
@@ -45,6 +47,11 @@ public:
     u8 getButtons() const;
     i32 getDx() const;
     i32 getDy() const;
+
+    Mouse(const Mouse&) = delete;
+    Mouse(Mouse&&) = delete;
+    Mouse& operator=(const Mouse&) = delete;
+    Mouse& operator=(Mouse&&) = delete;
 };
 
 } // cassio

@@ -7,6 +7,13 @@
 
 .global syscallEntry
 syscallEntry:
+    # Push dummy error_code and number for uniform stack layout with
+    # the interrupt/exception stubs. This ensures context switches work
+    # correctly regardless of whether a process was preempted (interrupt)
+    # or blocked voluntarily (syscall).
+    pushl   $0
+    pushl   $0x80
+
     pusha
     pushl   %ds
     pushl   %es
@@ -27,4 +34,5 @@ syscallEntry:
     pop     %es
     pop     %ds
     popa
+    addl    $8, %esp    # skip number + error_code
     iret

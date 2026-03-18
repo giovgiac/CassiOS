@@ -61,6 +61,8 @@ private:
     bool writeSectorInternal(u32 lba);
 
 public:
+    Ata() = default;
+
     void init();
     void handleIrq();
 
@@ -83,6 +85,11 @@ public:
      *
      */
     bool writeSector(u32 lba, const u8* buf);
+
+    Ata(const Ata&) = delete;
+    Ata(Ata&&) = delete;
+    Ata& operator=(const Ata&) = delete;
+    Ata& operator=(Ata&&) = delete;
 };
 
 } // ata

@@ -483,12 +483,16 @@ bool Fat32Filesystem::resolvePath(const char* path, u32* clusterOut,
             cluster = (parentCluster == 0) ? rootCluster : parentCluster;
 
             // Fill a synthetic entry for the parent directory.
+            // entryCluster/entryOffset are zeroed because the synthetic
+            // entry has no real on-disk location (same as root).
             if (entryOut) {
                 memset(entryOut, 0, sizeof(DirEntry));
                 entryOut->attr = DirAttr::Directory;
                 entryOut->firstClusterHigh = static_cast<u16>(cluster >> 16);
                 entryOut->firstClusterLow = static_cast<u16>(cluster);
             }
+            if (entryCluster) *entryCluster = 0;
+            if (entryOffset) *entryOffset = 0;
             continue;
         }
 
@@ -862,12 +866,15 @@ bool Fat32Filesystem::removeEntry(u32 dirCluster, const char* name) {
 bool Fat32Filesystem::mount(u32 ataServicePid) {
     ataPid = ataServicePid;
 
-    // Initialize handles.
+    // Heap-allocate handles and cache.
+    handles = new FileHandle[MAX_HANDLES];
+    if (!handles) return false;
     for (u32 i = 0; i < MAX_HANDLES; i++) {
         handles[i].inUse = false;
     }
 
-    // Initialize sector cache.
+    cache = new CacheEntry[CACHE_SIZE];
+    if (!cache) return false;
     cacheAge = 0;
     for (u32 i = 0; i < CACHE_SIZE; i++) {
         cache[i].valid = false;

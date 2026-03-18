@@ -48,14 +48,14 @@ namespace MessageType {
     constexpr u32 VfsRead      = 13;
     constexpr u32 VfsWrite     = 14;
     constexpr u32 VfsList      = 15;
-    constexpr u32 VfsStat      = 19;
+    constexpr u32 VfsStat      = 16;
 
     // Mouse.
-    constexpr u32 MouseRead    = 16;
+    constexpr u32 MouseRead    = 17;
 
     // ATA.
-    constexpr u32 AtaRead      = 17;
-    constexpr u32 AtaWrite     = 18;
+    constexpr u32 AtaRead      = 18;
+    constexpr u32 AtaWrite     = 19;
 }
 
 } // cassio

@@ -302,6 +302,17 @@ i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
         return -1;
     }
 
+    // Only allow mapping physical addresses below 1MB (device/MMIO region).
+    // The sub-1MB region is at most 256 pages; reject larger counts to
+    // prevent pages * 0x1000 from wrapping u32.
+    if (pages > 0x100) {
+        return -1;
+    }
+    u32 endPhysical = physical + pages * 0x1000;
+    if (endPhysical < physical || endPhysical > 0x100000) {
+        return -1;
+    }
+
     memory::PagingManager& paging = memory::PagingManager::getManager();
     u16 flags = memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER;
 
@@ -362,7 +373,24 @@ u32 SyscallHandler::sbrk(u32 increment) {
         return oldBreak;
     }
 
+    // Check for u32 overflow.
+    if (oldBreak + increment < oldBreak) {
+        return 0;
+    }
+
     u32 newBreak = (oldBreak + increment + memory::FRAME_SIZE - 1) & ~(memory::FRAME_SIZE - 1);
+
+    // The page-alignment rounding can itself wrap when oldBreak + increment
+    // falls near 0xFFFFFFFF.
+    if (newBreak < oldBreak) {
+        return 0;
+    }
+
+    // Prevent heap from colliding with the user stack (top page at 0xBFFFF000).
+    static constexpr u32 USER_STACK_BOTTOM = 0xBFFFF000;
+    if (newBreak > USER_STACK_BOTTOM) {
+        return 0;
+    }
 
     memory::PagingManager& paging = memory::PagingManager::getManager();
     memory::PhysicalMemoryManager& pmm = memory::PhysicalMemoryManager::getManager();
@@ -374,6 +402,10 @@ u32 SyscallHandler::sbrk(u32 increment) {
         }
         paging.mapUserPage(caller->pageDirectory, addr, (u32)frame,
                            memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER);
+
+        // Flush TLB for the newly mapped page so userspace doesn't fault
+        // on first access due to stale TLB entries.
+        paging.flushTLB(addr);
     }
 
     caller->heapBreak = newBreak;

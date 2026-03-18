@@ -48,6 +48,10 @@ public:
 
     static inline i32 read(u32 pid, u32 handle, u32 offset, u8* buf,
                            u32 bufLen) {
+        // Zero the buffer to avoid leaking uninitialized stack contents
+        // across address spaces. The VFS ignores incoming data for reads
+        // and replies with file contents in the same buffer.
+        for (u32 i = 0; i < bufLen; i++) buf[i] = 0;
         Message msg = {};
         msg.type = MessageType::VfsRead;
         msg.arg1 = handle;
@@ -82,7 +86,10 @@ public:
         while (path[pathLen] != '\0') pathLen++;
 
         // Use a local buffer: send the path, reply overwrites with the name.
-        char buf[64];
+        // Buffer is one byte larger than SHELL_MAX_PATH to ensure null
+        // termination at maximum path length.
+        char buf[65];
+        for (u32 k = 0; k < sizeof(buf); k++) buf[k] = 0;
         u32 i = 0;
         while (i < sizeof(buf) - 1 && i <= pathLen) {
             buf[i] = path[i];

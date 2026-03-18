@@ -49,10 +49,10 @@ private:
     // FAT read on demand via sector cache.
     u32 fatEntryCount;
 
-    // Handle table.
-    FileHandle handles[MAX_HANDLES];
+    // Handle table (heap-allocated).
+    FileHandle* handles;
 
-    // Sector cache (LRU).
+    // Sector cache (LRU, heap-allocated).
     struct CacheEntry {
         u32 lba;
         u8* data;
@@ -60,7 +60,7 @@ private:
         bool valid;
         bool dirty;
     };
-    CacheEntry cache[CACHE_SIZE];
+    CacheEntry* cache;
     u32 cacheAge;
 
     // Sector I/O (cached).
@@ -103,6 +103,8 @@ private:
     u32 clusterAtOffset(u32 startCluster, u32 byteOffset);
 
 public:
+    Fat32Filesystem() = default;
+
     bool mount(u32 ataPid);
 
     bool createDirectory(const char* path);
@@ -116,6 +118,11 @@ public:
 
     // Returns 0 = not found, 1 = file, 2 = directory.
     u32 stat(const char* path);
+
+    Fat32Filesystem(const Fat32Filesystem&) = delete;
+    Fat32Filesystem(Fat32Filesystem&&) = delete;
+    Fat32Filesystem& operator=(const Fat32Filesystem&) = delete;
+    Fat32Filesystem& operator=(Fat32Filesystem&&) = delete;
 };
 
 } // vfs

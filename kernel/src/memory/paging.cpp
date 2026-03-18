@@ -73,6 +73,8 @@ void PagingManager::mapPage(u32 virtualAddr, u32 physicalAddr, u16 flags) {
     u32 pdIndex = virtualAddr >> 22;
     u32 ptIndex = (virtualAddr >> 12) & 0x3FF;
 
+    bool newPde = false;
+
     // Allocate a page table if this directory entry is empty.
     if (!(pageDirectory[pdIndex] & PAGE_PRESENT)) {
         PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
@@ -88,11 +90,19 @@ void PagingManager::mapPage(u32 virtualAddr, u32 physicalAddr, u16 flags) {
 
         // Store the physical address in the PDE (hardware requirement).
         pageDirectory[pdIndex] = (u32)frame | PAGE_PRESENT | PAGE_READWRITE;
+        newPde = true;
     }
 
     // Read the physical address from the PDE, add KERNEL_VBASE to dereference.
     u32* pageTable = (u32*)((pageDirectory[pdIndex] & 0xFFFFF000) + KERNEL_VBASE);
     pageTable[ptIndex] = (physicalAddr & 0xFFFFF000) | (flags & 0xFFF);
+
+    // Flush TLB after writing the PTE. This is essential when a new PDE was
+    // just created -- stale TLB entries from a former PDE could cause
+    // incorrect mappings.
+    if (newPde) {
+        flushTLB(virtualAddr);
+    }
 }
 
 void PagingManager::unmapPage(u32 virtualAddr) {

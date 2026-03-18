@@ -65,6 +65,15 @@ ElfLoadResult ElfLoader::load(u32 pdPhysical, const u8* elfData, u32 elfSize) {
             continue;
         }
 
+        // Validate p_offset and p_filesz to prevent u32 wrap-around
+        // that could read kernel memory into a userspace page.
+        if (ph->p_offset > elfSize ||
+            ph->p_filesz > elfSize ||
+            ph->p_offset + ph->p_filesz < ph->p_offset ||
+            ph->p_offset + ph->p_filesz > elfSize) {
+            return result;
+        }
+
         // Track the highest virtual address for heap placement.
         u32 segEnd = ph->p_vaddr + ph->p_memsz;
         if (segEnd > highestEnd) {

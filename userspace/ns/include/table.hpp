@@ -32,7 +32,9 @@ public:
     u32 count() const;
 
     NsTable(const NsTable&) = delete;
+    NsTable(NsTable&&) = delete;
     NsTable& operator=(const NsTable&) = delete;
+    NsTable& operator=(NsTable&&) = delete;
 
 private:
     LinkedList<Entry> entries;
