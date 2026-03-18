@@ -19,12 +19,11 @@ namespace kernel {
 
 /**
  * @brief Layout of the saved register frame on the kernel stack after
- *        pusha + segment register pushes in the interrupt/exception stubs.
+ *        pusha + segment register pushes in all stubs (interrupt, exception,
+ *        and syscall).
  *
- * Each stub pushes [error_code, number] before pusha, giving a uniform
- * layout across all interrupt paths. The syscall stub has its own layout
- * without these fields, but SyscallFrame is also used to access the saved
- * EAX of blocked processes (which went through the syscall stub).
+ * Every stub pushes [error_code, number] before pusha for a uniform
+ * stack layout, ensuring context switches work regardless of entry path.
  *
  */
 struct SyscallFrame {

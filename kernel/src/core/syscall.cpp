@@ -303,8 +303,11 @@ i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
     }
 
     // Only allow mapping physical addresses below 1MB (device/MMIO region).
-    // Addresses >= 1MB are RAM managed by the frame allocator and must not
-    // be arbitrarily mappable by userspace.
+    // The sub-1MB region is at most 256 pages; reject larger counts to
+    // prevent pages * 0x1000 from wrapping u32.
+    if (pages > 0x100) {
+        return -1;
+    }
     u32 endPhysical = physical + pages * 0x1000;
     if (endPhysical < physical || endPhysical > 0x100000) {
         return -1;
@@ -376,6 +379,12 @@ u32 SyscallHandler::sbrk(u32 increment) {
     }
 
     u32 newBreak = (oldBreak + increment + memory::FRAME_SIZE - 1) & ~(memory::FRAME_SIZE - 1);
+
+    // The page-alignment rounding can itself wrap when oldBreak + increment
+    // falls near 0xFFFFFFFF.
+    if (newBreak < oldBreak) {
+        return 0;
+    }
 
     // Prevent heap from colliding with the user stack (top page at 0xBFFFF000).
     static constexpr u32 USER_STACK_BOTTOM = 0xBFFFF000;

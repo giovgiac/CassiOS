@@ -51,7 +51,6 @@ private:
 
     // Handle table (heap-allocated).
     FileHandle* handles;
-    u32 handleCount;
 
     // Sector cache (LRU, heap-allocated).
     struct CacheEntry {
@@ -62,7 +61,6 @@ private:
         bool dirty;
     };
     CacheEntry* cache;
-    u32 cacheCount;
     u32 cacheAge;
 
     // Sector I/O (cached).
