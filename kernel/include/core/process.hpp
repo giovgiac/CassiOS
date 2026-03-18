@@ -53,6 +53,7 @@ struct Process {
 
     u32 pageDirectory;
     u32 kernelEsp;
+    u32 heapBase;   // Initial heap address (set once at ELF load, for heap size).
     u32 heapBreak;  // Current top of process heap (page-aligned, for sbrk).
 
     // IPC state.

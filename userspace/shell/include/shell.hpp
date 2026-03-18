@@ -46,6 +46,7 @@ private:
     void cmdClear();
     void cmdEcho(const char** args, u8 argc);
     void cmdMem();
+    void cmdPs();
     void cmdUptime();
     void cmdReboot();
     void cmdShutdown();

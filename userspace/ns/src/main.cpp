@@ -29,6 +29,9 @@ static NsTable table;
 extern "C" void _start() {
     UserHeap::init(sbrkGrow, 4096);
 
+    // Self-register (can't use IPC to send to ourselves).
+    table.registerName("ns", Nameserver::PID);
+
     while (true) {
         Message msg;
         i32 sender = IPC::receive(&msg);
@@ -43,13 +46,24 @@ extern "C" void _start() {
         case MessageType::NsRegister:
             Nameserver::unpackName(msg, name);
             reply.arg1 = table.registerName(name, static_cast<u32>(sender));
+            IPC::reply(static_cast<u32>(sender), &reply);
             break;
         case MessageType::NsLookup:
             Nameserver::unpackName(msg, name);
             reply.arg1 = table.lookup(name);
+            IPC::reply(static_cast<u32>(sender), &reply);
+            break;
+        case MessageType::NsListAll: {
+            NsEntry buf[16];
+            u32 count = table.listAll(buf, 16);
+            reply.arg1 = count;
+            IPC::reply(static_cast<u32>(sender), &reply,
+                       buf, count * sizeof(NsEntry));
             break;
         }
-
-        IPC::reply(static_cast<u32>(sender), &reply);
+        default:
+            IPC::reply(static_cast<u32>(sender), &reply);
+            break;
+        }
     }
 }

@@ -33,6 +33,8 @@ extern "C" void _start() {
         vfsPid = Nameserver::lookup("vfs");
     }
 
+    Nameserver::registerName("shell");
+
     Shell shell(kbdPid, vgaPid, vfsPid);
     shell.run();
 }

@@ -12,6 +12,7 @@
 
 #include <types.hpp>
 #include <list.hpp>
+#include <ns.hpp>
 
 namespace cassio {
 
@@ -29,6 +30,7 @@ public:
 
     u32 registerName(const char* name, u32 pid);
     u32 lookup(const char* name);
+    u32 listAll(NsEntry* buf, u32 maxEntries) const;
     u32 count() const;
 
     NsTable(const NsTable&) = delete;

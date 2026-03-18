@@ -29,8 +29,15 @@ namespace SyscallNumber {
     constexpr u32 Notify      = 11;
     constexpr u32 MemInfo     = 12;
     constexpr u32 Sbrk        = 13;
-    constexpr u32 Count       = 14;
+    constexpr u32 ProcList    = 14;
+    constexpr u32 Count       = 15;
 }
+
+struct ProcEntry {
+    u32 pid;
+    u32 state;
+    u32 heapSize;
+};
 
 } // cassio
 

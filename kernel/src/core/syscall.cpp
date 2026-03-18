@@ -359,6 +359,24 @@ void SyscallHandler::exit(u32 code) {
     debug_exit.write(code == 0 ? 0x00 : 0x01);
 }
 
+u32 SyscallHandler::procList(ProcEntry* buf, u32 maxEntries) {
+    ProcessManager& pm = ProcessManager::getManager();
+    u32 count = 0;
+
+    for (Process* p = pm.getHead(); p && count < maxEntries; p = p->next) {
+        if (p->pid == 0) {
+            continue;  // Skip kernel task.
+        }
+        buf[count].pid = p->pid;
+        buf[count].state = static_cast<u32>(p->state);
+        buf[count].heapSize = (p->heapBreak > p->heapBase)
+                            ? (p->heapBreak - p->heapBase) : 0;
+        ++count;
+    }
+
+    return count;
+}
+
 u32 SyscallHandler::sbrk(u32 increment) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* caller = pm.current();
@@ -490,6 +508,9 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
     }
     case SyscallNumber::Sbrk:
         frame->eax = sbrk(frame->ebx);
+        return esp;
+    case SyscallNumber::ProcList:
+        frame->eax = procList((ProcEntry*)frame->ebx, frame->ecx);
         return esp;
     default:
         frame->eax = static_cast<u32>(-1);

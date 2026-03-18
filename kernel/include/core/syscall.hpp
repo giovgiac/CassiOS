@@ -116,6 +116,15 @@ public:
      */
     u32 sbrk(u32 increment);
 
+    /**
+     * @brief Returns process info for all userspace processes.
+     *
+     * Writes up to maxEntries ProcEntry structs into buf, skipping PID 0.
+     * Returns the number of entries written.
+     *
+     */
+    u32 procList(ProcEntry* buf, u32 maxEntries);
+
     /** Deleted Methods */
     SyscallHandler(const SyscallHandler&) = delete;
     SyscallHandler(SyscallHandler&&) = delete;
