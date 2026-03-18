@@ -10,7 +10,7 @@
 #ifndef COMMON_LIST_HPP_
 #define COMMON_LIST_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
@@ -83,13 +83,13 @@ public:
 
     T* getHead() const { return head; }
     T* getTail() const { return tail; }
-    u32 getCount() const { return count; }
+    std::u32 getCount() const { return count; }
     bool isEmpty() const { return head == nullptr; }
 
 private:
     T* head;
     T* tail;
-    u32 count;
+    std::u32 count;
 };
 
 } // cassio

@@ -15,6 +15,7 @@
 #include <string.hpp>
 
 using namespace cassio;
+using namespace std;
 
 void Shell::cmdHelp() {
     print("Available commands:\n");

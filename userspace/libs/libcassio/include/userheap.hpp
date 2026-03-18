@@ -10,7 +10,7 @@
 #ifndef COMMON_USERHEAP_HPP_
 #define COMMON_USERHEAP_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <heap.hpp>
 
 namespace cassio {
@@ -24,10 +24,10 @@ namespace cassio {
  */
 class UserHeap {
 public:
-    using GrowFn = void*(*)(u32);
+    using GrowFn = void*(*)(std::u32);
 
-    static void init(GrowFn grow, u32 initialSize);
-    static void* alloc(usize size);
+    static void init(GrowFn grow, std::u32 initialSize);
+    static void* alloc(std::usize size);
     static void free(void* ptr);
 
 private:

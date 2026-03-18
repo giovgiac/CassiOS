@@ -12,6 +12,7 @@
 #include <vfs.hpp>
 
 using namespace cassio;
+using namespace std;
 
 void Shell::cmdLs(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];

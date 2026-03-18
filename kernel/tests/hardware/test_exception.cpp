@@ -3,6 +3,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::hardware;
 
 TEST(exception_vectors_have_distinct_handlers) {

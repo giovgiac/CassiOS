@@ -10,7 +10,7 @@
  *
  */
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
@@ -20,6 +20,7 @@
 #include <fat32/filesystem.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::vfs;
 
 static void* sbrkGrow(u32 size) {

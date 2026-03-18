@@ -13,6 +13,7 @@
 #include "core/syscall.hpp"
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::hardware;
 
 IrqManager IrqManager::instance;

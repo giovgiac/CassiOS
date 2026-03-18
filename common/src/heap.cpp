@@ -10,6 +10,7 @@
 #include <heap.hpp>
 
 using namespace cassio;
+using namespace std;
 
 static constexpr u32 MIN_BLOCK_SIZE = sizeof(BlockHeader) + 4;
 

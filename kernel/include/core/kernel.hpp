@@ -10,7 +10,7 @@
 #ifndef CORE_KERNEL_HPP_
 #define CORE_KERNEL_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <core/gdt.hpp>
 #include <hardware/interrupt.hpp>
 #include <hardware/port.hpp>
@@ -37,6 +37,6 @@ extern "C" void ctors();
  * @param magic Multiboot magic number used to verify a valid boot.
  *
  */
-extern "C" void start(void* multiboot, cassio::u32 magic);
+extern "C" void start(void* multiboot, std::u32 magic);
 
 #endif // CORE_KERNEL_HPP_

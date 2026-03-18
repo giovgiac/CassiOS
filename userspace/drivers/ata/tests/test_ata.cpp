@@ -12,6 +12,7 @@
 #include <ata.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::ata;
 using namespace cassio::hardware;
 

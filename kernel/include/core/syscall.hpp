@@ -10,7 +10,7 @@
 #ifndef CORE_SYSCALL_HPP_
 #define CORE_SYSCALL_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <syscall.hpp>
 #include <message.hpp>
 
@@ -27,9 +27,9 @@ namespace kernel {
  *
  */
 struct SyscallFrame {
-    u32 gs, fs, es, ds;
-    u32 edi, esi, ebp, esp_pusha;
-    u32 ebx, edx, ecx, eax;
+    std::u32 gs, fs, es, ds;
+    std::u32 edi, esi, ebp, esp_pusha;
+    std::u32 ebx, edx, ecx, eax;
 };
 
 /**
@@ -48,14 +48,14 @@ private:
     SyscallHandler();
     ~SyscallHandler() = default;
 
-    i32 write(u32 fd, u32 buf, u32 len);
-    i32 sleep(u32 ms);
-    i32 uptime();
+    std::i32 write(std::u32 fd, std::u32 buf, std::u32 len);
+    std::i32 sleep(std::u32 ms);
+    std::i32 uptime();
     void reboot();
     void shutdown();
-    void exit(u32 code);
-    i32 mapDevice(u32 physical, u32 virt, u32 pages);
-    void memInfo(u32& total, u32& used, u32& free);
+    void exit(std::u32 code);
+    std::i32 mapDevice(std::u32 physical, std::u32 virt, std::u32 pages);
+    void memInfo(std::u32& total, std::u32& used, std::u32& free);
 
 public:
     /**
@@ -79,7 +79,7 @@ public:
      * blocks and a context switch occurs).
      *
      */
-    u32 handleSyscall(u32 esp);
+    std::u32 handleSyscall(std::u32 esp);
 
     /**
      * @brief IPC send: sends msg to targetPid. Caller becomes SendBlocked.
@@ -88,8 +88,8 @@ public:
      * Returns 0 if caller should block, -1 on error.
      *
      */
-    i32 send(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen);
-    i32 notify(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen);
+    std::i32 send(std::u32 targetPid, Message* msg, std::u32 dataPtr, std::u32 dataLen);
+    std::i32 notify(std::u32 targetPid, Message* msg, std::u32 dataPtr, std::u32 dataLen);
 
     /**
      * @brief IPC receive: receives a message into msg.
@@ -98,7 +98,7 @@ public:
      * 0 if caller should block, -1 on error.
      *
      */
-    i32 receive(Message* msg, u32 dataPtr, u32 dataCapacity);
+    std::i32 receive(Message* msg, std::u32 dataPtr, std::u32 dataCapacity);
 
     /**
      * @brief IPC reply: sends a reply to a SendBlocked process.
@@ -106,7 +106,7 @@ public:
      * Returns 0 on success, -1 on error.
      *
      */
-    i32 reply(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen);
+    std::i32 reply(std::u32 targetPid, Message* msg, std::u32 dataPtr, std::u32 dataLen);
 
     /**
      * @brief Grows the calling process's heap by increment bytes.
@@ -114,7 +114,7 @@ public:
      * Returns the previous break address, or 0 on failure.
      *
      */
-    u32 sbrk(u32 increment);
+    std::u32 sbrk(std::u32 increment);
 
     /**
      * @brief Returns process info for all userspace processes.
@@ -123,7 +123,7 @@ public:
      * Returns the number of entries written.
      *
      */
-    u32 procList(ProcEntry* buf, u32 maxEntries);
+    std::u32 procList(ProcEntry* buf, std::u32 maxEntries);
 
     /** Deleted Methods */
     SyscallHandler(const SyscallHandler&) = delete;
@@ -141,6 +141,6 @@ public:
  * Takes the saved ESP and returns the ESP to restore (may differ on context switch).
  *
  */
-extern "C" cassio::u32 handleSyscall(cassio::u32 esp);
+extern "C" std::u32 handleSyscall(std::u32 esp);
 
 #endif // CORE_SYSCALL_HPP_

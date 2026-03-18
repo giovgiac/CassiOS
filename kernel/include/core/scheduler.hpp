@@ -10,7 +10,7 @@
 #ifndef CORE_SCHEDULER_HPP_
 #define CORE_SCHEDULER_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <core/gdt.hpp>
 #include <core/process.hpp>
 
@@ -28,7 +28,7 @@ namespace kernel {
  */
 class Scheduler {
 public:
-    static constexpr u32 DEFAULT_TIME_SLICE = 10;
+    static constexpr std::u32 DEFAULT_TIME_SLICE = 10;
 
     inline static Scheduler& getScheduler() {
         return instance;
@@ -46,7 +46,7 @@ public:
      *        process's saved ESP (context switch).
      *
      */
-    u32 schedule(u32 currentEsp);
+    std::u32 schedule(std::u32 currentEsp);
 
     /**
      * @brief Immediate context switch without waiting for the time slice.
@@ -57,7 +57,7 @@ public:
      * the caller must set it (e.g. SendBlocked) before calling.
      *
      */
-    u32 reschedule(u32 currentEsp);
+    std::u32 reschedule(std::u32 currentEsp);
 
     /**
      * @brief Resets scheduler state. Used by the test framework.
@@ -75,13 +75,13 @@ private:
     Scheduler();
 
     Process* findNextReady(Process* current);
-    u32 switchTo(Process* next, Process* current, u32 currentEsp);
+    std::u32 switchTo(Process* next, Process* current, std::u32 currentEsp);
 
     static Scheduler instance;
 
     GlobalDescriptorTable* gdt;
-    u32 tickCount;
-    u32 timeSlice;
+    std::u32 tickCount;
+    std::u32 timeSlice;
 };
 
 } // kernel

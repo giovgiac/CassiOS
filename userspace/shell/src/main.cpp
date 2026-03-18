@@ -10,11 +10,12 @@
  *
  */
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <ns.hpp>
 #include <shell.hpp>
 
 using namespace cassio;
+using namespace std;
 
 extern "C" void _start() {
     // Wait for required services to register.

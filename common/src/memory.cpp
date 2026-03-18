@@ -9,7 +9,7 @@
 
 #include <memory.hpp>
 
-using namespace cassio;
+using namespace std;
 
 extern "C" void* memcpy(void* dst, const void* src, usize n) {
     u8* d = static_cast<u8*>(dst);

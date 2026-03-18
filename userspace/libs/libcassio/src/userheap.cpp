@@ -11,6 +11,7 @@
 #include <new.hpp>
 
 using namespace cassio;
+using namespace std;
 
 UserHeap::GrowFn UserHeap::growFn = nullptr;
 HeapAllocator* UserHeap::allocator = nullptr;

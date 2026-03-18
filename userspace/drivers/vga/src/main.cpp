@@ -11,7 +11,7 @@
  *
  */
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
@@ -19,6 +19,7 @@
 #include <terminal.hpp>
 
 using namespace cassio;
+using namespace std;
 
 static constexpr u32 VGA_PHYSICAL = 0xB8000;
 

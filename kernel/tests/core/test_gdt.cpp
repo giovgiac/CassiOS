@@ -2,6 +2,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::kernel;
 
 TEST(gdt_segment_descriptor_size) {

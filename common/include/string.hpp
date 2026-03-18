@@ -10,14 +10,14 @@
 #ifndef COMMON_STRING_HPP_
 #define COMMON_STRING_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
 bool streq(const char* a, const char* b);
-void strcpy(char* dst, const char* src, usize max);
-usize strlen(const char* str);
-u32 strtou32(const char* str);
+void strcpy(char* dst, const char* src, std::usize max);
+std::usize strlen(const char* str);
+std::u32 strtou32(const char* str);
 
 } // cassio
 

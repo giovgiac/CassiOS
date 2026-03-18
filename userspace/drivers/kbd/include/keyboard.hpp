@@ -10,7 +10,7 @@
 #ifndef KBD_KEYBOARD_HPP_
 #define KBD_KEYBOARD_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <keycode.hpp>
 
 namespace cassio {
@@ -19,7 +19,7 @@ namespace cassio {
  * @brief PS/2 scan set 1 scancodes as received from the keyboard hardware.
  *
  */
-enum class ScanCode : u8 {
+enum class ScanCode : std::u8 {
     Escape          = 0x01,
     One             = 0x02,
     Two             = 0x03,
@@ -92,7 +92,7 @@ enum class ScanCode : u8 {
     F12             = 0x58
 };
 
-static constexpr u16 KEYBOARD_BUFFER_SIZE = 256;
+static constexpr std::u16 KEYBOARD_BUFFER_SIZE = 256;
 
 /**
  * @brief PS/2 keyboard that translates scancodes into KeyCode values
@@ -103,9 +103,9 @@ class Keyboard {
 public:
     Keyboard();
 
-    void handleScancode(u8 raw);
+    void handleScancode(std::u8 raw);
     char readBuffer();
-    u16 bufferCount() const;
+    std::u16 bufferCount() const;
 
     static KeyCode resolveShift(KeyCode key);
 
@@ -119,8 +119,8 @@ private:
     bool e0_prefix;
 
     char ring[KEYBOARD_BUFFER_SIZE];
-    u16 ring_head;
-    u16 ring_tail;
+    std::u16 ring_head;
+    std::u16 ring_tail;
 
 public:
     Keyboard(const Keyboard&) = delete;

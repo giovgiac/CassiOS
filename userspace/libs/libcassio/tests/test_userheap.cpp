@@ -2,6 +2,7 @@
 #include <userheap.hpp>
 
 using namespace cassio;
+using namespace std;
 
 TEST(userheap_alloc_returns_non_null) {
     void* ptr = UserHeap::alloc(64);

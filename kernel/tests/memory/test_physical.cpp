@@ -2,6 +2,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::memory;
 
 TEST(pmm_has_free_frames_after_init) {

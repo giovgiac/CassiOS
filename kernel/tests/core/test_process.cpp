@@ -2,6 +2,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::kernel;
 
 TEST(process_create_assigns_pid) {

@@ -11,6 +11,7 @@
 #include "memory/virtual.hpp"
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::memory;
 
 extern "C" u32 _kernel_start;

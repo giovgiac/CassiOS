@@ -2,6 +2,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::memory;
 
 TEST(heap_allocate_returns_non_null) {

@@ -13,6 +13,7 @@
 #include <message.hpp>
 
 using namespace cassio;
+using namespace std;
 
 TEST(mouse_ipc_service_registered) {
     u32 pid = Nameserver::lookup("mouse");

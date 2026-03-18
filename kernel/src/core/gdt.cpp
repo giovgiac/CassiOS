@@ -11,6 +11,7 @@
 #include <memory.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::kernel;
 
 /** Global Descriptor Table Methods */

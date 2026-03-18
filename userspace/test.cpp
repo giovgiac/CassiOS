@@ -15,6 +15,7 @@
 #include <userheap.hpp>
 
 using namespace cassio;
+using namespace std;
 
 typedef void (*ctor)();
 extern "C" ctor start_ctors;

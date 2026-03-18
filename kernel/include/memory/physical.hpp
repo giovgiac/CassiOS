@@ -10,14 +10,14 @@
 #ifndef MEMORY_PHYSICAL_HPP_
 #define MEMORY_PHYSICAL_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <memory/multiboot.hpp>
 
 namespace cassio {
 namespace memory {
 
-static constexpr u32 FRAME_SIZE = 4096;
-static constexpr u32 BITMAP_SIZE = 131072;
+static constexpr std::u32 FRAME_SIZE = 4096;
+static constexpr std::u32 BITMAP_SIZE = 131072;
 
 class PhysicalMemoryManager {
 public:
@@ -31,9 +31,9 @@ public:
     void freeFrame(void* address);
     bool isFrameUsed(void* address) const;
 
-    u32 getTotalFrames() const;
-    u32 getUsedFrames() const;
-    u32 getFreeFrames() const;
+    std::u32 getTotalFrames() const;
+    std::u32 getUsedFrames() const;
+    std::u32 getFreeFrames() const;
 
     PhysicalMemoryManager(const PhysicalMemoryManager&) = delete;
     PhysicalMemoryManager(PhysicalMemoryManager&&) = delete;
@@ -43,13 +43,13 @@ public:
 private:
     PhysicalMemoryManager();
 
-    void markRegionUsed(u32 base, u32 length);
-    void markRegionFree(u32 base, u32 length);
+    void markRegionUsed(std::u32 base, std::u32 length);
+    void markRegionFree(std::u32 base, std::u32 length);
 
     static PhysicalMemoryManager instance;
 
-    u8 bitmap[BITMAP_SIZE];
-    u32 totalFrames;
+    std::u8 bitmap[BITMAP_SIZE];
+    std::u32 totalFrames;
 };
 
 } // memory

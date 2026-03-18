@@ -11,11 +11,11 @@
 
 using namespace cassio::memory;
 
-void* operator new(cassio::usize size) {
+void* operator new(std::usize size) {
     return KernelHeap::getAllocator().allocate(size);
 }
 
-void* operator new[](cassio::usize size) {
+void* operator new[](std::usize size) {
     return KernelHeap::getAllocator().allocate(size);
 }
 
@@ -27,10 +27,10 @@ void operator delete[](void* ptr) {
     KernelHeap::getAllocator().free(ptr);
 }
 
-void operator delete(void* ptr, cassio::usize) {
+void operator delete(void* ptr, std::usize) {
     KernelHeap::getAllocator().free(ptr);
 }
 
-void operator delete[](void* ptr, cassio::usize) {
+void operator delete[](void* ptr, std::usize) {
     KernelHeap::getAllocator().free(ptr);
 }

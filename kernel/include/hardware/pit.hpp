@@ -10,7 +10,7 @@
 #ifndef HARDWARE_PIT_HPP_
 #define HARDWARE_PIT_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <timer.hpp>
 #include <hardware/irq.hpp>
 #include <hardware/port.hpp>
@@ -19,16 +19,16 @@ namespace cassio {
 namespace hardware {
 
 // PIT oscillator base frequency in Hz.
-constexpr u32 PIT_BASE_FREQUENCY = 1193182;
+constexpr std::u32 PIT_BASE_FREQUENCY = 1193182;
 
 // Target tick frequency derived from the shared system constant.
-constexpr u32 PIT_FREQUENCY = TICK_FREQUENCY;
+constexpr std::u32 PIT_FREQUENCY = TICK_FREQUENCY;
 
 // Divisor to achieve the target frequency.
-constexpr u16 PIT_DIVISOR = PIT_BASE_FREQUENCY / PIT_FREQUENCY;
+constexpr std::u16 PIT_DIVISOR = PIT_BASE_FREQUENCY / PIT_FREQUENCY;
 
 // PIT command byte: channel 0, lo/hi byte, rate generator (mode 2).
-constexpr u8 PIT_CMD_CHANNEL0_MODE2 = 0x34;
+constexpr std::u8 PIT_CMD_CHANNEL0_MODE2 = 0x34;
 
 /**
  * @brief PIT timer driver singleton.
@@ -39,9 +39,9 @@ constexpr u8 PIT_CMD_CHANNEL0_MODE2 = 0x34;
  */
 class PitTimer {
 private:
-    hardware::Port<u8> channel0;
-    hardware::Port<u8> command;
-    volatile u32 ticks;
+    hardware::Port<std::u8> channel0;
+    hardware::Port<std::u8> command;
+    volatile std::u32 ticks;
 
     static PitTimer instance;
 
@@ -62,7 +62,7 @@ public:
      * @brief Static IRQ handler registered with IrqManager.
      *
      */
-    static u32 irqHandler(u32 esp);
+    static std::u32 irqHandler(std::u32 esp);
 
     /**
      * @brief Programs the PIT for periodic mode at ~100 Hz.
@@ -74,19 +74,19 @@ public:
      * @brief Increments the tick counter and invokes the scheduler.
      *
      */
-    u32 handleInterrupt(u32 esp);
+    std::u32 handleInterrupt(std::u32 esp);
 
     /**
      * @brief Returns the number of ticks since activation.
      *
      */
-    u32 getTicks();
+    std::u32 getTicks();
 
     /**
      * @brief Busy-waits for the given number of milliseconds.
      *
      */
-    void sleep(u32 ms);
+    void sleep(std::u32 ms);
 
     /** Deleted Methods */
     PitTimer(const PitTimer&) = delete;

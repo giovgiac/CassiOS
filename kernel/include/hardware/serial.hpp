@@ -1,7 +1,7 @@
 #ifndef HARDWARE_SERIAL_HPP_
 #define HARDWARE_SERIAL_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <hardware/port.hpp>
 
 namespace cassio {
@@ -9,12 +9,12 @@ namespace hardware {
 
 class Serial {
 private:
-    Port<u8> data;
-    Port<u8> interrupt_enable;
-    Port<u8> fifo_control;
-    Port<u8> line_control;
-    Port<u8> modem_control;
-    Port<u8> line_status;
+    Port<std::u8> data;
+    Port<std::u8> interrupt_enable;
+    Port<std::u8> fifo_control;
+    Port<std::u8> line_control;
+    Port<std::u8> modem_control;
+    Port<std::u8> line_status;
 
 public:
     Serial(PortType data, PortType interrupt_enable, PortType fifo_control,
@@ -23,7 +23,7 @@ public:
 
     void putchar(char ch);
     void puts(const char* str);
-    void put_dec(u32 value);
+    void put_dec(std::u32 value);
 
     Serial(const Serial&) = delete;
     Serial(Serial&&) = delete;

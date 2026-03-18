@@ -11,6 +11,7 @@
 #include <mouse.hpp>
 
 using namespace cassio;
+using namespace std;
 
 static Mouse mouse;
 

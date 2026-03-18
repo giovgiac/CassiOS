@@ -10,6 +10,7 @@
 #include <string.hpp>
 
 using namespace cassio;
+using namespace std;
 
 bool cassio::streq(const char* a, const char* b) {
     u32 i = 0;

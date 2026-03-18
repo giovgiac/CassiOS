@@ -2,6 +2,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::kernel;
 
 extern GlobalDescriptorTable test_gdt;

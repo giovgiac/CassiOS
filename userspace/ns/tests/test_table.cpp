@@ -3,6 +3,7 @@
 #include <string.hpp>
 
 using namespace cassio;
+using namespace std;
 
 TEST(ns_table_register_and_lookup) {
     NsTable table;

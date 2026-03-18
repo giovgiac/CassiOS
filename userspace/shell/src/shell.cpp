@@ -16,6 +16,7 @@
 #include <vga.hpp>
 
 using namespace cassio;
+using namespace std;
 
 Shell::Shell(u32 kbd, u32 vga, u32 vfs)
     : kbdPid(kbd), vgaPid(vga), vfsPid(vfs),

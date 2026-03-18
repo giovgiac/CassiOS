@@ -10,7 +10,7 @@
 #ifndef HARDWARE_INTERRUPT_HPP_
 #define HARDWARE_INTERRUPT_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <core/gdt.hpp>
 #include <hardware/port.hpp>
 
@@ -21,7 +21,7 @@ namespace hardware {
  * @brief Flag constants used when building IDT gate descriptors.
  *
  */
-enum InterruptFlags : u8 {
+enum InterruptFlags : std::u8 {
     IDT_DESCRIPTOR_PRESENT = 0x80,
     IDT_INTERRUPT_GATE = 0xE,
     IDT_TRAP_GATE = 0xF
@@ -38,11 +38,11 @@ private:
      *
      */
     struct __attribute__((packed)) GateDescriptor {
-        u16 handler_low;
-        u16 code_offset;
-        u8  reserved;
-        u8  access;
-        u16 handler_high;
+        std::u16 handler_low;
+        std::u16 code_offset;
+        std::u8  reserved;
+        std::u8  access;
+        std::u16 handler_high;
     };
 
     /**
@@ -50,13 +50,13 @@ private:
      *
      */
     struct __attribute__((packed)) InterruptDescriptorTable {
-        u16 size;
-        u32 base;
+        std::u16 size;
+        std::u32 base;
     };
 
 private:
     GateDescriptor idt[256];
-    u16 code_offset;
+    std::u16 code_offset;
 
     static InterruptManager instance;
 
@@ -77,7 +77,7 @@ private:
      * @brief Writes a gate descriptor entry into the IDT at the given index.
      *
      */
-    void setInterrupt(u8 number, u16 code_offset, void(*handler)(), u8 access, u8 flags);
+    void setInterrupt(std::u8 number, std::u16 code_offset, void(*handler)(), std::u8 access, std::u8 flags);
 
 public:
     /**
@@ -106,13 +106,13 @@ public:
      * @brief Sets an interrupt gate (DPL=0) at the given vector.
      *
      */
-    void setInterruptGate(u8 vector, void(*handler)());
+    void setInterruptGate(std::u8 vector, void(*handler)());
 
     /**
      * @brief Sets a trap gate at the given vector with the specified DPL.
      *
      */
-    void setTrapGate(u8 vector, void(*handler)(), u8 dpl);
+    void setTrapGate(std::u8 vector, void(*handler)(), std::u8 dpl);
 
     /**
      * @brief Populates the IDT, delegates to sub-managers, and loads the IDT via lidt.

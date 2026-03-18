@@ -10,40 +10,40 @@
 #ifndef USERSPACE_LIB_NS_HPP_
 #define USERSPACE_LIB_NS_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
 
 namespace cassio {
 
 struct NsEntry {
-    char name[20];  // MAX_NAME_LEN + 1 + padding for u32 alignment.
-    u32 pid;
+    char name[20];  // MAX_NAME_LEN + 1 + padding for std::u32 alignment.
+    std::u32 pid;
 };
 
 class Nameserver {
 public:
-    static constexpr u32 PID = 1;
+    static constexpr std::u32 PID = 1;
 
     static inline void packName(const char* name, Message& msg) {
-        u32* words = &msg.arg1;
-        for (u32 i = 0; i < 4; i++) {
+        std::u32* words = &msg.arg1;
+        for (std::u32 i = 0; i < 4; i++) {
             words[i] = 0;
         }
-        for (u32 i = 0; name[i] && i < 16; i++) {
-            words[i / 4] |= ((u32)(u8)name[i]) << ((i % 4) * 8);
+        for (std::u32 i = 0; name[i] && i < 16; i++) {
+            words[i / 4] |= ((std::u32)(std::u8)name[i]) << ((i % 4) * 8);
         }
     }
 
     static inline void unpackName(const Message& msg, char* out) {
-        const u32* words = &msg.arg1;
-        for (u32 i = 0; i < 16; i++) {
+        const std::u32* words = &msg.arg1;
+        for (std::u32 i = 0; i < 16; i++) {
             out[i] = (words[i / 4] >> ((i % 4) * 8)) & 0xFF;
         }
         out[16] = '\0';
     }
 
-    static inline u32 registerName(const char* name) {
+    static inline std::u32 registerName(const char* name) {
         Message msg = {};
         msg.type = MessageType::NsRegister;
         packName(name, msg);
@@ -51,7 +51,7 @@ public:
         return msg.arg1;
     }
 
-    static inline u32 lookup(const char* name) {
+    static inline std::u32 lookup(const char* name) {
         Message msg = {};
         msg.type = MessageType::NsLookup;
         packName(name, msg);
@@ -59,7 +59,7 @@ public:
         return msg.arg1;
     }
 
-    static inline u32 listAll(NsEntry* buf, u32 maxEntries) {
+    static inline std::u32 listAll(NsEntry* buf, std::u32 maxEntries) {
         Message msg = {};
         msg.type = MessageType::NsListAll;
         IPC::send(PID, &msg, buf, maxEntries * sizeof(NsEntry));

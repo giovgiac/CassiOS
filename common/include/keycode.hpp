@@ -10,7 +10,7 @@
 #ifndef COMMON_KEYCODE_HPP_
 #define COMMON_KEYCODE_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
@@ -21,7 +21,7 @@ namespace cassio {
  * Non-ASCII keys (function keys, arrows) use values above 0x7F.
  *
  */
-enum class KeyCode : u8 {
+enum class KeyCode : std::u8 {
     Backspace                                   = 0x08,
     Tab                                         = 0x09,
     Enter                                       = 0x0D,

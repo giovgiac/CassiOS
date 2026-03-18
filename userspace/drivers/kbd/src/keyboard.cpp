@@ -10,6 +10,7 @@
 #include <keyboard.hpp>
 
 using namespace cassio;
+using namespace std;
 
 const KeyCode Keyboard::scancode_table[0x59] = {
     /* 0x00 */  static_cast<KeyCode>(0),
