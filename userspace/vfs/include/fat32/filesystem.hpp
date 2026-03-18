@@ -91,9 +91,10 @@ private:
                       DirEntry* entryOut, u32* entryCluster, u32* entryOffset);
     bool findEntry(u32 dirCluster, const char* name, DirEntry* entryOut,
                    u32* entryCluster, u32* entryOffset);
-    u32 resolvePath(const char* path, DirEntry* entryOut,
-                    u32* entryCluster, u32* entryOffset);
-    u32 resolveParentPath(const char* path, char* nameOut, u32 nameMax);
+    bool resolvePath(const char* path, u32* clusterOut, DirEntry* entryOut,
+                     u32* entryCluster, u32* entryOffset);
+    bool resolveParentPath(const char* path, u32* parentClusterOut,
+                           char* nameOut, u32 nameMax);
     bool createEntry(u32 dirCluster, const char* name, u8 attr,
                      u32* outCluster, u32* outOffset);
     bool removeEntry(u32 dirCluster, const char* name);

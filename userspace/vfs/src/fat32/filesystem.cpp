@@ -428,9 +428,10 @@ bool Fat32Filesystem::findEntry(u32 dirCluster, const char* name, DirEntry* entr
     }
 }
 
-u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
+bool Fat32Filesystem::resolvePath(const char* path, u32* clusterOut,
+                       DirEntry* entryOut,
                        u32* entryCluster, u32* entryOffset) {
-    if (!path || path[0] == '\0') return 0;
+    if (!path || path[0] == '\0') return false;
 
     u32 cluster = rootCluster;
     u32 i = 0;
@@ -445,7 +446,8 @@ u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
                 entryOut->firstClusterHigh = static_cast<u16>(rootCluster >> 16);
                 entryOut->firstClusterLow = static_cast<u16>(rootCluster);
             }
-            return rootCluster;
+            if (clusterOut) *clusterOut = rootCluster;
+            return true;
         }
     }
 
@@ -469,7 +471,7 @@ u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
             // Read the ".." entry from this directory to get the parent.
             u8 buf[SECTOR_SIZE];
             u32 lba = clusterToLba(cluster);
-            if (!readSector(lba, buf)) return 0;
+            if (!readSector(lba, buf)) return false;
 
             DirEntry* entries = reinterpret_cast<DirEntry*>(buf);
             // ".." is always the second entry in a directory.
@@ -493,7 +495,7 @@ u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
         DirEntry entry;
         u32 ec, eo;
         if (!findEntry(cluster, component, &entry, &ec, &eo)) {
-            return 0;
+            return false;
         }
 
         cluster = (static_cast<u32>(entry.firstClusterHigh) << 16) |
@@ -504,17 +506,19 @@ u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
         if (entryOffset) *entryOffset = eo;
     }
 
-    return cluster;
+    if (clusterOut) *clusterOut = cluster;
+    return true;
 }
 
-u32 Fat32Filesystem::resolveParentPath(const char* path, char* nameOut, u32 nameMax) {
+bool Fat32Filesystem::resolveParentPath(const char* path, u32* parentClusterOut,
+                                        char* nameOut, u32 nameMax) {
     // Find last '/'.
     i32 lastSlash = -1;
     for (u32 i = 0; path[i] != '\0'; i++) {
         if (path[i] == '/') lastSlash = static_cast<i32>(i);
     }
 
-    if (lastSlash < 0) return 0;
+    if (lastSlash < 0) return false;
 
     if (lastSlash == 0) {
         // Parent is root.
@@ -524,7 +528,8 @@ u32 Fat32Filesystem::resolveParentPath(const char* path, char* nameOut, u32 name
             nameOut[j++] = path[start++];
         }
         nameOut[j] = '\0';
-        return rootCluster;
+        *parentClusterOut = rootCluster;
+        return true;
     }
 
     char parentPath[MAX_PATH];
@@ -544,11 +549,14 @@ u32 Fat32Filesystem::resolveParentPath(const char* path, char* nameOut, u32 name
     nameOut[j] = '\0';
 
     DirEntry parentEntry;
-    u32 parentCluster = resolvePath(parentPath, &parentEntry, nullptr, nullptr);
-    if (parentCluster == 0) return 0;
-    if (!(parentEntry.attr & DirAttr::Directory)) return 0;
+    u32 parentCluster;
+    if (!resolvePath(parentPath, &parentCluster, &parentEntry, nullptr, nullptr)) {
+        return false;
+    }
+    if (!(parentEntry.attr & DirAttr::Directory)) return false;
 
-    return parentCluster;
+    *parentClusterOut = parentCluster;
+    return true;
 }
 
 bool Fat32Filesystem::createEntry(u32 dirCluster, const char* name, u8 attr,
@@ -900,8 +908,9 @@ bool Fat32Filesystem::mount(u32 ataServicePid) {
 
 bool Fat32Filesystem::createDirectory(const char* path) {
     char name[MAX_NAME];
-    u32 parentCluster = resolveParentPath(path, name, MAX_NAME);
-    if (parentCluster == 0 || name[0] == '\0') return false;
+    u32 parentCluster;
+    if (!resolveParentPath(path, &parentCluster, name, MAX_NAME)) return false;
+    if (name[0] == '\0') return false;
 
     // Check if it already exists.
     DirEntry existing;
@@ -917,8 +926,9 @@ bool Fat32Filesystem::remove(const char* path) {
     if (!path || streq(path, "/")) return false;
 
     char name[MAX_NAME];
-    u32 parentCluster = resolveParentPath(path, name, MAX_NAME);
-    if (parentCluster == 0 || name[0] == '\0') return false;
+    u32 parentCluster;
+    if (!resolveParentPath(path, &parentCluster, name, MAX_NAME)) return false;
+    if (name[0] == '\0') return false;
 
     return removeEntry(parentCluster, name);
 }
@@ -926,15 +936,17 @@ bool Fat32Filesystem::remove(const char* path) {
 u32 Fat32Filesystem::open(const char* path, bool create) {
     DirEntry entry;
     u32 ec, eo;
-    u32 cluster = resolvePath(path, &entry, &ec, &eo);
+    u32 cluster;
+    bool found = resolvePath(path, &cluster, &entry, &ec, &eo);
 
-    if (cluster == 0) {
+    if (!found) {
         if (!create) return 0;
 
         // Create the file.
         char name[MAX_NAME];
-        u32 parentCluster = resolveParentPath(path, name, MAX_NAME);
-        if (parentCluster == 0 || name[0] == '\0') return 0;
+        u32 parentCluster;
+        if (!resolveParentPath(path, &parentCluster, name, MAX_NAME)) return 0;
+        if (name[0] == '\0') return 0;
 
         if (!createEntry(parentCluster, name, DirAttr::Archive, &ec, &eo)) {
             return 0;
@@ -971,10 +983,10 @@ u32 Fat32Filesystem::open(const char* path, bool create) {
     }
 
     // No free handle. If we just created this file, clean it up.
-    if (create) {
+    if (create && !found) {
         char cname[MAX_NAME];
-        u32 parentCluster = resolveParentPath(path, cname, MAX_NAME);
-        if (parentCluster != 0) {
+        u32 parentCluster;
+        if (resolveParentPath(path, &parentCluster, cname, MAX_NAME)) {
             removeEntry(parentCluster, cname);
         }
     }
@@ -1131,15 +1143,14 @@ u32 Fat32Filesystem::stat(const char* path) {
     if (streq(path, "/")) return 2;
 
     DirEntry entry;
-    u32 cluster = resolvePath(path, &entry, nullptr, nullptr);
-    if (cluster == 0) return 0;
+    if (!resolvePath(path, nullptr, &entry, nullptr, nullptr)) return 0;
     return (entry.attr & DirAttr::Directory) ? 2 : 1;
 }
 
 bool Fat32Filesystem::listEntry(const char* path, u32 index, char* nameOut, u32 nameMax) {
     DirEntry dirEntry;
-    u32 dirCluster = resolvePath(path, &dirEntry, nullptr, nullptr);
-    if (dirCluster == 0) return false;
+    u32 dirCluster;
+    if (!resolvePath(path, &dirCluster, &dirEntry, nullptr, nullptr)) return false;
     if (!(dirEntry.attr & DirAttr::Directory)) return false;
 
     DirEntry entry;
