@@ -46,6 +46,12 @@ Any userspace process can call `mapDevice` with an arbitrary physical address an
 
 When `len == 0` and the file already has clusters: the write loop is skipped, the truncation block marks the first cluster as `FAT_EOC` but does not free it. The directory entry retains `firstCluster` pointing to the orphaned cluster. One cluster is permanently leaked per zero-length write to an existing file.
 
+### 26. FAT32 resolvePath returns 0 for empty files -- FIXED in #130
+
+`userspace/vfs/src/fat32/filesystem.cpp`, `resolvePath()`
+
+`resolvePath` returned the file's `firstCluster` value, using 0 to mean "not found." But empty files (created by `touch`) have `firstCluster = 0` because no clusters are allocated. This made empty files inside subdirectories invisible: `cat` couldn't find them, `write` created duplicates, and `stat` reported them as nonexistent. Fixed by changing `resolvePath` to return `bool` (found/not-found) and outputting the cluster via a pointer parameter.
+
 ## Medium Severity
 
 ### 8. FAT32 createEntry: missing error check on readCluster -- FIXED in #130
@@ -160,12 +166,6 @@ CLAUDE.md: "Use the kernel heap for dynamic data structures rather than defaulti
 
 - `Fat32Filesystem::handles[MAX_HANDLES]` (MAX_HANDLES=16) -- software limit
 - `Fat32Filesystem::cache[CACHE_SIZE]` (CACHE_SIZE=16) -- policy choice
-
-### 26. FAT32 resolvePath returns 0 for empty files -- FIXED in #130
-
-`userspace/vfs/src/fat32/filesystem.cpp`, `resolvePath()`
-
-`resolvePath` returned the file's `firstCluster` value, using 0 to mean "not found." But empty files (created by `touch`) have `firstCluster = 0` because no clusters are allocated. This made empty files inside subdirectories invisible: `cat` couldn't find them, `write` created duplicates, and `stat` reported them as nonexistent. Fixed by changing `resolvePath` to return `bool` (found/not-found) and outputting the cluster via a pointer parameter.
 
 ### 25. VfsStat message type out of sequence
 
