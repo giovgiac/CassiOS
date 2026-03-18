@@ -34,13 +34,13 @@ The `number` and `error_code` variables are single `.data` locations shared by a
 
 Any userspace process can call `mapDevice` with an arbitrary physical address and map it into its own address space with `PAGE_USER`. No check that the physical range is legitimate device MMIO. Combined with IOPL=3 in initial EFLAGS (kernel.cpp line 98), this gives all userspace processes full hardware access.
 
-### 6. FAT32 removeEntry: cross-cluster LFN broken
+### 6. FAT32 removeEntry: cross-cluster LFN broken -- FIXED in #130
 
 `userspace/vfs/src/fat32/filesystem.cpp`, lines 773-774, 837-840
 
 `lfnStart` and `inLfn` are declared inside the per-cluster loop, resetting on every iteration. When an LFN sequence starts at the end of cluster N and the short entry is at the start of cluster N+1: (a) the wrong name is extracted (shortNameToString instead of LFN), so name matching fails and the entry is never deleted; (b) even if matched, the LFN entries in the previous cluster are never marked `DIR_ENTRY_FREE`. The same `lfnBuf` fix applied to `readDirEntry` is needed here.
 
-### 7. FAT32 write(0 bytes) leaks the first cluster
+### 7. FAT32 write(0 bytes) leaks the first cluster -- FIXED in #130
 
 `userspace/vfs/src/fat32/filesystem.cpp`, lines 1041, 1079-1085
 
@@ -48,19 +48,19 @@ When `len == 0` and the file already has clusters: the write loop is skipped, th
 
 ## Medium Severity
 
-### 8. FAT32 createEntry: missing error check on readCluster
+### 8. FAT32 createEntry: missing error check on readCluster -- FIXED in #130
 
 `userspace/vfs/src/fat32/filesystem.cpp`, line 698
 
 When LFN entries span a cluster boundary, `readCluster(writeCluster_, clusterBuf)` can fail (I/O error) but the return value is not checked. Subsequent writes corrupt whatever garbage was in `clusterBuf`.
 
-### 9. FAT32 open(): handle table full leaks directory entry
+### 9. FAT32 open(): handle table full leaks directory entry -- FIXED in #130
 
 `userspace/vfs/src/fat32/filesystem.cpp`, lines 948-980
 
 When `create=true` and `createEntry()` succeeds but no free handle slot exists, the function returns 0. The created directory entry (and for directories, an allocated content cluster) remain on disk permanently. Ghost entries appear in listings but can never be opened.
 
-### 10. FAT32 nameToShort: always generates ~1 tail
+### 10. FAT32 nameToShort: always generates ~1 tail -- FIXED in #130
 
 `userspace/vfs/src/fat32/filesystem.cpp`, lines 256-260
 
@@ -72,7 +72,7 @@ Every file needing an 8.3 name gets `<PREFIX>~1.<EXT>`. Two files `longname_a.tx
 
 `destroy` drains the send queue but never transitions waiting senders from `SendBlocked` to a runnable or error state. Processes that called `send()` to a destroyed target are permanently blocked with no way to be woken -- they become zombies.
 
-### 12. Shell buffer overflow in execute()
+### 12. Shell buffer overflow in execute() -- FIXED in #130
 
 `userspace/shell/src/shell.cpp`, line 98; `userspace/shell/include/shell.hpp`, line 27
 
@@ -176,13 +176,13 @@ CLAUDE.md: "Use the kernel heap for dynamic data structures rather than defaulti
 | 3 | High | Kernel (sbrk) | No TLB flush for new user pages |
 | 4 | High | Kernel (ELF) | p_offset wrap allows kernel memory disclosure |
 | 5 | High | Kernel (syscall) | mapDevice unprivileged -- arbitrary physical memory mapping |
-| 6 | High | FAT32 | removeEntry cross-cluster LFN broken |
-| 7 | High | FAT32 | write(0 bytes) leaks first cluster |
-| 8 | Medium | FAT32 | createEntry missing error check on readCluster |
-| 9 | Medium | FAT32 | open() handle-table-full leaks directory entry |
-| 10 | Medium | FAT32 | nameToShort always generates ~1 (duplicate short names) |
+| 6 | High | FAT32 | ~~removeEntry cross-cluster LFN broken~~ -- **Fixed in #130** |
+| 7 | High | FAT32 | ~~write(0 bytes) leaks first cluster~~ -- **Fixed in #130** |
+| 8 | Medium | FAT32 | ~~createEntry missing error check on readCluster~~ -- **Fixed in #130** |
+| 9 | Medium | FAT32 | ~~open() handle-table-full leaks directory entry~~ -- **Fixed in #130** |
+| 10 | Medium | FAT32 | ~~nameToShort always generates ~1 (duplicate short names)~~ -- **Fixed in #130** |
 | 11 | Medium | Kernel | destroy() leaves senders permanently SendBlocked |
-| 12 | Medium | Shell | buffer[length] = '\0' off-by-one overflow |
+| 12 | Medium | Shell | ~~buffer[length] = '\0' off-by-one overflow~~ -- **Fixed in #130** |
 | 13 | Medium | Heap | No double-free protection |
 | 14 | Medium | Heap | No bounds check on free pointer |
 | 15 | Medium | Heap | extend() underflow when additionalSize < sizeof(BlockHeader) |
@@ -196,3 +196,4 @@ CLAUDE.md: "Use the kernel heap for dynamic data structures rather than defaulti
 | 23 | CLAUDE.md | Userspace | Missing deleted copy/move on 6 hardware-bound classes |
 | 24 | CLAUDE.md | FAT32 | Fixed arrays for non-hardware-dictated sizes |
 | 25 | CLAUDE.md | Common | VfsStat message type out of sequence |
+| 26 | High | FAT32 | ~~resolvePath returns 0 for empty files (cluster=0), indistinguishable from "not found"~~ -- **Fixed in #130** |
