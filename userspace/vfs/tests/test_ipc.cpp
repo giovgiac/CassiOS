@@ -201,6 +201,33 @@ TEST(vfs_ipc_open_nonexistent_fails) {
     ASSERT_EQ(handle, 0u);
 }
 
+TEST(vfs_ipc_dotdot_traversal) {
+    u32 pid = Nameserver::lookup("vfs");
+    ASSERT(pid != 0);
+
+    Vfs::mkdir(pid, "/dottest");
+    u32 handle = Vfs::open(pid, "/dottest/../dottest/../README.TXT");
+    ASSERT(handle != 0);
+
+    u8 buf[32] = {};
+    i32 n = Vfs::read(pid, handle, 0, buf, sizeof(buf));
+    ASSERT(n > 0);
+    ASSERT_EQ(buf[0], (u8)'W');
+}
+
+TEST(vfs_ipc_dot_traversal) {
+    u32 pid = Nameserver::lookup("vfs");
+    ASSERT(pid != 0);
+
+    u32 handle = Vfs::open(pid, "/./README.TXT");
+    ASSERT(handle != 0);
+
+    u8 buf[32] = {};
+    i32 n = Vfs::read(pid, handle, 0, buf, sizeof(buf));
+    ASSERT(n > 0);
+    ASSERT_EQ(buf[0], (u8)'W');
+}
+
 TEST(vfs_ipc_seed_file_readable) {
     u32 pid = Nameserver::lookup("vfs");
     ASSERT(pid != 0);

@@ -46,8 +46,7 @@ private:
     u32 rootCluster;
     u32 totalClusters;
 
-    // In-memory FAT table.
-    u32* fat;
+    // FAT read on demand via sector cache.
     u32 fatEntryCount;
 
     // Handle table.
@@ -71,8 +70,6 @@ private:
     CacheEntry* cacheEvict();
     bool cacheRead(u32 lba, u8* buf);
     bool cacheWrite(u32 lba, const u8* buf);
-    void cacheInvalidate(u32 lba);
-
     // Cluster I/O.
     u32 clusterToLba(u32 cluster);
     bool readCluster(u32 cluster, u8* buf);
@@ -103,7 +100,6 @@ private:
 
     // Cluster chain helpers.
     u32 clusterAtOffset(u32 startCluster, u32 byteOffset);
-    u32 chainLength(u32 startCluster);
 
 public:
     bool mount(u32 ataPid);
@@ -117,6 +113,9 @@ public:
     bool write(u32 handle, const u8* data, u32 len);
 
     bool listEntry(const char* path, u32 index, char* nameOut, u32 nameMax);
+
+    // Returns 0 = not found, 1 = file, 2 = directory.
+    u32 stat(const char* path);
 };
 
 } // vfs

@@ -66,6 +66,16 @@ public:
         return msg.arg1;
     }
 
+    // Returns 0 = not found, 1 = file, 2 = directory.
+    static inline u32 stat(u32 pid, const char* path) {
+        u32 len = 0;
+        while (path[len] != '\0') len++;
+        Message msg = {};
+        msg.type = MessageType::VfsStat;
+        IPC::send(pid, &msg, path, len + 1);
+        return msg.arg1;
+    }
+
     static inline bool list(u32 pid, const char* path, u32 index,
                             char* nameOut, u32 nameMax) {
         u32 pathLen = 0;

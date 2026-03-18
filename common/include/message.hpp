@@ -48,6 +48,7 @@ namespace MessageType {
     constexpr u32 VfsRead      = 13;
     constexpr u32 VfsWrite     = 14;
     constexpr u32 VfsList      = 15;
+    constexpr u32 VfsStat      = 19;
 
     // Mouse.
     constexpr u32 MouseRead    = 16;

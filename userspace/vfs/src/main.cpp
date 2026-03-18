@@ -113,6 +113,11 @@ extern "C" void _start() {
             break;
         }
 
+        case MessageType::VfsStat: {
+            reply.arg1 = fs.stat(reinterpret_cast<char*>(dataBuf));
+            break;
+        }
+
         default:
             break;
         }

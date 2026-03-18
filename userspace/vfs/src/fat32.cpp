@@ -96,11 +96,6 @@ bool Fat32::cacheWrite(u32 lba, const u8* buf) {
     return AtaClient::writeSector(ataPid, lba, buf);
 }
 
-void Fat32::cacheInvalidate(u32 lba) {
-    CacheEntry* entry = cacheLookup(lba);
-    if (entry) entry->valid = false;
-}
-
 // ---------------------------------------------------------------------------
 // Sector / cluster I/O
 // ---------------------------------------------------------------------------
@@ -139,12 +134,33 @@ bool Fat32::writeCluster(u32 cluster, const u8* buf) {
 
 u32 Fat32::fatGet(u32 cluster) {
     if (cluster >= fatEntryCount) return FAT_EOC;
-    return fat[cluster] & FAT_ENTRY_MASK;
+    u32 byteOffset = cluster * 4;
+    u32 sector = fatStartSector + (byteOffset / SECTOR_SIZE);
+    u32 offset = byteOffset % SECTOR_SIZE;
+
+    u8 buf[SECTOR_SIZE];
+    if (!readSector(sector, buf)) return FAT_EOC;
+
+    u32 value;
+    memcpy(&value, buf + offset, 4);
+    return value & FAT_ENTRY_MASK;
 }
 
 void Fat32::fatSet(u32 cluster, u32 value) {
     if (cluster >= fatEntryCount) return;
-    fat[cluster] = (fat[cluster] & ~FAT_ENTRY_MASK) | (value & FAT_ENTRY_MASK);
+    u32 byteOffset = cluster * 4;
+    u32 sector = fatStartSector + (byteOffset / SECTOR_SIZE);
+    u32 offset = byteOffset % SECTOR_SIZE;
+
+    u8 buf[SECTOR_SIZE];
+    if (!readSector(sector, buf)) return;
+
+    u32 existing;
+    memcpy(&existing, buf + offset, 4);
+    u32 newVal = (existing & ~FAT_ENTRY_MASK) | (value & FAT_ENTRY_MASK);
+    memcpy(buf + offset, &newVal, 4);
+
+    writeSector(sector, buf);
 }
 
 u32 Fat32::allocateCluster() {
@@ -168,13 +184,17 @@ void Fat32::freeChain(u32 startCluster) {
 }
 
 bool Fat32::flushFat() {
-    u8 buf[SECTOR_SIZE];
-    for (u32 s = 0; s < fatSize; s++) {
-        u32 offset = s * SECTOR_SIZE;
-        memcpy(buf, reinterpret_cast<u8*>(fat) + offset, SECTOR_SIZE);
-        // Write to both FAT copies.
-        if (!writeSector(fatStartSector + s, buf)) return false;
-        if (!writeSector(fatStartSector + fatSize + s, buf)) return false;
+    // fatSet already writes through to FAT1 via the cache.
+    // Mirror dirty FAT1 sectors to FAT2.
+    for (u32 i = 0; i < CACHE_SIZE; i++) {
+        if (cache[i].valid && cache[i].dirty) {
+            u32 lba = cache[i].lba;
+            // Check if this is a FAT1 sector.
+            if (lba >= fatStartSector && lba < fatStartSector + fatSize) {
+                u32 fat2Lba = lba + fatSize;
+                AtaClient::writeSector(ataPid, fat2Lba, cache[i].data);
+            }
+        }
     }
     return true;
 }
@@ -193,15 +213,6 @@ u32 Fat32::clusterAtOffset(u32 startCluster, u32 byteOffset) {
     return cluster;
 }
 
-u32 Fat32::chainLength(u32 startCluster) {
-    u32 count = 0;
-    u32 cluster = startCluster;
-    while (cluster >= 2 && cluster < FAT_EOC) {
-        count++;
-        cluster = fatGet(cluster);
-    }
-    return count;
-}
 
 // ---------------------------------------------------------------------------
 // Directory helpers
@@ -294,32 +305,23 @@ static void shortNameToString(const u8* shortName, char* out, u32 outMax) {
     // Base name: up to 8 chars, strip trailing spaces.
     for (u32 i = 0; i < 8 && pos < outMax - 1; i++) {
         if (shortName[i] == ' ') break;
-        char c = static_cast<char>(shortName[i]);
-        if (c >= 'A' && c <= 'Z') c += 32;
-        out[pos++] = c;
+        out[pos++] = static_cast<char>(shortName[i]);
     }
     // Extension: up to 3 chars, strip trailing spaces.
     if (shortName[8] != ' ') {
         out[pos++] = '.';
         for (u32 i = 8; i < 11 && pos < outMax - 1; i++) {
             if (shortName[i] == ' ') break;
-            char c = static_cast<char>(shortName[i]);
-            if (c >= 'A' && c <= 'Z') c += 32;
-            out[pos++] = c;
+            out[pos++] = static_cast<char>(shortName[i]);
         }
     }
     out[pos] = '\0';
 }
 
-// Case-insensitive comparison for filenames.
 static bool nameEquals(const char* a, const char* b) {
     for (u32 i = 0; ; i++) {
-        char ca = a[i];
-        char cb = b[i];
-        if (ca >= 'A' && ca <= 'Z') ca += 32;
-        if (cb >= 'A' && cb <= 'Z') cb += 32;
-        if (ca != cb) return false;
-        if (ca == '\0') return true;
+        if (a[i] != b[i]) return false;
+        if (a[i] == '\0') return true;
     }
 }
 
@@ -331,6 +333,12 @@ bool Fat32::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
                          u32* entryCluster, u32* entryOffset) {
     u8* clusterBuf = static_cast<u8*>(UserHeap::alloc(bytesPerCluster));
     if (!clusterBuf) return false;
+
+    // Buffer to collect LFN entries across cluster boundaries.
+    // 20 entries covers 260 chars (20 * 13), enough for MAX_NAME.
+    constexpr u32 MAX_LFN_ENTRIES = 20;
+    DirEntry lfnBuf[MAX_LFN_ENTRIES];
+    u32 lfnCount = 0;
 
     u32 cluster = dirCluster;
     u32 visibleIdx = 0;
@@ -344,42 +352,43 @@ bool Fat32::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
         u32 entriesPerCluster = bytesPerCluster / sizeof(DirEntry);
         DirEntry* entries = reinterpret_cast<DirEntry*>(clusterBuf);
 
-        u32 lfnStart = 0;
-        bool inLfn = false;
-
         for (u32 i = 0; i < entriesPerCluster; i++) {
             if (entries[i].name[0] == DIR_ENTRY_END) {
                 UserHeap::free(clusterBuf);
                 return false;
             }
             if (entries[i].name[0] == DIR_ENTRY_FREE) {
-                inLfn = false;
+                lfnCount = 0;
                 continue;
             }
 
             if (isLfnEntry(&entries[i])) {
-                if (!inLfn) {
-                    lfnStart = i;
-                    inLfn = true;
+                if (lfnCount < MAX_LFN_ENTRIES) {
+                    memcpy(&lfnBuf[lfnCount], &entries[i], sizeof(DirEntry));
+                    lfnCount++;
                 }
                 continue;
             }
 
             // Skip volume label and dot entries.
             if (entries[i].attr & DirAttr::VolumeId) {
-                inLfn = false;
+                lfnCount = 0;
                 continue;
             }
             if (entries[i].name[0] == '.' &&
                 (entries[i].name[1] == ' ' || entries[i].name[1] == '.')) {
-                inLfn = false;
+                lfnCount = 0;
                 continue;
             }
 
             // This is a visible short entry.
             if (visibleIdx == index) {
-                if (inLfn) {
-                    extractLfn(entries, lfnStart, i, nameOut, nameMax);
+                if (lfnCount > 0) {
+                    // Extract LFN from the collected buffer.
+                    // lfnBuf[0..lfnCount-1] are the LFN entries in order,
+                    // followed by the short entry at position lfnCount.
+                    memcpy(&lfnBuf[lfnCount], &entries[i], sizeof(DirEntry));
+                    extractLfn(lfnBuf, 0, lfnCount, nameOut, nameMax);
                 } else {
                     shortNameToString(entries[i].name, nameOut, nameMax);
                 }
@@ -391,7 +400,7 @@ bool Fat32::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
             }
 
             visibleIdx++;
-            inLfn = false;
+            lfnCount = 0;
         }
 
         cluster = fatGet(cluster);
@@ -449,6 +458,37 @@ u32 Fat32::resolvePath(const char* path, DirEntry* entryOut,
         component[j] = '\0';
         if (path[i] == '/') i++;
         if (j == 0) continue;
+
+        if (streq(component, ".")) {
+            continue;
+        }
+
+        if (streq(component, "..")) {
+            if (cluster == rootCluster) continue;  // already at root
+
+            // Read the ".." entry from this directory to get the parent.
+            u8 buf[SECTOR_SIZE];
+            u32 lba = clusterToLba(cluster);
+            if (!readSector(lba, buf)) return 0;
+
+            DirEntry* entries = reinterpret_cast<DirEntry*>(buf);
+            // ".." is always the second entry in a directory.
+            u32 parentCluster =
+                (static_cast<u32>(entries[1].firstClusterHigh) << 16) |
+                 static_cast<u32>(entries[1].firstClusterLow);
+
+            // FAT32 stores 0 for the root directory's cluster in "..".
+            cluster = (parentCluster == 0) ? rootCluster : parentCluster;
+
+            // Fill a synthetic entry for the parent directory.
+            if (entryOut) {
+                memset(entryOut, 0, sizeof(DirEntry));
+                entryOut->attr = DirAttr::Directory;
+                entryOut->firstClusterHigh = static_cast<u16>(cluster >> 16);
+                entryOut->firstClusterLow = static_cast<u16>(cluster);
+            }
+            continue;
+        }
 
         DirEntry entry;
         u32 ec, eo;
@@ -860,18 +900,6 @@ bool Fat32::mount(u32 ataServicePid) {
     totalClusters = dataSectors / sectorsPerCluster;
     fatEntryCount = totalClusters + 2;
 
-    // Allocate and load the FAT table.
-    u32 fatBytes = fatSize * bytesPerSector;
-    fat = static_cast<u32*>(UserHeap::alloc(fatBytes));
-    if (!fat) return false;
-
-    u8* fatBuf = reinterpret_cast<u8*>(fat);
-    for (u32 s = 0; s < fatSize; s++) {
-        if (!readSector(fatStartSector + s, fatBuf + s * SECTOR_SIZE)) {
-            return false;
-        }
-    }
-
     return true;
 }
 
@@ -1075,6 +1103,16 @@ bool Fat32::write(u32 handle, const u8* data, u32 len) {
 
     UserHeap::free(clusterBuf);
     return true;
+}
+
+u32 Fat32::stat(const char* path) {
+    if (!path || path[0] == '\0') return 0;
+    if (streq(path, "/")) return 2;
+
+    DirEntry entry;
+    u32 cluster = resolvePath(path, &entry, nullptr, nullptr);
+    if (cluster == 0) return 0;
+    return (entry.attr & DirAttr::Directory) ? 2 : 1;
 }
 
 bool Fat32::listEntry(const char* path, u32 index, char* nameOut, u32 nameMax) {
