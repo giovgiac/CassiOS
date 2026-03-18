@@ -161,6 +161,12 @@ CLAUDE.md: "Use the kernel heap for dynamic data structures rather than defaulti
 - `Fat32Filesystem::handles[MAX_HANDLES]` (MAX_HANDLES=16) -- software limit
 - `Fat32Filesystem::cache[CACHE_SIZE]` (CACHE_SIZE=16) -- policy choice
 
+### 26. FAT32 resolvePath returns 0 for empty files -- FIXED in #130
+
+`userspace/vfs/src/fat32/filesystem.cpp`, `resolvePath()`
+
+`resolvePath` returned the file's `firstCluster` value, using 0 to mean "not found." But empty files (created by `touch`) have `firstCluster = 0` because no clusters are allocated. This made empty files inside subdirectories invisible: `cat` couldn't find them, `write` created duplicates, and `stat` reported them as nonexistent. Fixed by changing `resolvePath` to return `bool` (found/not-found) and outputting the cluster via a pointer parameter.
+
 ### 25. VfsStat message type out of sequence
 
 `common/include/message.hpp`, line 51
