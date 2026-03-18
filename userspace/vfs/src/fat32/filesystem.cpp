@@ -252,11 +252,11 @@ void Fat32Filesystem::nameToShort(const char* name, u8* shortName) {
         shortName[j++] = static_cast<u8>(c);
     }
 
-    // Truncate with ~1 if name was too long.
+    // Truncate with ~N if the name doesn't fit 8.3.
     if (baseLen > 8 || lastDot >= 0) {
         if (j > 6) j = 6;
         shortName[j] = '~';
-        shortName[j + 1] = '1';
+        shortName[j + 1] = '1' + (nameLen % 9);  // simple hash to vary the tail
     }
 
     // Fill the extension.
@@ -428,9 +428,10 @@ bool Fat32Filesystem::findEntry(u32 dirCluster, const char* name, DirEntry* entr
     }
 }
 
-u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
+bool Fat32Filesystem::resolvePath(const char* path, u32* clusterOut,
+                       DirEntry* entryOut,
                        u32* entryCluster, u32* entryOffset) {
-    if (!path || path[0] == '\0') return 0;
+    if (!path || path[0] == '\0') return false;
 
     u32 cluster = rootCluster;
     u32 i = 0;
@@ -445,7 +446,8 @@ u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
                 entryOut->firstClusterHigh = static_cast<u16>(rootCluster >> 16);
                 entryOut->firstClusterLow = static_cast<u16>(rootCluster);
             }
-            return rootCluster;
+            if (clusterOut) *clusterOut = rootCluster;
+            return true;
         }
     }
 
@@ -469,7 +471,7 @@ u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
             // Read the ".." entry from this directory to get the parent.
             u8 buf[SECTOR_SIZE];
             u32 lba = clusterToLba(cluster);
-            if (!readSector(lba, buf)) return 0;
+            if (!readSector(lba, buf)) return false;
 
             DirEntry* entries = reinterpret_cast<DirEntry*>(buf);
             // ".." is always the second entry in a directory.
@@ -493,7 +495,7 @@ u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
         DirEntry entry;
         u32 ec, eo;
         if (!findEntry(cluster, component, &entry, &ec, &eo)) {
-            return 0;
+            return false;
         }
 
         cluster = (static_cast<u32>(entry.firstClusterHigh) << 16) |
@@ -504,17 +506,19 @@ u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
         if (entryOffset) *entryOffset = eo;
     }
 
-    return cluster;
+    if (clusterOut) *clusterOut = cluster;
+    return true;
 }
 
-u32 Fat32Filesystem::resolveParentPath(const char* path, char* nameOut, u32 nameMax) {
+bool Fat32Filesystem::resolveParentPath(const char* path, u32* parentClusterOut,
+                                        char* nameOut, u32 nameMax) {
     // Find last '/'.
     i32 lastSlash = -1;
     for (u32 i = 0; path[i] != '\0'; i++) {
         if (path[i] == '/') lastSlash = static_cast<i32>(i);
     }
 
-    if (lastSlash < 0) return 0;
+    if (lastSlash < 0) return false;
 
     if (lastSlash == 0) {
         // Parent is root.
@@ -524,7 +528,8 @@ u32 Fat32Filesystem::resolveParentPath(const char* path, char* nameOut, u32 name
             nameOut[j++] = path[start++];
         }
         nameOut[j] = '\0';
-        return rootCluster;
+        *parentClusterOut = rootCluster;
+        return true;
     }
 
     char parentPath[MAX_PATH];
@@ -544,11 +549,14 @@ u32 Fat32Filesystem::resolveParentPath(const char* path, char* nameOut, u32 name
     nameOut[j] = '\0';
 
     DirEntry parentEntry;
-    u32 parentCluster = resolvePath(parentPath, &parentEntry, nullptr, nullptr);
-    if (parentCluster == 0) return 0;
-    if (!(parentEntry.attr & DirAttr::Directory)) return 0;
+    u32 parentCluster;
+    if (!resolvePath(parentPath, &parentCluster, &parentEntry, nullptr, nullptr)) {
+        return false;
+    }
+    if (!(parentEntry.attr & DirAttr::Directory)) return false;
 
-    return parentCluster;
+    *parentClusterOut = parentCluster;
+    return true;
 }
 
 bool Fat32Filesystem::createEntry(u32 dirCluster, const char* name, u8 attr,
@@ -695,7 +703,10 @@ found:
             if (writeIdx >= entriesPerCluster) {
                 writeCluster(writeCluster_, clusterBuf);
                 writeCluster_ = fatGet(writeCluster_);
-                readCluster(writeCluster_, clusterBuf);
+                if (!readCluster(writeCluster_, clusterBuf)) {
+                    UserHeap::free(clusterBuf);
+                    return false;
+                }
                 entries = reinterpret_cast<DirEntry*>(clusterBuf);
                 writeIdx = 0;
             }
@@ -758,102 +769,90 @@ found:
 }
 
 bool Fat32Filesystem::removeEntry(u32 dirCluster, const char* name) {
+    // Use findEntry (which goes through readDirEntry with cross-cluster LFN
+    // support) to locate the entry first.
+    DirEntry entry;
+    u32 entryCluster, entryOffset;
+    if (!findEntry(dirCluster, name, &entry, &entryCluster, &entryOffset)) {
+        return false;
+    }
+
+    // Check if directory is non-empty.
+    if (entry.attr & DirAttr::Directory) {
+        u32 contentCluster =
+            (static_cast<u32>(entry.firstClusterHigh) << 16) |
+             static_cast<u32>(entry.firstClusterLow);
+
+        char tmpName[MAX_NAME];
+        DirEntry tmpEntry;
+        u32 tc, to;
+        if (readDirEntry(contentCluster, 0, tmpName, MAX_NAME,
+                         &tmpEntry, &tc, &to)) {
+            return false;  // Directory not empty.
+        }
+
+        freeChain(contentCluster);
+    }
+
+    // Free the file's data clusters.
+    u32 fileCluster =
+        (static_cast<u32>(entry.firstClusterHigh) << 16) |
+         static_cast<u32>(entry.firstClusterLow);
+    if (!(entry.attr & DirAttr::Directory) && fileCluster >= 2) {
+        freeChain(fileCluster);
+    }
+
+    // Mark the short entry as deleted.
     u8* clusterBuf = static_cast<u8*>(UserHeap::alloc(bytesPerCluster));
     if (!clusterBuf) return false;
 
-    u32 cluster = dirCluster;
-    while (cluster >= 2 && cluster < FAT_EOC) {
-        if (!readCluster(cluster, clusterBuf)) {
-            UserHeap::free(clusterBuf);
-            return false;
-        }
-
-        u32 entriesPerCluster = bytesPerCluster / sizeof(DirEntry);
-        DirEntry* entries = reinterpret_cast<DirEntry*>(clusterBuf);
-        u32 lfnStart = 0;
-        bool inLfn = false;
-
-        for (u32 i = 0; i < entriesPerCluster; i++) {
-            if (entries[i].name[0] == DIR_ENTRY_END) {
-                UserHeap::free(clusterBuf);
-                return false;
-            }
-            if (entries[i].name[0] == DIR_ENTRY_FREE) {
-                inLfn = false;
-                continue;
-            }
-
-            if (isLfnEntry(&entries[i])) {
-                if (!inLfn) {
-                    lfnStart = i;
-                    inLfn = true;
-                }
-                continue;
-            }
-
-            if (entries[i].attr & DirAttr::VolumeId) {
-                inLfn = false;
-                continue;
-            }
-
-            // Check name match.
-            char entryName[MAX_NAME];
-            if (inLfn) {
-                extractLfn(entries, lfnStart, i, entryName, MAX_NAME);
-            } else {
-                shortNameToString(entries[i].name, entryName, MAX_NAME);
-            }
-
-            if (nameEquals(entryName, name)) {
-                // Check if directory is non-empty.
-                if (entries[i].attr & DirAttr::Directory) {
-                    u32 contentCluster =
-                        (static_cast<u32>(entries[i].firstClusterHigh) << 16) |
-                         static_cast<u32>(entries[i].firstClusterLow);
-
-                    // Check for any real entries (skip . and ..).
-                    char tmpName[MAX_NAME];
-                    DirEntry tmpEntry;
-                    u32 tc, to;
-                    if (readDirEntry(contentCluster, 0, tmpName, MAX_NAME,
-                                     &tmpEntry, &tc, &to)) {
-                        UserHeap::free(clusterBuf);
-                        return false;  // Directory not empty.
-                    }
-
-                    freeChain(contentCluster);
-                }
-
-                // Free the file's data clusters.
-                u32 fileCluster =
-                    (static_cast<u32>(entries[i].firstClusterHigh) << 16) |
-                     static_cast<u32>(entries[i].firstClusterLow);
-                if (!(entries[i].attr & DirAttr::Directory) && fileCluster >= 2) {
-                    freeChain(fileCluster);
-                }
-
-                // Mark the short entry and all preceding LFN entries as deleted.
-                entries[i].name[0] = DIR_ENTRY_FREE;
-                if (inLfn) {
-                    for (u32 j = lfnStart; j < i; j++) {
-                        entries[j].name[0] = DIR_ENTRY_FREE;
-                    }
-                }
-
-                writeCluster(cluster, clusterBuf);
-                flushFat();
-                UserHeap::free(clusterBuf);
-                return true;
-            }
-
-            inLfn = false;
-        }
-
-        cluster = fatGet(cluster);
+    if (!readCluster(entryCluster, clusterBuf)) {
+        UserHeap::free(clusterBuf);
+        return false;
     }
 
+    DirEntry* entries = reinterpret_cast<DirEntry*>(clusterBuf);
+    u32 shortIdx = entryOffset / sizeof(DirEntry);
+    entries[shortIdx].name[0] = DIR_ENTRY_FREE;
+
+    // Mark preceding LFN entries as deleted (walk backwards from short entry).
+    for (u32 j = shortIdx; j > 0; j--) {
+        if (!isLfnEntry(&entries[j - 1])) break;
+        entries[j - 1].name[0] = DIR_ENTRY_FREE;
+    }
+
+    // If LFN entries started in the previous cluster, clean those too.
+    if (shortIdx == 0 || (shortIdx > 0 && isLfnEntry(&entries[0]) &&
+        entries[0].name[0] != DIR_ENTRY_FREE)) {
+        // LFN might have started in a prior cluster -- scan backwards.
+        // Find the cluster before entryCluster in the chain.
+        u32 prevCluster = dirCluster;
+        u32 cur = dirCluster;
+        while (cur != entryCluster && cur >= 2 && cur < FAT_EOC) {
+            prevCluster = cur;
+            cur = fatGet(cur);
+        }
+        if (prevCluster != entryCluster) {
+            u8* prevBuf = static_cast<u8*>(UserHeap::alloc(bytesPerCluster));
+            if (prevBuf) {
+                if (readCluster(prevCluster, prevBuf)) {
+                    u32 epc = bytesPerCluster / sizeof(DirEntry);
+                    DirEntry* prevEntries = reinterpret_cast<DirEntry*>(prevBuf);
+                    for (u32 j = epc; j > 0; j--) {
+                        if (!isLfnEntry(&prevEntries[j - 1])) break;
+                        prevEntries[j - 1].name[0] = DIR_ENTRY_FREE;
+                    }
+                    writeCluster(prevCluster, prevBuf);
+                }
+                UserHeap::free(prevBuf);
+            }
+        }
+    }
+
+    writeCluster(entryCluster, clusterBuf);
+    flushFat();
     UserHeap::free(clusterBuf);
-    return false;
+    return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -909,8 +908,9 @@ bool Fat32Filesystem::mount(u32 ataServicePid) {
 
 bool Fat32Filesystem::createDirectory(const char* path) {
     char name[MAX_NAME];
-    u32 parentCluster = resolveParentPath(path, name, MAX_NAME);
-    if (parentCluster == 0 || name[0] == '\0') return false;
+    u32 parentCluster;
+    if (!resolveParentPath(path, &parentCluster, name, MAX_NAME)) return false;
+    if (name[0] == '\0') return false;
 
     // Check if it already exists.
     DirEntry existing;
@@ -926,8 +926,9 @@ bool Fat32Filesystem::remove(const char* path) {
     if (!path || streq(path, "/")) return false;
 
     char name[MAX_NAME];
-    u32 parentCluster = resolveParentPath(path, name, MAX_NAME);
-    if (parentCluster == 0 || name[0] == '\0') return false;
+    u32 parentCluster;
+    if (!resolveParentPath(path, &parentCluster, name, MAX_NAME)) return false;
+    if (name[0] == '\0') return false;
 
     return removeEntry(parentCluster, name);
 }
@@ -935,15 +936,17 @@ bool Fat32Filesystem::remove(const char* path) {
 u32 Fat32Filesystem::open(const char* path, bool create) {
     DirEntry entry;
     u32 ec, eo;
-    u32 cluster = resolvePath(path, &entry, &ec, &eo);
+    u32 cluster;
+    bool found = resolvePath(path, &cluster, &entry, &ec, &eo);
 
-    if (cluster == 0) {
+    if (!found) {
         if (!create) return 0;
 
         // Create the file.
         char name[MAX_NAME];
-        u32 parentCluster = resolveParentPath(path, name, MAX_NAME);
-        if (parentCluster == 0 || name[0] == '\0') return 0;
+        u32 parentCluster;
+        if (!resolveParentPath(path, &parentCluster, name, MAX_NAME)) return 0;
+        if (name[0] == '\0') return 0;
 
         if (!createEntry(parentCluster, name, DirAttr::Archive, &ec, &eo)) {
             return 0;
@@ -976,6 +979,15 @@ u32 Fat32Filesystem::open(const char* path, bool create) {
             handles[i].isDir = false;
             handles[i].inUse = true;
             return i + 1;
+        }
+    }
+
+    // No free handle. If we just created this file, clean it up.
+    if (create && !found) {
+        char cname[MAX_NAME];
+        u32 parentCluster;
+        if (resolveParentPath(path, &parentCluster, cname, MAX_NAME)) {
+            removeEntry(parentCluster, cname);
         }
     }
 
@@ -1025,6 +1037,27 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
 
     u8* clusterBuf = static_cast<u8*>(UserHeap::alloc(bytesPerCluster));
     if (!clusterBuf) return false;
+
+    // Truncate to zero: free all clusters.
+    if (len == 0 && fh.startCluster >= 2) {
+        freeChain(fh.startCluster);
+        fh.startCluster = 0;
+        fh.size = 0;
+
+        if (!readCluster(fh.dirCluster, clusterBuf)) {
+            UserHeap::free(clusterBuf);
+            return false;
+        }
+        DirEntry* entries = reinterpret_cast<DirEntry*>(clusterBuf);
+        u32 idx = fh.dirOffset / sizeof(DirEntry);
+        entries[idx].fileSize = 0;
+        entries[idx].firstClusterHigh = 0;
+        entries[idx].firstClusterLow = 0;
+        writeCluster(fh.dirCluster, clusterBuf);
+        flushFat();
+        UserHeap::free(clusterBuf);
+        return true;
+    }
 
     // If the file has no clusters yet, allocate the first one.
     if (fh.startCluster < 2 && len > 0) {
@@ -1110,15 +1143,14 @@ u32 Fat32Filesystem::stat(const char* path) {
     if (streq(path, "/")) return 2;
 
     DirEntry entry;
-    u32 cluster = resolvePath(path, &entry, nullptr, nullptr);
-    if (cluster == 0) return 0;
+    if (!resolvePath(path, nullptr, &entry, nullptr, nullptr)) return 0;
     return (entry.attr & DirAttr::Directory) ? 2 : 1;
 }
 
 bool Fat32Filesystem::listEntry(const char* path, u32 index, char* nameOut, u32 nameMax) {
     DirEntry dirEntry;
-    u32 dirCluster = resolvePath(path, &dirEntry, nullptr, nullptr);
-    if (dirCluster == 0) return false;
+    u32 dirCluster;
+    if (!resolvePath(path, &dirCluster, &dirEntry, nullptr, nullptr)) return false;
     if (!(dirEntry.attr & DirAttr::Directory)) return false;
 
     DirEntry entry;

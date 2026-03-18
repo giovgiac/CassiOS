@@ -24,7 +24,7 @@ private:
     u32 vgaPid;
     u32 vfsPid;
 
-    char buffer[SHELL_MAX_INPUT];
+    char buffer[SHELL_MAX_INPUT + 1];  // +1 for null terminator in execute()
     u8 length;
     u8 cursor;
     u8 promptCol;

@@ -193,6 +193,40 @@ TEST(vfs_ipc_read_with_offset) {
     ASSERT_EQ(buf[1], (u8)'d');
 }
 
+TEST(vfs_ipc_empty_file_in_subdir) {
+    u32 pid = Nameserver::lookup("vfs");
+    ASSERT(pid != 0);
+
+    // Reproduce: mkdir, touch inside it, then open the empty file.
+    Vfs::mkdir(pid, "/subtest");
+    u32 h1 = Vfs::open(pid, "/subtest/file.txt", true);
+    ASSERT(h1 != 0);
+
+    // Open the same empty file without create -- must find it.
+    u32 h2 = Vfs::open(pid, "/subtest/file.txt");
+    ASSERT(h2 != 0);
+
+    // Write to it, then read back.
+    const u8 text[] = {'O', 'K'};
+    u32 wret = Vfs::write(pid, h2, text, 2);
+    ASSERT_EQ(wret, 0u);
+
+    u8 buf[32] = {};
+    i32 n = Vfs::read(pid, h2, 0, buf, sizeof(buf));
+    ASSERT_EQ(n, 2);
+    ASSERT_EQ(buf[0], (u8)'O');
+    ASSERT_EQ(buf[1], (u8)'K');
+
+    // Listing should show exactly one file.txt, not two.
+    char name[32];
+    u32 count = 0;
+    for (u32 i = 0; i < 32; i++) {
+        if (!Vfs::list(pid, "/subtest", i, name, sizeof(name))) break;
+        if (streq(name, "file.txt")) count++;
+    }
+    ASSERT_EQ(count, 1u);
+}
+
 TEST(vfs_ipc_open_nonexistent_fails) {
     u32 pid = Nameserver::lookup("vfs");
     ASSERT(pid != 0);
