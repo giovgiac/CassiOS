@@ -91,3 +91,47 @@ TEST(heap_operator_new_array_delete_array) {
     ASSERT_EQ(arr[9], 9);
     delete[] arr;
 }
+
+TEST(heap_double_free_does_not_corrupt) {
+    HeapAllocator& heap = KernelHeap::getAllocator();
+    void* a = heap.allocate(64);
+    ASSERT(a != nullptr);
+    heap.free(a);
+    // Double-free should be silently ignored (block is already free).
+    heap.free(a);
+    // Heap should still be functional.
+    void* b = heap.allocate(64);
+    ASSERT(b != nullptr);
+    heap.free(b);
+}
+
+TEST(heap_free_null_is_safe) {
+    HeapAllocator& heap = KernelHeap::getAllocator();
+    heap.free(nullptr);
+    // Should not crash. Heap still works.
+    void* p = heap.allocate(32);
+    ASSERT(p != nullptr);
+    heap.free(p);
+}
+
+TEST(heap_free_out_of_range_is_ignored) {
+    HeapAllocator& heap = KernelHeap::getAllocator();
+    // Free a pointer that is clearly outside the heap region.
+    u8 stack_var = 0;
+    heap.free(&stack_var);
+    // Heap should still be functional.
+    void* p = heap.allocate(32);
+    ASSERT(p != nullptr);
+    heap.free(p);
+}
+
+TEST(heap_extend_too_small_is_ignored) {
+    HeapAllocator& heap = KernelHeap::getAllocator();
+    // Extending by less than sizeof(BlockHeader) should be silently ignored
+    // (not wrap around to a huge value).
+    heap.extend(4);
+    // Heap should still be functional.
+    void* p = heap.allocate(32);
+    ASSERT(p != nullptr);
+    heap.free(p);
+}

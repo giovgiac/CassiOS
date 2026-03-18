@@ -88,3 +88,42 @@ TEST(sbrk_no_heap_returns_zero) {
 
     pm.destroy(p->pid);
 }
+
+TEST(sbrk_overflow_returns_zero) {
+    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
+    ProcessManager& pm = ProcessManager::getManager();
+
+    Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    ASSERT(p != nullptr);
+    p->heapBreak = 0x80000000;
+    pm.setCurrent(p);
+
+    // Increment would wrap u32.
+    u32 result = sh.sbrk(0x80000001);
+    ASSERT_EQ(result, 0u);
+    ASSERT_EQ(p->heapBreak, 0x80000000u);  // Unchanged.
+
+    pm.destroy(p->pid);
+}
+
+TEST(sbrk_stack_collision_returns_zero) {
+    SyscallHandler& sh = SyscallHandler::getSyscallHandler();
+    ProcessManager& pm = ProcessManager::getManager();
+
+    PagingManager& paging = PagingManager::getManager();
+    u32 pd = paging.createAddressSpace();
+    ASSERT(pd != 0);
+
+    Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, pd);
+    ASSERT(p != nullptr);
+    p->heapBreak = 0xBFFF0000;
+    pm.setCurrent(p);
+
+    // Would collide with user stack at 0xBFFFF000.
+    u32 result = sh.sbrk(0x10000);
+    ASSERT_EQ(result, 0u);
+    ASSERT_EQ(p->heapBreak, 0xBFFF0000u);  // Unchanged.
+
+    paging.destroyAddressSpace(pd);
+    pm.destroy(p->pid);
+}

@@ -8,6 +8,7 @@
  */
 
 #include "core/process.hpp"
+#include "core/syscall.hpp"
 #include <memory.hpp>
 
 using namespace cassio;
@@ -163,9 +164,16 @@ void ProcessManager::destroy(u32 pid) {
         return;
     }
 
-    // Drain send queue.
+    // Wake all senders blocked on this process, returning -1 (error).
     while (!p->sendQueue.isEmpty()) {
-        delete p->sendQueue.popFront();
+        Process::SendNode* node = p->sendQueue.popFront();
+        Process* sender = get(node->senderPid);
+        if (sender && sender->state == ProcessState::SendBlocked) {
+            SyscallFrame* frame = (SyscallFrame*)sender->esp;
+            frame->eax = static_cast<u32>(-1);
+            sender->state = ProcessState::Ready;
+        }
+        delete node;
     }
 
     // Drain notify queue.

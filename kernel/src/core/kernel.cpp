@@ -16,11 +16,16 @@
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
 #include "memory/virtual.hpp"
+#include <new.hpp>
 
 using namespace cassio;
 using namespace cassio::hardware;
 using namespace cassio::kernel;
 using namespace cassio::memory;
+
+// GDT lives at file scope so GDTR and TSS point to stable addresses
+// (not the stack). Constructed in start() via placement new.
+alignas(GlobalDescriptorTable) static u8 gdt_storage[sizeof(GlobalDescriptorTable)];
 
 void ctors() {
     for (ctor* ct = &start_ctors; ct != &end_ctors; ++ct) {
@@ -29,7 +34,7 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
-    GlobalDescriptorTable gdt;
+    GlobalDescriptorTable& gdt = *new (gdt_storage) GlobalDescriptorTable;
     InterruptManager& im = InterruptManager::getManager();
 
     im.load(gdt);
@@ -92,12 +97,16 @@ void start(void* multiboot, u32 magic) {
             u32 kernelStackTop = (u32)kernelStackFrame + KERNEL_VBASE + FRAME_SIZE;
 
             // Build fake interrupt frame on kernel stack for initial iret to ring 3.
+            // Must match the interrupt stub's stack layout: the stub does
+            // popa + addl $8 (skip number/error_code) + iret.
             u32* frame = (u32*)kernelStackTop;
             *(--frame) = userDS;            // SS
             *(--frame) = 0xC0000000;        // ESP (top of user stack page)
-            *(--frame) = 0x3202;            // EFLAGS (IF=1, IOPL=3)
+            *(--frame) = 0x3202;            // EFLAGS (IF=1, IOPL=3 for direct I/O)
             *(--frame) = userCS;            // CS
             *(--frame) = elf.entryPoint;    // EIP
+            *(--frame) = 0;                 // error_code (stub skips via addl $8)
+            *(--frame) = 0;                 // number (stub skips via addl $8)
             *(--frame) = 0;                 // EAX
             *(--frame) = 0;                 // ECX
             *(--frame) = 0;                 // EDX

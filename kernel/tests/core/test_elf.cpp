@@ -105,3 +105,41 @@ TEST(elf_load_wrong_machine_fails) {
 
     pm.destroyAddressSpace(pd);
 }
+
+TEST(elf_load_p_offset_overflow_rejected) {
+    u8 buf[256];
+    u32 size;
+    buildMinimalElf(buf, size);
+
+    // Set p_offset near 0xFFFFFFFF to trigger u32 wrap.
+    Elf32ProgramHeader* ph = (Elf32ProgramHeader*)(buf + sizeof(Elf32Header));
+    ph->p_offset = 0xFFFFFFF0;
+
+    PagingManager& pm = PagingManager::getManager();
+    u32 pd = pm.createAddressSpace();
+    ASSERT(pd != 0);
+
+    ElfLoadResult result = ElfLoader::load(pd, buf, size);
+    ASSERT(!result.success);
+
+    pm.destroyAddressSpace(pd);
+}
+
+TEST(elf_load_p_offset_beyond_file_rejected) {
+    u8 buf[256];
+    u32 size;
+    buildMinimalElf(buf, size);
+
+    // Set p_offset past the end of the ELF data.
+    Elf32ProgramHeader* ph = (Elf32ProgramHeader*)(buf + sizeof(Elf32Header));
+    ph->p_offset = size + 1;
+
+    PagingManager& pm = PagingManager::getManager();
+    u32 pd = pm.createAddressSpace();
+    ASSERT(pd != 0);
+
+    ElfLoadResult result = ElfLoader::load(pd, buf, size);
+    ASSERT(!result.success);
+
+    pm.destroyAddressSpace(pd);
+}

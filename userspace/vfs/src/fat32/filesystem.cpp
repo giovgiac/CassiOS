@@ -21,7 +21,7 @@ using namespace cassio::vfs;
 // ---------------------------------------------------------------------------
 
 Fat32Filesystem::CacheEntry* Fat32Filesystem::cacheLookup(u32 lba) {
-    for (u32 i = 0; i < CACHE_SIZE; i++) {
+    for (u32 i = 0; i < cacheCount; i++) {
         if (cache[i].valid && cache[i].lba == lba) {
             cache[i].age = ++cacheAge;
             return &cache[i];
@@ -32,7 +32,7 @@ Fat32Filesystem::CacheEntry* Fat32Filesystem::cacheLookup(u32 lba) {
 
 Fat32Filesystem::CacheEntry* Fat32Filesystem::cacheEvict() {
     // Find an empty slot first.
-    for (u32 i = 0; i < CACHE_SIZE; i++) {
+    for (u32 i = 0; i < cacheCount; i++) {
         if (!cache[i].valid) {
             if (!cache[i].data) {
                 cache[i].data = static_cast<u8*>(UserHeap::alloc(SECTOR_SIZE));
@@ -44,7 +44,7 @@ Fat32Filesystem::CacheEntry* Fat32Filesystem::cacheEvict() {
 
     // Evict the least recently used entry.
     u32 oldest = 0;
-    for (u32 i = 1; i < CACHE_SIZE; i++) {
+    for (u32 i = 1; i < cacheCount; i++) {
         if (cache[i].age < cache[oldest].age) oldest = i;
     }
 
@@ -186,7 +186,7 @@ void Fat32Filesystem::freeChain(u32 startCluster) {
 bool Fat32Filesystem::flushFat() {
     // fatSet already writes through to FAT1 via the cache.
     // Mirror dirty FAT1 sectors to FAT2.
-    for (u32 i = 0; i < CACHE_SIZE; i++) {
+    for (u32 i = 0; i < cacheCount; i++) {
         if (cache[i].valid && cache[i].dirty) {
             u32 lba = cache[i].lba;
             // Check if this is a FAT1 sector.
@@ -483,12 +483,16 @@ bool Fat32Filesystem::resolvePath(const char* path, u32* clusterOut,
             cluster = (parentCluster == 0) ? rootCluster : parentCluster;
 
             // Fill a synthetic entry for the parent directory.
+            // entryCluster/entryOffset are zeroed because the synthetic
+            // entry has no real on-disk location (same as root).
             if (entryOut) {
                 memset(entryOut, 0, sizeof(DirEntry));
                 entryOut->attr = DirAttr::Directory;
                 entryOut->firstClusterHigh = static_cast<u16>(cluster >> 16);
                 entryOut->firstClusterLow = static_cast<u16>(cluster);
             }
+            if (entryCluster) *entryCluster = 0;
+            if (entryOffset) *entryOffset = 0;
             continue;
         }
 
@@ -862,14 +866,19 @@ bool Fat32Filesystem::removeEntry(u32 dirCluster, const char* name) {
 bool Fat32Filesystem::mount(u32 ataServicePid) {
     ataPid = ataServicePid;
 
-    // Initialize handles.
-    for (u32 i = 0; i < MAX_HANDLES; i++) {
+    // Heap-allocate handles and cache.
+    handleCount = MAX_HANDLES;
+    handles = new FileHandle[handleCount];
+    if (!handles) return false;
+    for (u32 i = 0; i < handleCount; i++) {
         handles[i].inUse = false;
     }
 
-    // Initialize sector cache.
+    cacheCount = CACHE_SIZE;
+    cache = new CacheEntry[cacheCount];
+    if (!cache) return false;
     cacheAge = 0;
-    for (u32 i = 0; i < CACHE_SIZE; i++) {
+    for (u32 i = 0; i < cacheCount; i++) {
         cache[i].valid = false;
         cache[i].dirty = false;
         cache[i].data = nullptr;
@@ -969,7 +978,7 @@ u32 Fat32Filesystem::open(const char* path, bool create) {
     if (entry.attr & DirAttr::Directory) return 0;
 
     // Find a free handle slot.
-    for (u32 i = 0; i < MAX_HANDLES; i++) {
+    for (u32 i = 0; i < handleCount; i++) {
         if (!handles[i].inUse) {
             handles[i].startCluster = (static_cast<u32>(entry.firstClusterHigh) << 16) |
                                        static_cast<u32>(entry.firstClusterLow);
@@ -995,7 +1004,7 @@ u32 Fat32Filesystem::open(const char* path, bool create) {
 }
 
 i32 Fat32Filesystem::read(u32 handle, u32 offset, u8* buf, u32 len) {
-    if (handle == 0 || handle > MAX_HANDLES) return -1;
+    if (handle == 0 || handle > handleCount) return -1;
     FileHandle& fh = handles[handle - 1];
     if (!fh.inUse) return -1;
     if (offset >= fh.size) return 0;
@@ -1031,7 +1040,7 @@ i32 Fat32Filesystem::read(u32 handle, u32 offset, u8* buf, u32 len) {
 }
 
 bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
-    if (handle == 0 || handle > MAX_HANDLES) return false;
+    if (handle == 0 || handle > handleCount) return false;
     FileHandle& fh = handles[handle - 1];
     if (!fh.inUse) return false;
 

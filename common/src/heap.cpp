@@ -14,7 +14,7 @@ using namespace cassio;
 static constexpr u32 MIN_BLOCK_SIZE = sizeof(BlockHeader) + 4;
 
 HeapAllocator::HeapAllocator(void* base, u32 size)
-    : head(nullptr) {
+    : head(nullptr), regionStart(nullptr), regionEnd(nullptr) {
     if (!base || size <= sizeof(BlockHeader)) {
         return;
     }
@@ -23,6 +23,9 @@ HeapAllocator::HeapAllocator(void* base, u32 size)
     head->size = size - sizeof(BlockHeader);
     head->free = true;
     head->next = nullptr;
+
+    regionStart = (u8*)base;
+    regionEnd = (u8*)base + size;
 }
 
 void* HeapAllocator::allocate(usize size) {
@@ -62,7 +65,20 @@ void HeapAllocator::free(void* ptr) {
         return;
     }
 
-    BlockHeader* block = (BlockHeader*)((u8*)ptr - sizeof(BlockHeader));
+    u8* raw = (u8*)ptr;
+
+    // Bounds check: reject pointers outside the managed region.
+    if (raw < regionStart + sizeof(BlockHeader) || raw >= regionEnd) {
+        return;
+    }
+
+    BlockHeader* block = (BlockHeader*)(raw - sizeof(BlockHeader));
+
+    // Double-free protection: ignore if already free.
+    if (block->free) {
+        return;
+    }
+
     block->free = true;
 
     // Coalesce adjacent free blocks.
@@ -78,7 +94,7 @@ void HeapAllocator::free(void* ptr) {
 }
 
 void HeapAllocator::extend(u32 additionalSize) {
-    if (additionalSize == 0 || !head) {
+    if (additionalSize <= sizeof(BlockHeader) || !head) {
         return;
     }
 
@@ -99,4 +115,6 @@ void HeapAllocator::extend(u32 additionalSize) {
         newBlock->next = nullptr;
         last->next = newBlock;
     }
+
+    regionEnd += additionalSize;
 }

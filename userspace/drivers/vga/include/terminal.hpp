@@ -47,6 +47,12 @@ private:
 
     void updateCursor();
     void scrollUp();
+
+public:
+    VgaTerminal(const VgaTerminal&) = delete;
+    VgaTerminal(VgaTerminal&&) = delete;
+    VgaTerminal& operator=(const VgaTerminal&) = delete;
+    VgaTerminal& operator=(VgaTerminal&&) = delete;
 };
 
 } // cassio

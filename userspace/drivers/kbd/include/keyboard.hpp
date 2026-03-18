@@ -121,6 +121,12 @@ private:
     char ring[KEYBOARD_BUFFER_SIZE];
     u16 ring_head;
     u16 ring_tail;
+
+public:
+    Keyboard(const Keyboard&) = delete;
+    Keyboard(Keyboard&&) = delete;
+    Keyboard& operator=(const Keyboard&) = delete;
+    Keyboard& operator=(Keyboard&&) = delete;
 };
 
 } // cassio

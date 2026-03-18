@@ -43,6 +43,8 @@ public:
 
 private:
     BlockHeader* head;
+    u8* regionStart;
+    u8* regionEnd;
 };
 
 } // cassio

@@ -125,7 +125,8 @@ $(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBCASSIO)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBCOMMON)
 
-$(DISK):
+disk_files = $(shell find disk/ -type f 2>/dev/null)
+$(DISK): $(disk_files)
 	@mkdir -p bin
 	dd if=/dev/zero of=$(DISK) bs=1M count=$(DISK_SIZE_MB) 2>/dev/null
 	mkfs.fat -F 32 $(DISK) >/dev/null 2>&1

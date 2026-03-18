@@ -72,3 +72,24 @@ TEST(process_get_returns_null_for_nonexistent) {
     ProcessManager& pm = ProcessManager::getManager();
     ASSERT(pm.get(99999) == nullptr);
 }
+
+TEST(process_destroy_wakes_send_blocked_senders) {
+    ProcessManager& pm = ProcessManager::getManager();
+
+    Process* target = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
+    Process* sender = pm.create(0x3000, 0x4000, 0x08, 0x10, 0);
+    ASSERT(target != nullptr);
+    ASSERT(sender != nullptr);
+
+    // Simulate sender being SendBlocked on target.
+    sender->state = ProcessState::SendBlocked;
+    target->sendQueuePush(sender->pid);
+
+    // Destroying target should wake the sender with Ready state.
+    u32 targetPid = target->pid;
+    pm.destroy(targetPid);
+
+    ASSERT(sender->state == ProcessState::Ready);
+
+    pm.destroy(sender->pid);
+}
