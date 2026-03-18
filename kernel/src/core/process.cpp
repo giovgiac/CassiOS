@@ -169,8 +169,12 @@ void ProcessManager::destroy(u32 pid) {
         Process::SendNode* node = p->sendQueue.popFront();
         Process* sender = get(node->senderPid);
         if (sender && sender->state == ProcessState::SendBlocked) {
-            SyscallFrame* frame = (SyscallFrame*)sender->esp;
-            frame->eax = static_cast<u32>(-1);
+            // Set the sender's saved EAX to -1 (error) so send() returns failure.
+            // Guard: only access the frame if ESP is in kernel space.
+            if (sender->esp >= 0xC0000000) {
+                SyscallFrame* frame = (SyscallFrame*)sender->esp;
+                frame->eax = static_cast<u32>(-1);
+            }
             sender->state = ProcessState::Ready;
         }
         delete node;
