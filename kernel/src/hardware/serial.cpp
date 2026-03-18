@@ -1,6 +1,7 @@
 #include "hardware/serial.hpp"
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::hardware;
 
 Serial COM1::instance(

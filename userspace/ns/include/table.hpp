@@ -10,7 +10,7 @@
 #ifndef NS_TABLE_HPP_
 #define NS_TABLE_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <list.hpp>
 #include <ns.hpp>
 
@@ -18,20 +18,20 @@ namespace cassio {
 
 class NsTable {
 public:
-    static constexpr u32 MAX_NAME_LEN = 16;
+    static constexpr std::u32 MAX_NAME_LEN = 16;
 
     struct Entry {
         char name[MAX_NAME_LEN + 1];
-        u32 pid;
+        std::u32 pid;
         Entry* next;
     };
 
     NsTable();
 
-    u32 registerName(const char* name, u32 pid);
-    u32 lookup(const char* name);
-    u32 listAll(NsEntry* buf, u32 maxEntries) const;
-    u32 count() const;
+    std::u32 registerName(const char* name, std::u32 pid);
+    std::u32 lookup(const char* name);
+    std::u32 listAll(NsEntry* buf, std::u32 maxEntries) const;
+    std::u32 count() const;
 
     NsTable(const NsTable&) = delete;
     NsTable(NsTable&&) = delete;

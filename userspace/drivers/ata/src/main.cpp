@@ -11,7 +11,7 @@
  *
  */
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
@@ -19,6 +19,7 @@
 #include <ata.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::ata;
 
 extern "C" void _start() {

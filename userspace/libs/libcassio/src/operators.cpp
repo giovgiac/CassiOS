@@ -10,6 +10,7 @@
 #include <userheap.hpp>
 
 using namespace cassio;
+using namespace std;
 
 void* operator new(usize size) {
     return UserHeap::alloc(size);

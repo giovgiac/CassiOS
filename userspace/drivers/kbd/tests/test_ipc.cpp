@@ -11,6 +11,7 @@
 #include <ns.hpp>
 
 using namespace cassio;
+using namespace std;
 
 TEST(kbd_ipc_service_registered) {
     u32 kbd_pid = Nameserver::lookup("kbd");

@@ -10,13 +10,13 @@
 #ifndef COMMON_TIMER_HPP_
 #define COMMON_TIMER_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
 // System tick frequency in Hz. Used by both kernel (PIT driver) and
 // userspace (uptime conversion) to avoid hardcoded magic numbers.
-constexpr u32 TICK_FREQUENCY = 1000;
+constexpr std::u32 TICK_FREQUENCY = 1000;
 
 } // cassio
 

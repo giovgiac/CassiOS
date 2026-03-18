@@ -13,6 +13,7 @@
 #include <new.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::memory;
 
 HeapAllocator* KernelHeap::instance = nullptr;

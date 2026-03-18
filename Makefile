@@ -5,6 +5,7 @@
 DISK_SIZE_MB ?= 32
 
 ASMFLAGS = --32
+STD_INCLUDES = $(foreach dir,$(wildcard libs/*/include),-I$(dir))
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
 COMMON_CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
 LDFLAGS = -melf_i386
@@ -37,9 +38,11 @@ common_objects = $(patsubst common/src/%.cpp, obj/common/%.o, $(common_sources))
 # Shared objects for the test kernel (everything except kernel.o).
 shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 
-# Test objects are discovered from kernel/tests/**/test_*.cpp.
+# Test objects are discovered from kernel/tests/**/test_*.cpp and libs/**/tests/test_*.cpp.
 test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
 test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
+lib_test_sources = $(shell find libs/ -path '*/tests/test_*.cpp' 2>/dev/null)
+lib_test_objects = $(patsubst libs/%.cpp, obj/libs/%.o, $(lib_test_sources))
 
 # Userspace shared library sources.
 cassio_lib_sources = $(shell find userspace/libs/libcassio/src/ -name '*.cpp' 2>/dev/null)
@@ -51,13 +54,13 @@ usertest_sources = userspace/test.cpp \
     $(shell find userspace/ -path '*/src/*.cpp' -not -name 'main.cpp' -not -path 'userspace/libs/*' 2>/dev/null)
 usertest_objects = $(patsubst userspace/%.cpp, obj/userspace/usertest/%.o, $(usertest_sources))
 USERTEST_CXXFLAGS = $(COMMON_CXXFLAGS) -fno-use-cxa-atexit \
-    -Icommon/include/ -Iuserspace/libs/libcassio/include/ \
+    -Icommon/include/ -Iuserspace/libs/libcassio/include/ $(STD_INCLUDES) \
     $(foreach dir,$(shell find userspace/ -type d -name include),-I$(dir))
 
 # Compile C++ source files.
 obj/%.o: kernel/src/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/ $(STD_INCLUDES)
 
 # Compile assembly source files.
 obj/%.o: kernel/src/%.s
@@ -67,7 +70,7 @@ obj/%.o: kernel/src/%.s
 # Compile common library source files.
 obj/common/%.o: common/src/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(COMMON_CXXFLAGS) -o $@ -c $< -Icommon/include/
+	g++ $(COMMON_CXXFLAGS) -o $@ -c $< -Icommon/include/ $(STD_INCLUDES)
 
 $(LIBCOMMON): $(common_objects)
 	@mkdir -p lib
@@ -76,7 +79,7 @@ $(LIBCOMMON): $(common_objects)
 # Compile libcassio source files.
 obj/userspace/libs/libcassio/%.o: userspace/libs/libcassio/src/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(COMMON_CXXFLAGS) -fno-use-cxa-atexit -o $@ -c $< -Icommon/include/ -Iuserspace/libs/libcassio/include/
+	g++ $(COMMON_CXXFLAGS) -fno-use-cxa-atexit -o $@ -c $< -Icommon/include/ -Iuserspace/libs/libcassio/include/ $(STD_INCLUDES)
 
 $(LIBCASSIO): $(cassio_lib_objects)
 	@mkdir -p lib
@@ -110,11 +113,15 @@ $(USERSHELL): $(LIBCOMMON)
 # Compile test files from the kernel/tests/ directory.
 obj/tests/%.o: kernel/tests/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/ -Ikernel/tests/
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/ $(STD_INCLUDES) -Ikernel/tests/
 
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(LIBCOMMON)
+obj/libs/%.o: libs/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/ $(STD_INCLUDES)
+
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBCOMMON)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBCOMMON)
 
 # Compile userspace test files (runner + service tests + service impls).
 obj/userspace/usertest/%.o: userspace/%.cpp
@@ -218,6 +225,7 @@ run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) $(DI
 -include $(common_objects:.o=.d)
 -include $(cassio_lib_objects:.o=.d)
 -include $(test_objects:.o=.d)
+-include $(lib_test_objects:.o=.d)
 -include $(usertest_objects:.o=.d)
 
 .PHONY: kernel iso clean run test test-kernel test-userspace

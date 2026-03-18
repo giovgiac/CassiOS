@@ -10,7 +10,7 @@
 #ifndef HARDWARE_EXCEPTION_HPP_
 #define HARDWARE_EXCEPTION_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 namespace hardware {
@@ -58,7 +58,7 @@ public:
      * @brief Handles a CPU exception by logging to serial and halting.
      *
      */
-    u32 handle(u8 vector, u32 error_code, u32 esp);
+    std::u32 handle(std::u8 vector, std::u32 error_code, std::u32 esp);
 
     /** Deleted Methods */
     ExceptionHandler(const ExceptionHandler&) = delete;
@@ -74,6 +74,6 @@ public:
  * @brief C-linkage exception handler called from assembly stubs in stub.s.
  *
  */
-extern "C" cassio::u32 handleException(cassio::u8 vector, cassio::u32 error_code, cassio::u32 esp);
+extern "C" std::u32 handleException(std::u8 vector, std::u32 error_code, std::u32 esp);
 
 #endif // HARDWARE_EXCEPTION_HPP_

@@ -10,32 +10,32 @@
 #ifndef USERSPACE_SHELL_SHELL_HPP_
 #define USERSPACE_SHELL_SHELL_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
-constexpr u8 SHELL_MAX_INPUT = 78;
-constexpr u8 SHELL_MAX_ARGS = 16;
-constexpr u32 SHELL_MAX_PATH = 64;
+constexpr std::u8 SHELL_MAX_INPUT = 78;
+constexpr std::u8 SHELL_MAX_ARGS = 16;
+constexpr std::u32 SHELL_MAX_PATH = 64;
 
 class Shell {
 private:
-    u32 kbdPid;
-    u32 vgaPid;
-    u32 vfsPid;
+    std::u32 kbdPid;
+    std::u32 vgaPid;
+    std::u32 vfsPid;
 
     char buffer[SHELL_MAX_INPUT + 1];  // +1 for null terminator in execute()
-    u8 length;
-    u8 cursor;
-    u8 promptCol;
-    u8 promptRow;
+    std::u8 length;
+    std::u8 cursor;
+    std::u8 promptCol;
+    std::u8 promptRow;
 
     char cwd[SHELL_MAX_PATH];
 
     // VGA helpers (use blocking send for ordering).
     void print(const char* str);
     void putchar(char ch);
-    void printDec(u32 val);
+    void printDec(std::u32 val);
 
     void printPrompt();
     void redrawLine();
@@ -44,30 +44,30 @@ private:
     // Commands.
     void cmdHelp();
     void cmdClear();
-    void cmdEcho(const char** args, u8 argc);
+    void cmdEcho(const char** args, std::u8 argc);
     void cmdMem();
     void cmdPs();
     void cmdUptime();
     void cmdReboot();
     void cmdShutdown();
-    void cmdLs(const char** args, u8 argc);
-    void cmdCd(const char** args, u8 argc);
+    void cmdLs(const char** args, std::u8 argc);
+    void cmdCd(const char** args, std::u8 argc);
     void cmdPwd();
-    void cmdMkdir(const char** args, u8 argc);
-    void cmdRmdir(const char** args, u8 argc);
-    void cmdTouch(const char** args, u8 argc);
-    void cmdRm(const char** args, u8 argc);
-    void cmdCat(const char** args, u8 argc);
-    void cmdWrite(const char** args, u8 argc);
+    void cmdMkdir(const char** args, std::u8 argc);
+    void cmdRmdir(const char** args, std::u8 argc);
+    void cmdTouch(const char** args, std::u8 argc);
+    void cmdRm(const char** args, std::u8 argc);
+    void cmdCat(const char** args, std::u8 argc);
+    void cmdWrite(const char** args, std::u8 argc);
 
 public:
-    Shell(u32 kbd, u32 vga, u32 vfs);
+    Shell(std::u32 kbd, std::u32 vga, std::u32 vfs);
     void run();
 
     // Testable helpers.
-    static u8 parseArgs(char* buf, u8 length, const char** args, u8 maxArgs);
+    static std::u8 parseArgs(char* buf, std::u8 length, const char** args, std::u8 maxArgs);
     static void resolvePath(const char* cwd, const char* input,
-                            char* out, u32 maxLen);
+                            char* out, std::u32 maxLen);
     static void parentDir(char* path);
 };
 

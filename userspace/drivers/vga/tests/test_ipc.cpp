@@ -13,6 +13,7 @@
 #include <message.hpp>
 
 using namespace cassio;
+using namespace std;
 
 TEST(vga_ipc_putchar) {
     u32 pid = Nameserver::lookup("vga");

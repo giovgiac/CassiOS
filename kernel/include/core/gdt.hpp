@@ -10,7 +10,7 @@
 #ifndef CORE_GDT_HPP_
 #define CORE_GDT_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 namespace kernel {
@@ -33,31 +33,31 @@ public:
      */
     class __attribute__((packed)) SegmentDescriptor {
     private:
-        u16 limit_low;
-        u16 base_low;
-        u8  base_high;
-        u8  flags;
-        u8  limit_high;
-        u8  base_very_high;
+        std::u16 limit_low;
+        std::u16 base_low;
+        std::u8  base_high;
+        std::u8  flags;
+        std::u8  limit_high;
+        std::u8  base_very_high;
 
     public:
         /**
          * @brief Constructs a segment descriptor with the given base, limit, and access flags.
          *
          */
-        SegmentDescriptor(u32 base, u32 limit, u8 flags);
+        SegmentDescriptor(std::u32 base, std::u32 limit, std::u8 flags);
 
         /**
          * @brief Decodes and returns the 32-bit base address from this descriptor.
          *
          */
-        u32 getBase();
+        std::u32 getBase();
 
         /**
          * @brief Decodes and returns the segment limit from this descriptor.
          *
          */
-        u32 getLimit();
+        std::u32 getLimit();
 
     };
 
@@ -69,33 +69,33 @@ public:
      *
      */
     struct __attribute__((packed)) TaskStateSegment {
-        u32 prev_tss;
-        u32 esp0;
-        u32 ss0;
-        u32 esp1;
-        u32 ss1;
-        u32 esp2;
-        u32 ss2;
-        u32 cr3;
-        u32 eip;
-        u32 eflags;
-        u32 eax;
-        u32 ecx;
-        u32 edx;
-        u32 ebx;
-        u32 esp;
-        u32 ebp;
-        u32 esi;
-        u32 edi;
-        u32 es;
-        u32 cs;
-        u32 ss;
-        u32 ds;
-        u32 fs;
-        u32 gs;
-        u32 ldt;
-        u16 trap;
-        u16 iomap_base;
+        std::u32 prev_tss;
+        std::u32 esp0;
+        std::u32 ss0;
+        std::u32 esp1;
+        std::u32 ss1;
+        std::u32 esp2;
+        std::u32 ss2;
+        std::u32 cr3;
+        std::u32 eip;
+        std::u32 eflags;
+        std::u32 eax;
+        std::u32 ecx;
+        std::u32 edx;
+        std::u32 ebx;
+        std::u32 esp;
+        std::u32 ebp;
+        std::u32 esi;
+        std::u32 edi;
+        std::u32 es;
+        std::u32 cs;
+        std::u32 ss;
+        std::u32 ds;
+        std::u32 fs;
+        std::u32 gs;
+        std::u32 ldt;
+        std::u16 trap;
+        std::u16 iomap_base;
     };
 
 public:
@@ -116,37 +116,37 @@ public:
      * @brief Returns the byte offset of the kernel code segment descriptor.
      *
      */
-    u16 getCodeOffset();
+    std::u16 getCodeOffset();
 
     /**
      * @brief Returns the byte offset of the kernel data segment descriptor.
      *
      */
-    u16 getDataOffset();
+    std::u16 getDataOffset();
 
     /**
      * @brief Returns the byte offset of the user code segment descriptor.
      *
      */
-    u16 getUserCodeOffset();
+    std::u16 getUserCodeOffset();
 
     /**
      * @brief Returns the byte offset of the user data segment descriptor.
      *
      */
-    u16 getUserDataOffset();
+    std::u16 getUserDataOffset();
 
     /**
      * @brief Returns the byte offset of the TSS descriptor.
      *
      */
-    u16 getTssOffset();
+    std::u16 getTssOffset();
 
     /**
      * @brief Updates TSS.esp0, the kernel stack pointer used on ring 3 to ring 0 transitions.
      *
      */
-    void setTssEsp0(u32 esp0);
+    void setTssEsp0(std::u32 esp0);
 
     /** Deleted Methods */
     GlobalDescriptorTable(const GlobalDescriptorTable&) = delete;

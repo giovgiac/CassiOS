@@ -10,6 +10,7 @@
 #include "core/scheduler.hpp"
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::kernel;
 
 Scheduler Scheduler::instance;

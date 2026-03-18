@@ -10,6 +10,7 @@
 #include <mouse.hpp>
 
 using namespace cassio;
+using namespace std;
 
 void Mouse::init() {
     buffer[0] = 0;

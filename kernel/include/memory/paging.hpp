@@ -10,15 +10,15 @@
 #ifndef MEMORY_PAGING_HPP_
 #define MEMORY_PAGING_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <memory/multiboot.hpp>
 
 namespace cassio {
 namespace memory {
 
-static constexpr u16 PAGE_PRESENT    = 0x01;
-static constexpr u16 PAGE_READWRITE  = 0x02;
-static constexpr u16 PAGE_USER       = 0x04;
+static constexpr std::u16 PAGE_PRESENT    = 0x01;
+static constexpr std::u16 PAGE_READWRITE  = 0x02;
+static constexpr std::u16 PAGE_USER       = 0x04;
 
 class PagingManager {
 public:
@@ -28,9 +28,9 @@ public:
 
     void init(MultibootInfo* multibootInfo);
 
-    void mapPage(u32 virtualAddr, u32 physicalAddr, u16 flags);
-    void unmapPage(u32 virtualAddr);
-    void flushTLB(u32 virtualAddr);
+    void mapPage(std::u32 virtualAddr, std::u32 physicalAddr, std::u16 flags);
+    void unmapPage(std::u32 virtualAddr);
+    void flushTLB(std::u32 virtualAddr);
 
     /**
      * @brief Creates a new address space with shared kernel mappings.
@@ -40,7 +40,7 @@ public:
      * Returns the physical address of the new page directory, or 0 on failure.
      *
      */
-    u32 createAddressSpace();
+    std::u32 createAddressSpace();
 
     /**
      * @brief Maps a page in an arbitrary page directory.
@@ -48,13 +48,13 @@ public:
      * Accesses the target page directory and page tables via phys + KERNEL_VBASE.
      *
      */
-    void mapUserPage(u32 pdPhysical, u32 virtualAddr, u32 physicalAddr, u16 flags);
+    void mapUserPage(std::u32 pdPhysical, std::u32 virtualAddr, std::u32 physicalAddr, std::u16 flags);
 
     /**
      * @brief Frees all user page tables, mapped user frames, and the page directory.
      *
      */
-    void destroyAddressSpace(u32 pdPhysical);
+    void destroyAddressSpace(std::u32 pdPhysical);
 
     PagingManager(const PagingManager&) = delete;
     PagingManager(PagingManager&&) = delete;
@@ -66,7 +66,7 @@ private:
 
     static PagingManager instance;
 
-    u32 pageDirectory[1024] __attribute__((aligned(4096)));
+    std::u32 pageDirectory[1024] __attribute__((aligned(4096)));
 };
 
 } // memory

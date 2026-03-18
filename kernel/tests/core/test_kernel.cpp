@@ -9,6 +9,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::kernel;
 using namespace cassio::hardware;
 using namespace cassio::memory;

@@ -10,31 +10,31 @@
 #ifndef USERSPACE_LIB_SYSTEM_HPP_
 #define USERSPACE_LIB_SYSTEM_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <syscall.hpp>
 
 namespace cassio {
 
 class System {
 public:
-    static inline i32 write(u32 fd, const char* buf, u32 len) {
-        i32 ret;
+    static inline std::i32 write(std::u32 fd, const char* buf, std::u32 len) {
+        std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::Write), "b"(fd), "c"((u32)buf), "d"(len)
+                     : "a"(SyscallNumber::Write), "b"(fd), "c"((std::u32)buf), "d"(len)
                      : "memory");
         return ret;
     }
 
-    static inline i32 sleep(u32 ms) {
-        i32 ret;
+    static inline std::i32 sleep(std::u32 ms) {
+        std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
                      : "a"(SyscallNumber::Sleep), "b"(ms)
                      : "memory");
         return ret;
     }
 
-    static inline i32 uptime() {
-        i32 ret;
+    static inline std::i32 uptime() {
+        std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
                      : "a"(SyscallNumber::Uptime)
                      : "memory");
@@ -49,8 +49,8 @@ public:
         asm volatile("int $0x80" : : "a"(SyscallNumber::Shutdown) : "memory");
     }
 
-    static inline void memInfo(u32& total, u32& used, u32& free) {
-        u32 t, u, f;
+    static inline void memInfo(std::u32& total, std::u32& used, std::u32& free) {
+        std::u32 t, u, f;
         asm volatile("int $0x80" : "=a"(t), "=b"(u), "=c"(f)
                      : "a"(SyscallNumber::MemInfo)
                      : "memory");
@@ -59,20 +59,20 @@ public:
         free = f;
     }
 
-    static inline void exit(u32 code) {
+    static inline void exit(std::u32 code) {
         asm volatile("int $0x80" : : "a"(SyscallNumber::Exit), "b"(code) : "memory");
     }
 
-    static inline i32 irqRegister(u32 irq) {
-        i32 ret;
+    static inline std::i32 irqRegister(std::u32 irq) {
+        std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
                      : "a"(SyscallNumber::IrqRegister), "b"(irq)
                      : "memory");
         return ret;
     }
 
-    static inline i32 mapDevice(u32 physical, u32 virt, u32 pages) {
-        i32 ret;
+    static inline std::i32 mapDevice(std::u32 physical, std::u32 virt, std::u32 pages) {
+        std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
                      : "a"(SyscallNumber::MapDevice), "b"(physical),
                        "c"(virt), "d"(pages)
@@ -80,18 +80,18 @@ public:
         return ret;
     }
 
-    static inline void* sbrk(u32 increment) {
-        u32 ret;
+    static inline void* sbrk(std::u32 increment) {
+        std::u32 ret;
         asm volatile("int $0x80" : "=a"(ret)
                      : "a"(SyscallNumber::Sbrk), "b"(increment)
                      : "memory");
         return (void*)ret;
     }
 
-    static inline u32 procList(ProcEntry* buf, u32 maxEntries) {
-        u32 ret;
+    static inline std::u32 procList(ProcEntry* buf, std::u32 maxEntries) {
+        std::u32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::ProcList), "b"((u32)buf), "c"(maxEntries)
+                     : "a"(SyscallNumber::ProcList), "b"((std::u32)buf), "c"(maxEntries)
                      : "memory");
         return ret;
     }

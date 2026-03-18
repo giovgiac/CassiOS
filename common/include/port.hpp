@@ -10,7 +10,7 @@
 #ifndef COMMON_PORT_HPP_
 #define COMMON_PORT_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 namespace hardware {
@@ -21,7 +21,7 @@ namespace hardware {
  * @see https://wiki.osdev.org/I/O_Ports
  *
  */
-enum class PortType : u16 {
+enum class PortType : std::u16 {
     MasterProgrammableInterfaceControllerCommand         = 0x20,
     MasterProgrammableInterfaceControllerData            = 0x21,
     PitChannel0Data                                      = 0x40,
@@ -56,9 +56,9 @@ template <typename T> class Port;
  * @brief 8-bit I/O port for reading and writing single bytes via in/out instructions.
  *
  */
-template <> class Port<u8> {
+template <> class Port<std::u8> {
 private:
-    u16 number;
+    std::u16 number;
 
 public:
     /**
@@ -77,19 +77,19 @@ public:
      * @brief Reads a byte from this I/O port using the inb instruction.
      *
      */
-    u8 read();
+    std::u8 read();
 
     /**
      * @brief Writes a byte to this I/O port using the outb instruction.
      *
      */
-    void write(u8 data);
+    void write(std::u8 data);
 
     /**
      * @brief Writes a byte and waits for the bus to settle via a dummy I/O cycle.
      *
      */
-    void writeSlow(u8 data);
+    void writeSlow(std::u8 data);
 
 };
 
@@ -97,9 +97,9 @@ public:
  * @brief 16-bit I/O port for reading and writing words via in/out instructions.
  *
  */
-template <> class Port<u16> {
+template <> class Port<std::u16> {
 private:
-    u16 number;
+    std::u16 number;
 
 public:
     /**
@@ -118,13 +118,13 @@ public:
      * @brief Reads a 16-bit word from this I/O port using the inw instruction.
      *
      */
-    u16 read();
+    std::u16 read();
 
     /**
      * @brief Writes a 16-bit word to this I/O port using the outw instruction.
      *
      */
-    void write(u16 data);
+    void write(std::u16 data);
 
 };
 
@@ -132,9 +132,9 @@ public:
  * @brief 32-bit I/O port for reading and writing dwords via in/out instructions.
  *
  */
-template <> class Port<u32> {
+template <> class Port<std::u32> {
 private:
-    u16 number;
+    std::u16 number;
 
 public:
     /**
@@ -153,13 +153,13 @@ public:
      * @brief Reads a 32-bit dword from this I/O port using the inl instruction.
      *
      */
-    u32 read();
+    std::u32 read();
 
     /**
      * @brief Writes a 32-bit dword to this I/O port using the outl instruction.
      *
      */
-    void write(u32 data);
+    void write(std::u32 data);
 
 };
 

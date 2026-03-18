@@ -19,8 +19,8 @@ namespace memory {
 using cassio::BlockHeader;
 using cassio::HeapAllocator;
 
-static constexpr u32 KERNEL_HEAP_FRAMES = 256;
-static constexpr u32 KERNEL_HEAP_SIZE = KERNEL_HEAP_FRAMES * 4096;
+static constexpr std::u32 KERNEL_HEAP_FRAMES = 256;
+static constexpr std::u32 KERNEL_HEAP_SIZE = KERNEL_HEAP_FRAMES * 4096;
 
 class KernelHeap final {
 public:

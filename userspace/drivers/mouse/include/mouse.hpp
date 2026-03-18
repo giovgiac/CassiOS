@@ -10,17 +10,17 @@
 #ifndef USERSPACE_MOUSE_MOUSE_HPP_
 #define USERSPACE_MOUSE_MOUSE_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
 class Mouse {
 private:
-    u8 buffer[3];
-    u8 offset;
-    u8 buttons;
-    i32 dx;
-    i32 dy;
+    std::u8 buffer[3];
+    std::u8 offset;
+    std::u8 buttons;
+    std::i32 dx;
+    std::i32 dy;
 
 public:
     Mouse() = default;
@@ -34,7 +34,7 @@ public:
      * is assembled, internal state (buttons, dx, dy) is updated.
      *
      */
-    void handleByte(u8 byte);
+    void handleByte(std::u8 byte);
 
     /**
      * @brief Read and reset the accumulated mouse state.
@@ -42,11 +42,11 @@ public:
      * Movement deltas are reset to zero after reading.
      *
      */
-    void readState(u8& btns, i32& outDx, i32& outDy);
+    void readState(std::u8& btns, std::i32& outDx, std::i32& outDy);
 
-    u8 getButtons() const;
-    i32 getDx() const;
-    i32 getDy() const;
+    std::u8 getButtons() const;
+    std::i32 getDx() const;
+    std::i32 getDy() const;
 
     Mouse(const Mouse&) = delete;
     Mouse(Mouse&&) = delete;

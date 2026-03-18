@@ -10,14 +10,14 @@
 #ifndef CORE_PROCESS_HPP_
 #define CORE_PROCESS_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <message.hpp>
 #include <list.hpp>
 
 namespace cassio {
 namespace kernel {
 
-enum class ProcessState : u8 {
+enum class ProcessState : std::u8 {
     Empty,
     Ready,
     Running,
@@ -28,53 +28,53 @@ enum class ProcessState : u8 {
 struct Process {
     // Linked list node for heap-backed IPC send queue.
     struct SendNode {
-        u32 senderPid;
+        std::u32 senderPid;
         SendNode* next;
     };
 
     // Linked list node for heap-backed IPC notification queue.
     struct NotifyNode {
-        u32 senderPid;
+        std::u32 senderPid;
         Message msg;
-        u8* data;      // Heap-allocated copy of sender's bulk data (nullptr if none).
-        u32 dataLen;   // Length of copied data.
+        std::u8* data;      // Heap-allocated copy of sender's bulk data (nullptr if none).
+        std::u32 dataLen;   // Length of copied data.
         NotifyNode* next;
     };
 
-    u32 pid;
+    std::u32 pid;
     ProcessState state;
     Process* next;  // Intrusive list link for ProcessManager.
 
-    u32 eax, ebx, ecx, edx;
-    u32 esi, edi, ebp, esp;
-    u32 eip;
-    u32 eflags;
-    u32 cs, ds;
+    std::u32 eax, ebx, ecx, edx;
+    std::u32 esi, edi, ebp, esp;
+    std::u32 eip;
+    std::u32 eflags;
+    std::u32 cs, ds;
 
-    u32 pageDirectory;
-    u32 kernelEsp;
-    u32 heapBase;   // Initial heap address (set once at ELF load, for heap size).
-    u32 heapBreak;  // Current top of process heap (page-aligned, for sbrk).
+    std::u32 pageDirectory;
+    std::u32 kernelEsp;
+    std::u32 heapBase;   // Initial heap address (set once at ELF load, for heap size).
+    std::u32 heapBreak;  // Current top of process heap (page-aligned, for sbrk).
 
     // IPC state.
     Message msg;        // Outgoing message (sender) or staging buffer.
-    u32 msgPtr;         // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
-    u32 dataPtr;        // Userspace pointer to bulk data buffer.
-    u32 dataLen;        // Bulk data length (outgoing) or capacity (incoming).
+    std::u32 msgPtr;         // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
+    std::u32 dataPtr;        // Userspace pointer to bulk data buffer.
+    std::u32 dataLen;        // Bulk data length (outgoing) or capacity (incoming).
 
     // Send queue: PIDs of processes waiting to send to this process.
     LinkedList<SendNode> sendQueue;
 
-    bool sendQueuePush(u32 senderPid);
-    u32 sendQueuePop();
+    bool sendQueuePush(std::u32 senderPid);
+    std::u32 sendQueuePop();
 
     // Notification queue: fire-and-forget messages (no reply expected).
     LinkedList<NotifyNode> notifyQueue;
 
-    bool notifyPush(u32 senderPid, const Message& msg,
-                    const void* data = nullptr, u32 dataLen = 0);
-    bool notifyPop(u32& senderPid, Message& msg,
-                   void* dataDst = nullptr, u32 dataCapacity = 0);
+    bool notifyPush(std::u32 senderPid, const Message& msg,
+                    const void* data = nullptr, std::u32 dataLen = 0);
+    bool notifyPop(std::u32& senderPid, Message& msg,
+                   void* dataDst = nullptr, std::u32 dataCapacity = 0);
 };
 
 /**
@@ -96,13 +96,13 @@ public:
      * Returns null if the heap is exhausted.
      *
      */
-    Process* create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirectory);
+    Process* create(std::u32 eip, std::u32 esp, std::u32 cs, std::u32 ds, std::u32 pageDirectory);
 
     /**
      * @brief Destroys a process, freeing its IPC queues and the process itself.
      *
      */
-    void destroy(u32 pid);
+    void destroy(std::u32 pid);
 
     /**
      * @brief Returns the currently running process.
@@ -114,7 +114,7 @@ public:
      * @brief Looks up a process by PID.
      *
      */
-    Process* get(u32 pid);
+    Process* get(std::u32 pid);
 
     /**
      * @brief Sets the given process as the current one.
@@ -132,7 +132,7 @@ public:
      * @brief Returns the total number of processes (including kernel task).
      *
      */
-    u32 getProcessCount() const;
+    std::u32 getProcessCount() const;
 
     /** Deleted Methods */
     ProcessManager(const ProcessManager&) = delete;
@@ -148,7 +148,7 @@ private:
     Process kernelTask;
     LinkedList<Process> processes;
     Process* currentProcess;
-    u32 nextPid;
+    std::u32 nextPid;
 };
 
 } // kernel

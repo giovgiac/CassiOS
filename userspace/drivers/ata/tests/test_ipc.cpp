@@ -14,6 +14,7 @@
 #include <ata_client.hpp>
 
 using namespace cassio;
+using namespace std;
 
 TEST(ata_ipc_service_registered) {
     u32 pid = Nameserver::lookup("ata");

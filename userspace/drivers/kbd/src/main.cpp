@@ -11,7 +11,7 @@
  *
  */
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
@@ -20,6 +20,7 @@
 #include <keyboard.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::hardware;
 
 static Keyboard keyboard;

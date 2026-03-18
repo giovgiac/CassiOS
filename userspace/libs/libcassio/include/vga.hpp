@@ -10,7 +10,7 @@
 #ifndef USERSPACE_LIB_VGA_HPP_
 #define USERSPACE_LIB_VGA_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
 
@@ -18,15 +18,15 @@ namespace cassio {
 
 class Vga {
 public:
-    static inline void putchar(u32 pid, char ch) {
+    static inline void putchar(std::u32 pid, char ch) {
         Message msg = {};
         msg.type = MessageType::VgaPutchar;
-        msg.arg1 = static_cast<u8>(ch);
+        msg.arg1 = static_cast<std::u8>(ch);
         IPC::notify(pid, &msg);
     }
 
-    static inline void write(u32 pid, const char* str) {
-        u32 len = 0;
+    static inline void write(std::u32 pid, const char* str) {
+        std::u32 len = 0;
         while (str[len] != '\0') len++;
         Message msg = {};
         msg.type = MessageType::VgaWrite;
@@ -34,13 +34,13 @@ public:
         IPC::notify(pid, &msg, str, len);
     }
 
-    static inline void clear(u32 pid) {
+    static inline void clear(std::u32 pid) {
         Message msg = {};
         msg.type = MessageType::VgaClear;
         IPC::send(pid, &msg);
     }
 
-    static inline void setCursor(u32 pid, u8 col, u8 row) {
+    static inline void setCursor(std::u32 pid, std::u8 col, std::u8 row) {
         Message msg = {};
         msg.type = MessageType::VgaSetCursor;
         msg.arg1 = col;
@@ -48,12 +48,12 @@ public:
         IPC::send(pid, &msg);
     }
 
-    static inline void getCursor(u32 pid, u8& col, u8& row) {
+    static inline void getCursor(std::u32 pid, std::u8& col, std::u8& row) {
         Message msg = {};
         msg.type = MessageType::VgaGetCursor;
         IPC::send(pid, &msg);
-        col = static_cast<u8>(msg.arg1);
-        row = static_cast<u8>(msg.arg2);
+        col = static_cast<std::u8>(msg.arg1);
+        row = static_cast<std::u8>(msg.arg2);
     }
 };
 

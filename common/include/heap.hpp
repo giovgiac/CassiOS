@@ -10,21 +10,21 @@
 #ifndef COMMON_HEAP_HPP_
 #define COMMON_HEAP_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
 struct BlockHeader {
-    u32 size;
+    std::u32 size;
     bool free;
     BlockHeader* next;
 };
 
 class HeapAllocator {
 public:
-    HeapAllocator(void* base, u32 size);
+    HeapAllocator(void* base, std::u32 size);
 
-    void* allocate(usize size);
+    void* allocate(std::usize size);
     void free(void* ptr);
 
     /**
@@ -34,7 +34,7 @@ public:
      * existing heap region (e.g. via sbrk).
      *
      */
-    void extend(u32 additionalSize);
+    void extend(std::u32 additionalSize);
 
     HeapAllocator(const HeapAllocator&) = delete;
     HeapAllocator(HeapAllocator&&) = delete;
@@ -43,8 +43,8 @@ public:
 
 private:
     BlockHeader* head;
-    u8* regionStart;
-    u8* regionEnd;
+    std::u8* regionStart;
+    std::u8* regionEnd;
 };
 
 } // cassio

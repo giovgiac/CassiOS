@@ -11,6 +11,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 
 static u16 test_buf[80 * 25];
 

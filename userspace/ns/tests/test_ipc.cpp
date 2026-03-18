@@ -3,6 +3,7 @@
 #include <string.hpp>
 
 using namespace cassio;
+using namespace std;
 
 TEST(ns_ipc_register_and_lookup) {
     u32 ok = Nameserver::registerName("test_svc");

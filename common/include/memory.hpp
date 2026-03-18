@@ -13,14 +13,14 @@
 #ifndef COMMON_MEMORY_HPP_
 #define COMMON_MEMORY_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
 extern "C" {
 
-void* memcpy(void* dst, const void* src, cassio::usize n);
-void* memmove(void* dst, const void* src, cassio::usize n);
-void* memset(void* dst, int val, cassio::usize n);
-int memcmp(const void* a, const void* b, cassio::usize n);
+void* memcpy(void* dst, const void* src, std::usize n);
+void* memmove(void* dst, const void* src, std::usize n);
+void* memset(void* dst, int val, std::usize n);
+int memcmp(const void* a, const void* b, std::usize n);
 
 }
 

@@ -10,9 +10,9 @@
 #ifndef COMMON_NEW_HPP_
 #define COMMON_NEW_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 
-inline void* operator new(cassio::usize, void* ptr) {
+inline void* operator new(std::usize, void* ptr) {
     return ptr;
 }
 

@@ -12,6 +12,7 @@
 #include <memory.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::kernel;
 
 ProcessManager ProcessManager::instance;

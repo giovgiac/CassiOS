@@ -2,6 +2,7 @@
 #include <keyboard.hpp>
 
 using namespace cassio;
+using namespace std;
 
 TEST(kbd_scancode_to_keycode) {
     Keyboard kb;

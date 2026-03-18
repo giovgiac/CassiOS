@@ -12,6 +12,7 @@
 #include <userheap.hpp>
 
 using namespace cassio;
+using namespace std;
 
 NsTable::NsTable() {}
 

@@ -12,6 +12,7 @@
 #include <vfs.hpp>
 
 using namespace cassio;
+using namespace std;
 
 void Shell::cmdMkdir(const char** args, u8 argc) {
     if (argc < 2) {

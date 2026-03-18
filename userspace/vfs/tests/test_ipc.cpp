@@ -13,6 +13,7 @@
 #include <string.hpp>
 
 using namespace cassio;
+using namespace std;
 
 TEST(vfs_ipc_mkdir_and_list) {
     u32 pid = Nameserver::lookup("vfs");

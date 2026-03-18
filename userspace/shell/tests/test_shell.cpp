@@ -12,6 +12,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 
 // --- parseArgs tests ---
 

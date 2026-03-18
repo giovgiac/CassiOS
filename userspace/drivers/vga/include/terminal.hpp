@@ -10,13 +10,13 @@
 #ifndef VGA_TERMINAL_HPP_
 #define VGA_TERMINAL_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <port.hpp>
 
 namespace cassio {
 
-constexpr u8 VGA_WIDTH  = 80;
-constexpr u8 VGA_HEIGHT = 25;
+constexpr std::u8 VGA_WIDTH  = 80;
+constexpr std::u8 VGA_HEIGHT = 25;
 
 /**
  * @brief VGA text-mode terminal.
@@ -28,22 +28,22 @@ constexpr u8 VGA_HEIGHT = 25;
  */
 class VgaTerminal {
 public:
-    VgaTerminal(u16* buffer);
+    VgaTerminal(std::u16* buffer);
 
     void putchar(char ch);
     void clear();
-    void setCursor(u8 col, u8 row);
-    u8 getCursorX() const;
-    u8 getCursorY() const;
+    void setCursor(std::u8 col, std::u8 row);
+    std::u8 getCursorX() const;
+    std::u8 getCursorY() const;
 
 private:
-    u16* buffer;
-    u8 x;
-    u8 y;
-    u16 color;
+    std::u16* buffer;
+    std::u8 x;
+    std::u8 y;
+    std::u16 color;
 
-    hardware::Port<u8> crtc_index;
-    hardware::Port<u8> crtc_data;
+    hardware::Port<std::u8> crtc_index;
+    hardware::Port<std::u8> crtc_data;
 
     void updateCursor();
     void scrollUp();

@@ -7,10 +7,11 @@
  *
  */
 
-#ifndef COMMON_TYPES_HPP_
-#define COMMON_TYPES_HPP_
+#ifndef STD_TYPES_HPP
+#define STD_TYPES_HPP
 
-namespace cassio {
+namespace std {
+namespace types {
 
 // Float Types
 typedef     float               f32;
@@ -46,4 +47,20 @@ static_assert(sizeof(usize) == 4, "Unexpected size for usize");
 
 }
 
-#endif // COMMON_TYPES_HPP_
+// Re-export types into std:: for convenience.
+using types::f32;
+using types::f64;
+using types::i8;
+using types::u8;
+using types::i16;
+using types::u16;
+using types::i32;
+using types::u32;
+using types::i64;
+using types::u64;
+using types::isize;
+using types::usize;
+
+}
+
+#endif // STD_TYPES_HPP

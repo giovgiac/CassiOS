@@ -10,7 +10,7 @@
 #ifndef USERSPACE_LIB_VFS_HPP_
 #define USERSPACE_LIB_VFS_HPP_
 
-#include <types.hpp>
+#include <std/types.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
 
@@ -18,8 +18,8 @@ namespace cassio {
 
 class Vfs {
 public:
-    static inline u32 mkdir(u32 pid, const char* path) {
-        u32 len = 0;
+    static inline std::u32 mkdir(std::u32 pid, const char* path) {
+        std::u32 len = 0;
         while (path[len] != '\0') len++;
         Message msg = {};
         msg.type = MessageType::VfsMkdir;
@@ -27,8 +27,8 @@ public:
         return msg.arg1;
     }
 
-    static inline u32 remove(u32 pid, const char* path) {
-        u32 len = 0;
+    static inline std::u32 remove(std::u32 pid, const char* path) {
+        std::u32 len = 0;
         while (path[len] != '\0') len++;
         Message msg = {};
         msg.type = MessageType::VfsRemove;
@@ -36,8 +36,8 @@ public:
         return msg.arg1;
     }
 
-    static inline u32 open(u32 pid, const char* path, bool create = false) {
-        u32 len = 0;
+    static inline std::u32 open(std::u32 pid, const char* path, bool create = false) {
+        std::u32 len = 0;
         while (path[len] != '\0') len++;
         Message msg = {};
         msg.type = MessageType::VfsOpen;
@@ -46,22 +46,22 @@ public:
         return msg.arg1;
     }
 
-    static inline i32 read(u32 pid, u32 handle, u32 offset, u8* buf,
-                           u32 bufLen) {
+    static inline std::i32 read(std::u32 pid, std::u32 handle, std::u32 offset, std::u8* buf,
+                           std::u32 bufLen) {
         // Zero the buffer to avoid leaking uninitialized stack contents
         // across address spaces. The VFS ignores incoming data for reads
         // and replies with file contents in the same buffer.
-        for (u32 i = 0; i < bufLen; i++) buf[i] = 0;
+        for (std::u32 i = 0; i < bufLen; i++) buf[i] = 0;
         Message msg = {};
         msg.type = MessageType::VfsRead;
         msg.arg1 = handle;
         msg.arg2 = offset;
         msg.arg3 = bufLen;
         IPC::send(pid, &msg, buf, bufLen);
-        return static_cast<i32>(msg.arg1);
+        return static_cast<std::i32>(msg.arg1);
     }
 
-    static inline u32 write(u32 pid, u32 handle, const u8* data, u32 len) {
+    static inline std::u32 write(std::u32 pid, std::u32 handle, const std::u8* data, std::u32 len) {
         Message msg = {};
         msg.type = MessageType::VfsWrite;
         msg.arg1 = handle;
@@ -71,8 +71,8 @@ public:
     }
 
     // Returns 0 = not found, 1 = file, 2 = directory.
-    static inline u32 stat(u32 pid, const char* path) {
-        u32 len = 0;
+    static inline std::u32 stat(std::u32 pid, const char* path) {
+        std::u32 len = 0;
         while (path[len] != '\0') len++;
         Message msg = {};
         msg.type = MessageType::VfsStat;
@@ -80,17 +80,17 @@ public:
         return msg.arg1;
     }
 
-    static inline bool list(u32 pid, const char* path, u32 index,
-                            char* nameOut, u32 nameMax) {
-        u32 pathLen = 0;
+    static inline bool list(std::u32 pid, const char* path, std::u32 index,
+                            char* nameOut, std::u32 nameMax) {
+        std::u32 pathLen = 0;
         while (path[pathLen] != '\0') pathLen++;
 
         // Use a local buffer: send the path, reply overwrites with the name.
         // Buffer is one byte larger than SHELL_MAX_PATH to ensure null
         // termination at maximum path length.
         char buf[65];
-        for (u32 k = 0; k < sizeof(buf); k++) buf[k] = 0;
-        u32 i = 0;
+        for (std::u32 k = 0; k < sizeof(buf); k++) buf[k] = 0;
+        std::u32 i = 0;
         while (i < sizeof(buf) - 1 && i <= pathLen) {
             buf[i] = path[i];
             i++;
@@ -108,7 +108,7 @@ public:
 
         // buf now contains the reply name.
         i = 0;
-        u32 limit = nameMax - 1;
+        std::u32 limit = nameMax - 1;
         while (i < limit && buf[i] != '\0') {
             nameOut[i] = buf[i];
             i++;

@@ -10,6 +10,7 @@
 #include <terminal.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::hardware;
 
 VgaTerminal::VgaTerminal(u16* buffer)

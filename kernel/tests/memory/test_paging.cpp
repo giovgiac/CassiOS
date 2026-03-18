@@ -4,6 +4,7 @@
 #include <test.hpp>
 
 using namespace cassio;
+using namespace std;
 using namespace cassio::memory;
 
 TEST(paging_read_write_after_enable) {
