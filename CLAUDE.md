@@ -20,8 +20,9 @@ CassiOS is a microkernel. The kernel contains only: GDT/TSS, interrupt subsystem
 
 - **Boot flow**: GRUB loads the kernel via Multiboot (`kernel/src/core/loader.s`), which sets up a 2MiB stack, calls `ctors()` for global constructors, then calls `start()` in `kernel.cpp`. `start()` initializes GDT, interrupts, memory, PIT, scheduler, loads userspace ELF modules, and enters an idle loop (`hlt`).
 - **Interrupt dispatch**: assembly stubs in `kernel/src/hardware/stub.s` bridge IRQs to `IrqManager::handleIrq()`. IRQs are either handled by in-kernel handlers (PIT) or forwarded to registered userspace processes via IPC.
-- **IPC**: synchronous message passing (send/receive/reply) plus fire-and-forget notify. Messages are 24 bytes (type + 5 args). The kernel copies messages between address spaces. `receive()` priority: IRQ notifications > notify queue > send queue.
+- **IPC**: synchronous message passing (send/receive/reply) plus fire-and-forget notify. Messages are 24 bytes (type + 5 args) with optional bulk data buffers for large transfers. The kernel copies messages between address spaces. `receive()` priority: IRQ notifications > notify queue > send queue.
 - **Userspace services**: each is a separate ELF binary loaded as a GRUB multiboot module. Services register with the nameserver and communicate via IPC. Drivers live under `userspace/drivers/`, higher-level services at `userspace/`.
+- **FAT32 filesystem**: the VFS service parses FAT32 on-disk structures, reads FAT entries on demand via an LRU sector cache, supports long filenames (LFN), case-sensitive matching. The ATA driver provides full 512-byte sector transfers via IPC data buffers. The build system creates a 32 MiB FAT32 disk image with pre-seeded files using `mkfs.fat` and `mtools`.
 - **Singletons** for kernel managers: `InterruptManager`, `IrqManager`, `PitTimer`, `COM1`, etc. (private constructors, static `instance`, accessed via getter)
 - **Serial**: `Serial` is a general class taking `PortType` values; `COM1` is a singleton wrapping it for COM1 ports. Used by the test framework for output.
 

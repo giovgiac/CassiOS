@@ -95,7 +95,7 @@ $(KBD): $(LIBCOMMON)
 $(VGA): $(LIBCOMMON)
 	$(MAKE) -C userspace/drivers/vga
 
-$(VFS): $(LIBCOMMON)
+$(VFS): $(LIBCOMMON) $(LIBCASSIO)
 	$(MAKE) -C userspace/vfs
 
 $(MOUSE): $(LIBCOMMON)
@@ -162,6 +162,16 @@ test-userspace:
 	    > /tmp/cassio-build.log 2>&1 || (cat /tmp/cassio-build.log; exit 1); \
 	dd if=/dev/zero of=/tmp/cassio-usertest-disk.img bs=1M count=32 2>/dev/null; \
 	mkfs.fat -F 32 /tmp/cassio-usertest-disk.img >/dev/null 2>&1; \
+	if [ -d disk ]; then \
+	    for f in $$(find disk/ -type f); do \
+	        rel=$${f#disk/}; \
+	        dir=$$(dirname "$$rel"); \
+	        if [ "$$dir" != "." ]; then \
+	            mmd -i /tmp/cassio-usertest-disk.img "::/$${dir}" 2>/dev/null || true; \
+	        fi; \
+	        mcopy -i /tmp/cassio-usertest-disk.img "$$f" "::/$${rel}"; \
+	    done; \
+	fi; \
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
 	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \

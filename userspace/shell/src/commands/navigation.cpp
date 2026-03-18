@@ -21,6 +21,13 @@ void Shell::cmdLs(const char** args, u8 argc) {
         strcpy(path, cwd, SHELL_MAX_PATH);
     }
 
+    if (Vfs::stat(vfsPid, path) != 2) {
+        print("ls: no such directory: ");
+        print(path);
+        putchar('\n');
+        return;
+    }
+
     char name[32];
     for (u32 i = 0; ; ++i) {
         if (!Vfs::list(vfsPid, path, i, name, sizeof(name))) {
@@ -45,6 +52,14 @@ void Shell::cmdCd(const char** args, u8 argc) {
 
     char path[SHELL_MAX_PATH];
     resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
+
+    if (Vfs::stat(vfsPid, path) != 2) {
+        print("cd: no such directory: ");
+        print(args[1]);
+        putchar('\n');
+        return;
+    }
+
     strcpy(cwd, path, SHELL_MAX_PATH);
 }
 

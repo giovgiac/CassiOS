@@ -36,11 +36,12 @@ public:
         return msg.arg1;
     }
 
-    static inline u32 open(u32 pid, const char* path) {
+    static inline u32 open(u32 pid, const char* path, bool create = false) {
         u32 len = 0;
         while (path[len] != '\0') len++;
         Message msg = {};
         msg.type = MessageType::VfsOpen;
+        msg.arg1 = create ? 1 : 0;
         IPC::send(pid, &msg, path, len + 1);
         return msg.arg1;
     }
@@ -62,6 +63,16 @@ public:
         msg.arg1 = handle;
         msg.arg2 = len;
         IPC::send(pid, &msg, data, len);
+        return msg.arg1;
+    }
+
+    // Returns 0 = not found, 1 = file, 2 = directory.
+    static inline u32 stat(u32 pid, const char* path) {
+        u32 len = 0;
+        while (path[len] != '\0') len++;
+        Message msg = {};
+        msg.type = MessageType::VfsStat;
+        IPC::send(pid, &msg, path, len + 1);
         return msg.arg1;
     }
 

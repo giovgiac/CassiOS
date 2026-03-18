@@ -2,7 +2,7 @@
 
 ## Current State
 
-CassiOS is a microkernel OS. The kernel provides IPC (synchronous message passing), scheduling, memory management, and interrupt routing. Everything else runs as userspace services: keyboard, mouse, VGA terminal, ATA disk, filesystem, nameserver, and an interactive shell with 16 commands. Boots via GRUB (multiboot), 32-bit protected mode, preemptive round-robin scheduling, per-process address spaces, ELF loader, serial output (COM1), and both kernel and userspace test frameworks.
+CassiOS is a microkernel OS. The kernel provides IPC (synchronous message passing), scheduling, memory management, and interrupt routing. Everything else runs as userspace services: keyboard, mouse, VGA terminal, ATA disk, FAT32 filesystem, nameserver, and an interactive shell with 16 commands. Boots via GRUB (multiboot), 32-bit protected mode, preemptive round-robin scheduling, per-process address spaces, ELF loader, serial output (COM1), and both kernel and userspace test frameworks. The filesystem is persistent on a 32 MiB FAT32 disk image with long filename support.
 
 ## Phase 1: Memory Management
 
@@ -84,9 +84,15 @@ Design: `docs/plans/2026-03-16-ipc-microkernel-transition-design.md`
 
 ## Phase 9: FAT32 Filesystem
 
-**Planning**: Brainstorm + design doc
+**Status**: Complete
 
-FAT32 filesystem as a userspace service on top of the ATA PIO block device. Directories, files, and cluster-chain allocation. Implemented as a userspace process communicating via IPC from the start. Replaces the in-memory filesystem — needs a migration plan for the existing shell commands and VFS interface.
+Replaced the in-memory filesystem with FAT32 backed by the ATA PIO block device. The VFS service owns FAT32 parsing directly and talks to ATA via IPC. The shell and VFS client API remained unchanged — the swap was entirely internal to the VFS service.
+
+1. **ATA IPC upgrade** (#124) — replaced 16-byte/8-byte arg-packed transfers with full 512-byte sector transfers using IPC data buffers
+2. **Build system** (#125) — `make disk` creates a 32 MiB FAT32-formatted disk image with pre-seeded files via `mkfs.fat` and `mtools`
+3. **FAT32 implementation** (#126) — Fat32 class with mount, BPB parsing, on-demand FAT via LRU sector cache, directory operations with LFN support, cluster-chain file I/O, VfsStat for path validation, case-sensitive filenames
+
+Design: `docs/plans/2026-03-18-fat32-filesystem-design.md`
 
 ## Phase 10: VGA Graphics Mode
 

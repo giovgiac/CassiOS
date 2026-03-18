@@ -56,7 +56,7 @@ void Shell::cmdTouch(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];
     resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
 
-    u32 handle = Vfs::open(vfsPid, path);
+    u32 handle = Vfs::open(vfsPid, path, true);
     if (handle == 0) {
         print("touch: cannot create file: ");
         print(args[1]);
@@ -120,9 +120,9 @@ void Shell::cmdWrite(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];
     resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
 
-    u32 handle = Vfs::open(vfsPid, path);
+    u32 handle = Vfs::open(vfsPid, path, true);
     if (handle == 0) {
-        print("write: no such file: ");
+        print("write: cannot create file: ");
         print(args[1]);
         putchar('\n');
         return;
