@@ -35,6 +35,7 @@ ProcessManager::ProcessManager()
     kernelTask.ds = 0;
     kernelTask.pageDirectory = 0;
     kernelTask.kernelEsp = 0;
+    kernelTask.heapBase = 0;
     kernelTask.heapBreak = 0;
     kernelTask.msg = {};
     kernelTask.msgPtr = 0;
@@ -137,6 +138,7 @@ Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirect
     p->eflags = 0x202;
     p->pageDirectory = pageDirectory;
     p->kernelEsp = 0;
+    p->heapBase = 0;
     p->heapBreak = 0;
     p->msg = {};
     p->msgPtr = 0;

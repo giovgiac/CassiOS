@@ -16,6 +16,11 @@
 
 namespace cassio {
 
+struct NsEntry {
+    char name[20];  // MAX_NAME_LEN + 1 + padding for u32 alignment.
+    u32 pid;
+};
+
 class Nameserver {
 public:
     static constexpr u32 PID = 1;
@@ -51,6 +56,13 @@ public:
         msg.type = MessageType::NsLookup;
         packName(name, msg);
         IPC::send(PID, &msg);
+        return msg.arg1;
+    }
+
+    static inline u32 listAll(NsEntry* buf, u32 maxEntries) {
+        Message msg = {};
+        msg.type = MessageType::NsListAll;
+        IPC::send(PID, &msg, buf, maxEntries * sizeof(NsEntry));
         return msg.arg1;
     }
 };

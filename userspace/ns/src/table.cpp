@@ -41,6 +41,16 @@ u32 NsTable::lookup(const char* name) {
     return 0;
 }
 
+u32 NsTable::listAll(NsEntry* buf, u32 maxEntries) const {
+    u32 count = 0;
+    for (Entry* e = entries.getHead(); e && count < maxEntries; e = e->next) {
+        strcpy(buf[count].name, e->name, 20);
+        buf[count].pid = e->pid;
+        ++count;
+    }
+    return count;
+}
+
 u32 NsTable::count() const {
     return entries.getCount();
 }

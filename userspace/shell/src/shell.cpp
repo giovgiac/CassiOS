@@ -119,6 +119,7 @@ void Shell::execute() {
     else if (streq(args[0], "clear"))    cmdClear();
     else if (streq(args[0], "echo"))     cmdEcho(args, argc);
     else if (streq(args[0], "mem"))      cmdMem();
+    else if (streq(args[0], "ps"))       cmdPs();
     else if (streq(args[0], "uptime"))   cmdUptime();
     else if (streq(args[0], "reboot"))   cmdReboot();
     else if (streq(args[0], "shutdown")) cmdShutdown();

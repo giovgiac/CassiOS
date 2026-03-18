@@ -87,6 +87,14 @@ public:
                      : "memory");
         return (void*)ret;
     }
+
+    static inline u32 procList(ProcEntry* buf, u32 maxEntries) {
+        u32 ret;
+        asm volatile("int $0x80" : "=a"(ret)
+                     : "a"(SyscallNumber::ProcList), "b"((u32)buf), "c"(maxEntries)
+                     : "memory");
+        return ret;
+    }
 };
 
 } // cassio

@@ -124,6 +124,7 @@ void start(void* multiboot, u32 magic) {
                 elf.entryPoint, (u32)frame, userCS, userDS, pdPhysical);
             if (proc) {
                 proc->kernelEsp = kernelStackTop;
+                proc->heapBase = elf.heapStart;
                 proc->heapBreak = elf.heapStart;
             }
         }

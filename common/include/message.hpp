@@ -56,6 +56,9 @@ namespace MessageType {
     // ATA.
     constexpr u32 AtaRead      = 18;
     constexpr u32 AtaWrite     = 19;
+
+    // Nameserver (extended).
+    constexpr u32 NsListAll    = 20;
 }
 
 } // cassio

@@ -1,5 +1,6 @@
 #include <test.hpp>
 #include <table.hpp>
+#include <string.hpp>
 
 using namespace cassio;
 
@@ -43,4 +44,42 @@ TEST(ns_table_beyond_old_limit) {
         ASSERT_EQ(table.registerName(name, i + 1), 1u);
     }
     ASSERT_EQ(table.count(), 20u);
+}
+
+TEST(ns_table_list_all_returns_entries) {
+    NsTable table;
+    table.registerName("vga", 3);
+    table.registerName("kbd", 2);
+
+    NsEntry buf[8];
+    u32 count = table.listAll(buf, 8);
+    ASSERT_EQ(count, 2u);
+
+    // Verify both entries are present (order may vary).
+    bool foundVga = false;
+    bool foundKbd = false;
+    for (u32 i = 0; i < count; ++i) {
+        if (streq(buf[i].name, "vga") && buf[i].pid == 3) foundVga = true;
+        if (streq(buf[i].name, "kbd") && buf[i].pid == 2) foundKbd = true;
+    }
+    ASSERT(foundVga);
+    ASSERT(foundKbd);
+}
+
+TEST(ns_table_list_all_empty) {
+    NsTable table;
+    NsEntry buf[8];
+    u32 count = table.listAll(buf, 8);
+    ASSERT_EQ(count, 0u);
+}
+
+TEST(ns_table_list_all_respects_max) {
+    NsTable table;
+    table.registerName("a", 1);
+    table.registerName("b", 2);
+    table.registerName("c", 3);
+
+    NsEntry buf[2];
+    u32 count = table.listAll(buf, 2);
+    ASSERT_EQ(count, 2u);
 }
