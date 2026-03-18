@@ -1,5 +1,5 @@
 /**
- * fat32.cpp -- FAT32 filesystem implementation
+ * fat32/filesystem.cpp -- FAT32 filesystem implementation
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,7 +7,7 @@
  *
  */
 
-#include <fat32.hpp>
+#include <fat32/filesystem.hpp>
 #include <ata_client.hpp>
 #include <userheap.hpp>
 #include <string.hpp>
@@ -20,7 +20,7 @@ using namespace cassio::vfs;
 // Sector cache
 // ---------------------------------------------------------------------------
 
-Fat32::CacheEntry* Fat32::cacheLookup(u32 lba) {
+Fat32Filesystem::CacheEntry* Fat32Filesystem::cacheLookup(u32 lba) {
     for (u32 i = 0; i < CACHE_SIZE; i++) {
         if (cache[i].valid && cache[i].lba == lba) {
             cache[i].age = ++cacheAge;
@@ -30,7 +30,7 @@ Fat32::CacheEntry* Fat32::cacheLookup(u32 lba) {
     return nullptr;
 }
 
-Fat32::CacheEntry* Fat32::cacheEvict() {
+Fat32Filesystem::CacheEntry* Fat32Filesystem::cacheEvict() {
     // Find an empty slot first.
     for (u32 i = 0; i < CACHE_SIZE; i++) {
         if (!cache[i].valid) {
@@ -58,7 +58,7 @@ Fat32::CacheEntry* Fat32::cacheEvict() {
     return entry;
 }
 
-bool Fat32::cacheRead(u32 lba, u8* buf) {
+bool Fat32Filesystem::cacheRead(u32 lba, u8* buf) {
     CacheEntry* entry = cacheLookup(lba);
     if (entry) {
         memcpy(buf, entry->data, SECTOR_SIZE);
@@ -79,7 +79,7 @@ bool Fat32::cacheRead(u32 lba, u8* buf) {
     return true;
 }
 
-bool Fat32::cacheWrite(u32 lba, const u8* buf) {
+bool Fat32Filesystem::cacheWrite(u32 lba, const u8* buf) {
     CacheEntry* entry = cacheLookup(lba);
     if (!entry) {
         entry = cacheEvict();
@@ -100,19 +100,19 @@ bool Fat32::cacheWrite(u32 lba, const u8* buf) {
 // Sector / cluster I/O
 // ---------------------------------------------------------------------------
 
-bool Fat32::readSector(u32 lba, u8* buf) {
+bool Fat32Filesystem::readSector(u32 lba, u8* buf) {
     return cacheRead(lba, buf);
 }
 
-bool Fat32::writeSector(u32 lba, const u8* buf) {
+bool Fat32Filesystem::writeSector(u32 lba, const u8* buf) {
     return cacheWrite(lba, buf);
 }
 
-u32 Fat32::clusterToLba(u32 cluster) {
+u32 Fat32Filesystem::clusterToLba(u32 cluster) {
     return dataStartSector + (cluster - 2) * sectorsPerCluster;
 }
 
-bool Fat32::readCluster(u32 cluster, u8* buf) {
+bool Fat32Filesystem::readCluster(u32 cluster, u8* buf) {
     u32 lba = clusterToLba(cluster);
     for (u32 i = 0; i < sectorsPerCluster; i++) {
         if (!readSector(lba + i, buf + i * SECTOR_SIZE)) return false;
@@ -120,7 +120,7 @@ bool Fat32::readCluster(u32 cluster, u8* buf) {
     return true;
 }
 
-bool Fat32::writeCluster(u32 cluster, const u8* buf) {
+bool Fat32Filesystem::writeCluster(u32 cluster, const u8* buf) {
     u32 lba = clusterToLba(cluster);
     for (u32 i = 0; i < sectorsPerCluster; i++) {
         if (!writeSector(lba + i, buf + i * SECTOR_SIZE)) return false;
@@ -132,7 +132,7 @@ bool Fat32::writeCluster(u32 cluster, const u8* buf) {
 // FAT management
 // ---------------------------------------------------------------------------
 
-u32 Fat32::fatGet(u32 cluster) {
+u32 Fat32Filesystem::fatGet(u32 cluster) {
     if (cluster >= fatEntryCount) return FAT_EOC;
     u32 byteOffset = cluster * 4;
     u32 sector = fatStartSector + (byteOffset / SECTOR_SIZE);
@@ -146,7 +146,7 @@ u32 Fat32::fatGet(u32 cluster) {
     return value & FAT_ENTRY_MASK;
 }
 
-void Fat32::fatSet(u32 cluster, u32 value) {
+void Fat32Filesystem::fatSet(u32 cluster, u32 value) {
     if (cluster >= fatEntryCount) return;
     u32 byteOffset = cluster * 4;
     u32 sector = fatStartSector + (byteOffset / SECTOR_SIZE);
@@ -163,7 +163,7 @@ void Fat32::fatSet(u32 cluster, u32 value) {
     writeSector(sector, buf);
 }
 
-u32 Fat32::allocateCluster() {
+u32 Fat32Filesystem::allocateCluster() {
     for (u32 i = 2; i < fatEntryCount; i++) {
         if (fatGet(i) == FAT_FREE) {
             fatSet(i, FAT_EOC);
@@ -173,7 +173,7 @@ u32 Fat32::allocateCluster() {
     return 0;
 }
 
-void Fat32::freeChain(u32 startCluster) {
+void Fat32Filesystem::freeChain(u32 startCluster) {
     u32 cluster = startCluster;
     while (cluster >= 2 && cluster < fatEntryCount) {
         u32 next = fatGet(cluster);
@@ -183,7 +183,7 @@ void Fat32::freeChain(u32 startCluster) {
     }
 }
 
-bool Fat32::flushFat() {
+bool Fat32Filesystem::flushFat() {
     // fatSet already writes through to FAT1 via the cache.
     // Mirror dirty FAT1 sectors to FAT2.
     for (u32 i = 0; i < CACHE_SIZE; i++) {
@@ -203,7 +203,7 @@ bool Fat32::flushFat() {
 // Cluster chain helpers
 // ---------------------------------------------------------------------------
 
-u32 Fat32::clusterAtOffset(u32 startCluster, u32 byteOffset) {
+u32 Fat32Filesystem::clusterAtOffset(u32 startCluster, u32 byteOffset) {
     u32 clustersToSkip = byteOffset / bytesPerCluster;
     u32 cluster = startCluster;
     for (u32 i = 0; i < clustersToSkip; i++) {
@@ -218,7 +218,7 @@ u32 Fat32::clusterAtOffset(u32 startCluster, u32 byteOffset) {
 // Directory helpers
 // ---------------------------------------------------------------------------
 
-u8 Fat32::lfnChecksum(const u8* shortName) {
+u8 Fat32Filesystem::lfnChecksum(const u8* shortName) {
     u8 sum = 0;
     for (u32 i = 0; i < 11; i++) {
         sum = ((sum & 1) ? 0x80 : 0) + (sum >> 1) + shortName[i];
@@ -232,7 +232,7 @@ static bool isLfnEntry(const DirEntry* e) {
 
 // Convert a readable name to 8.3 short name format.
 // For simplicity, generates a unique short name using a tilde (~) suffix.
-void Fat32::nameToShort(const char* name, u8* shortName) {
+void Fat32Filesystem::nameToShort(const char* name, u8* shortName) {
     memset(shortName, ' ', 11);
 
     // Find the last dot for extension.
@@ -272,7 +272,7 @@ void Fat32::nameToShort(const char* name, u8* shortName) {
     }
 }
 
-bool Fat32::extractLfn(const DirEntry* entries, u32 lfnStart, u32 shortIdx,
+bool Fat32Filesystem::extractLfn(const DirEntry* entries, u32 lfnStart, u32 shortIdx,
                        char* nameOut, u32 nameMax) {
     u32 pos = 0;
     // LFN entries are stored in reverse order before the short entry.
@@ -328,7 +328,7 @@ static bool nameEquals(const char* a, const char* b) {
 // Read the Nth directory entry from a directory cluster chain.
 // Returns the entry name (from LFN or short name), the raw DirEntry,
 // and the on-disk location (cluster + byte offset).
-bool Fat32::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
+bool Fat32Filesystem::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
                          u32 nameMax, DirEntry* entryOut,
                          u32* entryCluster, u32* entryOffset) {
     u8* clusterBuf = static_cast<u8*>(UserHeap::alloc(bytesPerCluster));
@@ -410,7 +410,7 @@ bool Fat32::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
     return false;
 }
 
-bool Fat32::findEntry(u32 dirCluster, const char* name, DirEntry* entryOut,
+bool Fat32Filesystem::findEntry(u32 dirCluster, const char* name, DirEntry* entryOut,
                       u32* entryCluster, u32* entryOffset) {
     char entryName[MAX_NAME];
     for (u32 i = 0; ; i++) {
@@ -428,7 +428,7 @@ bool Fat32::findEntry(u32 dirCluster, const char* name, DirEntry* entryOut,
     }
 }
 
-u32 Fat32::resolvePath(const char* path, DirEntry* entryOut,
+u32 Fat32Filesystem::resolvePath(const char* path, DirEntry* entryOut,
                        u32* entryCluster, u32* entryOffset) {
     if (!path || path[0] == '\0') return 0;
 
@@ -507,7 +507,7 @@ u32 Fat32::resolvePath(const char* path, DirEntry* entryOut,
     return cluster;
 }
 
-u32 Fat32::resolveParentPath(const char* path, char* nameOut, u32 nameMax) {
+u32 Fat32Filesystem::resolveParentPath(const char* path, char* nameOut, u32 nameMax) {
     // Find last '/'.
     i32 lastSlash = -1;
     for (u32 i = 0; path[i] != '\0'; i++) {
@@ -551,7 +551,7 @@ u32 Fat32::resolveParentPath(const char* path, char* nameOut, u32 nameMax) {
     return parentCluster;
 }
 
-bool Fat32::createEntry(u32 dirCluster, const char* name, u8 attr,
+bool Fat32Filesystem::createEntry(u32 dirCluster, const char* name, u8 attr,
                         u32* outCluster, u32* outOffset) {
     // Generate short name.
     u8 shortName[11];
@@ -757,7 +757,7 @@ found:
     return true;
 }
 
-bool Fat32::removeEntry(u32 dirCluster, const char* name) {
+bool Fat32Filesystem::removeEntry(u32 dirCluster, const char* name) {
     u8* clusterBuf = static_cast<u8*>(UserHeap::alloc(bytesPerCluster));
     if (!clusterBuf) return false;
 
@@ -860,7 +860,7 @@ bool Fat32::removeEntry(u32 dirCluster, const char* name) {
 // Mount
 // ---------------------------------------------------------------------------
 
-bool Fat32::mount(u32 ataServicePid) {
+bool Fat32Filesystem::mount(u32 ataServicePid) {
     ataPid = ataServicePid;
 
     // Initialize handles.
@@ -907,7 +907,7 @@ bool Fat32::mount(u32 ataServicePid) {
 // Public API
 // ---------------------------------------------------------------------------
 
-bool Fat32::createDirectory(const char* path) {
+bool Fat32Filesystem::createDirectory(const char* path) {
     char name[MAX_NAME];
     u32 parentCluster = resolveParentPath(path, name, MAX_NAME);
     if (parentCluster == 0 || name[0] == '\0') return false;
@@ -922,7 +922,7 @@ bool Fat32::createDirectory(const char* path) {
                        &outCluster, &outOffset);
 }
 
-bool Fat32::remove(const char* path) {
+bool Fat32Filesystem::remove(const char* path) {
     if (!path || streq(path, "/")) return false;
 
     char name[MAX_NAME];
@@ -932,7 +932,7 @@ bool Fat32::remove(const char* path) {
     return removeEntry(parentCluster, name);
 }
 
-u32 Fat32::open(const char* path, bool create) {
+u32 Fat32Filesystem::open(const char* path, bool create) {
     DirEntry entry;
     u32 ec, eo;
     u32 cluster = resolvePath(path, &entry, &ec, &eo);
@@ -982,7 +982,7 @@ u32 Fat32::open(const char* path, bool create) {
     return 0;
 }
 
-i32 Fat32::read(u32 handle, u32 offset, u8* buf, u32 len) {
+i32 Fat32Filesystem::read(u32 handle, u32 offset, u8* buf, u32 len) {
     if (handle == 0 || handle > MAX_HANDLES) return -1;
     FileHandle& fh = handles[handle - 1];
     if (!fh.inUse) return -1;
@@ -1018,7 +1018,7 @@ i32 Fat32::read(u32 handle, u32 offset, u8* buf, u32 len) {
     return static_cast<i32>(bytesRead);
 }
 
-bool Fat32::write(u32 handle, const u8* data, u32 len) {
+bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
     if (handle == 0 || handle > MAX_HANDLES) return false;
     FileHandle& fh = handles[handle - 1];
     if (!fh.inUse) return false;
@@ -1105,7 +1105,7 @@ bool Fat32::write(u32 handle, const u8* data, u32 len) {
     return true;
 }
 
-u32 Fat32::stat(const char* path) {
+u32 Fat32Filesystem::stat(const char* path) {
     if (!path || path[0] == '\0') return 0;
     if (streq(path, "/")) return 2;
 
@@ -1115,7 +1115,7 @@ u32 Fat32::stat(const char* path) {
     return (entry.attr & DirAttr::Directory) ? 2 : 1;
 }
 
-bool Fat32::listEntry(const char* path, u32 index, char* nameOut, u32 nameMax) {
+bool Fat32Filesystem::listEntry(const char* path, u32 index, char* nameOut, u32 nameMax) {
     DirEntry dirEntry;
     u32 dirCluster = resolvePath(path, &dirEntry, nullptr, nullptr);
     if (dirCluster == 0) return false;

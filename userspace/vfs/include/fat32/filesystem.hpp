@@ -1,5 +1,5 @@
 /**
- * fat32.hpp -- FAT32 filesystem for the VFS service
+ * fat32/filesystem.hpp -- FAT32 filesystem for the VFS service
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,11 +7,11 @@
  *
  */
 
-#ifndef USERSPACE_VFS_FAT32_HPP_
-#define USERSPACE_VFS_FAT32_HPP_
+#ifndef USERSPACE_VFS_FAT32_FILESYSTEM_HPP_
+#define USERSPACE_VFS_FAT32_FILESYSTEM_HPP_
 
 #include <types.hpp>
-#include <fat32_structs.hpp>
+#include <fat32/types.hpp>
 
 namespace cassio {
 namespace vfs {
@@ -30,7 +30,7 @@ struct FileHandle {
     bool inUse;
 };
 
-class Fat32 {
+class Fat32Filesystem {
 private:
     u32 ataPid;
 
@@ -104,7 +104,6 @@ private:
 public:
     bool mount(u32 ataPid);
 
-    // Public API matching the old Filesystem interface.
     bool createDirectory(const char* path);
     bool remove(const char* path);
 
@@ -121,4 +120,4 @@ public:
 } // vfs
 } // cassio
 
-#endif // USERSPACE_VFS_FAT32_HPP_
+#endif // USERSPACE_VFS_FAT32_FILESYSTEM_HPP_

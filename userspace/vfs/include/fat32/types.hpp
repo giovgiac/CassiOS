@@ -1,5 +1,5 @@
 /**
- * fat32_structs.hpp -- FAT32 on-disk structure definitions
+ * fat32/types.hpp -- FAT32 on-disk structure definitions
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,8 +7,8 @@
  *
  */
 
-#ifndef USERSPACE_VFS_FAT32_STRUCTS_HPP_
-#define USERSPACE_VFS_FAT32_STRUCTS_HPP_
+#ifndef USERSPACE_VFS_FAT32_TYPES_HPP_
+#define USERSPACE_VFS_FAT32_TYPES_HPP_
 
 #include <types.hpp>
 
@@ -97,4 +97,4 @@ constexpr u32 ENTRIES_PER_SECTOR = SECTOR_SIZE / sizeof(DirEntry);
 } // vfs
 } // cassio
 
-#endif // USERSPACE_VFS_FAT32_STRUCTS_HPP_
+#endif // USERSPACE_VFS_FAT32_TYPES_HPP_

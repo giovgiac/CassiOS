@@ -17,7 +17,7 @@
 #include <system.hpp>
 #include <userheap.hpp>
 #include <string.hpp>
-#include <fat32.hpp>
+#include <fat32/filesystem.hpp>
 
 using namespace cassio;
 using namespace cassio::vfs;
@@ -26,7 +26,7 @@ static void* sbrkGrow(u32 size) {
     return System::sbrk(size);
 }
 
-static Fat32 fs;
+static Fat32Filesystem fs;
 
 extern "C" void _start() {
     UserHeap::init(sbrkGrow, 4096);
