@@ -23,6 +23,7 @@ enum class ProcessState : std::u8 {
     Running,
     SendBlocked,
     ReceiveBlocked,
+    WaitBlocked,
 };
 
 struct Process {
@@ -55,6 +56,8 @@ struct Process {
     std::u32 kernelEsp;
     std::u32 heapBase;   // Initial heap address (set once at ELF load, for heap size).
     std::u32 heapBreak;  // Current top of process heap (page-aligned, for sbrk).
+
+    std::u32 waitPid;        // PID being waited on (valid when state == WaitBlocked).
 
     // IPC state.
     std::ipc::Message msg;        // Outgoing message (sender) or staging buffer.
@@ -97,6 +100,17 @@ public:
      *
      */
     Process* create(std::u32 eip, std::u32 esp, std::u32 cs, std::u32 ds, std::u32 pageDirectory);
+
+    /**
+     * @brief Spawns a new userspace process from a loaded ELF.
+     *
+     * Allocates user stack, kernel stack, builds the initial interrupt
+     * frame, and creates the process. Returns the new Process, or null
+     * on failure (cleans up on error).
+     *
+     */
+    Process* spawn(std::u32 pdPhysical, std::u32 entryPoint, std::u32 heapStart,
+                   std::u32 userCS, std::u32 userDS);
 
     /**
      * @brief Destroys a process, freeing its IPC queues and the process itself.

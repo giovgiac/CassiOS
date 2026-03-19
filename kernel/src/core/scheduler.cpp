@@ -103,6 +103,35 @@ u32 Scheduler::reschedule(u32 currentEsp) {
     return switchTo(next, current, currentEsp);
 }
 
+u32 Scheduler::exitCurrent(u32 currentEsp) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* dying = pm.current();
+
+    // Find the next ready process before destroying the current one.
+    Process* next = findNextReady(dying);
+    if (next == dying) {
+        // No other ready process -- fall back to kernel task (idle loop).
+        next = pm.getHead();
+    }
+
+    // Destroy the dying process (frees address space, kernel stack, IPC queues).
+    u32 pid = dying->pid;
+    pm.destroy(pid);
+
+    // Switch directly to the next process without saving state.
+    next->state = ProcessState::Running;
+    if (next->pageDirectory) {
+        asm volatile("mov %0, %%cr3" : : "r"(next->pageDirectory));
+    }
+    if (gdt && next->kernelEsp) {
+        gdt->setTssEsp0(next->kernelEsp);
+    }
+    pm.setCurrent(next);
+    tickCount = 0;
+
+    return next->esp;
+}
+
 void Scheduler::reset() {
     tickCount = 0;
 }

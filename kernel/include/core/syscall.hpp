@@ -53,9 +53,10 @@ private:
     std::i32 uptime();
     void reboot();
     void shutdown();
-    void exit(std::u32 code);
     std::i32 mapDevice(std::u32 physical, std::u32 virt, std::u32 pages);
     void memInfo(std::u32& total, std::u32& used, std::u32& free);
+    std::u32 exec(std::u32 elfPtr, std::u32 elfSize);
+    std::i32 waitpid(std::u32 pid);
 
 public:
     /**

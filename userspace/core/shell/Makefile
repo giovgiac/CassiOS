@@ -1,7 +1,7 @@
 SERVICE = shell
 SOURCES = main.cpp shell.cpp commands/system.cpp commands/navigation.cpp commands/file.cpp
 
-ROOT     := $(dir $(lastword $(MAKEFILE_LIST)))../..
+ROOT     := $(dir $(lastword $(MAKEFILE_LIST)))../../..
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -Iinclude/ $(foreach dir,$(wildcard $(ROOT)/libs/*/include),-I$(dir)) -MMD -MP
 LDFLAGS  = -melf_i386
 

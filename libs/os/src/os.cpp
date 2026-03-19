@@ -89,3 +89,19 @@ u32 os::procList(ProcEntry* buf, u32 maxEntries) {
                  : "memory");
     return ret;
 }
+
+u32 os::exec(const void* elfData, u32 size) {
+    u32 ret;
+    asm volatile("int $0x80" : "=a"(ret)
+                 : "a"(os::syscall::Exec), "b"((u32)elfData), "c"(size)
+                 : "memory");
+    return ret;
+}
+
+i32 os::waitpid(u32 pid) {
+    i32 ret;
+    asm volatile("int $0x80" : "=a"(ret)
+                 : "a"(os::syscall::WaitPid), "b"(pid)
+                 : "memory");
+    return ret;
+}

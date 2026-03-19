@@ -15,7 +15,9 @@ TEST(os_syscall_constants_sequential) {
     ASSERT_EQ(os::syscall::Reply, (u32)2);
     ASSERT_EQ(os::syscall::Exit, (u32)9);
     ASSERT_EQ(os::syscall::ProcList, (u32)14);
-    ASSERT_EQ(os::syscall::Count, (u32)15);
+    ASSERT_EQ(os::syscall::Exec, (u32)15);
+    ASSERT_EQ(os::syscall::WaitPid, (u32)16);
+    ASSERT_EQ(os::syscall::Count, (u32)17);
 }
 
 TEST(os_proc_entry_size) {

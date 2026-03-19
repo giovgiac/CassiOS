@@ -8,6 +8,8 @@
  */
 
 #include "core/syscall.hpp"
+#include "core/elf.hpp"
+#include "core/gdt.hpp"
 #include "core/process.hpp"
 #include <std/mem.hpp>
 #include "core/scheduler.hpp"
@@ -18,6 +20,7 @@
 #include "hardware/serial.hpp"
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
+#include "memory/virtual.hpp"
 
 using namespace cassio;
 using namespace std;
@@ -355,9 +358,62 @@ void SyscallHandler::memInfo(u32& total, u32& used, u32& free) {
     free = pmm.getFreeFrames();
 }
 
-void SyscallHandler::exit(u32 code) {
-    Port<u8> debug_exit(PortType::QemuDebugExit);
-    debug_exit.write(code == 0 ? 0x00 : 0x01);
+u32 SyscallHandler::exec(u32 elfPtr, u32 elfSize) {
+    if (elfPtr == 0 || elfSize == 0) {
+        return 0;
+    }
+
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* caller = pm.current();
+    if (!caller) {
+        return 0;
+    }
+
+    // Copy ELF data from the caller's address space into a kernel buffer.
+    u8* elfBuf = static_cast<u8*>(operator new(elfSize));
+    if (!elfBuf) {
+        return 0;
+    }
+    mem::copy(elfBuf, (const void*)elfPtr, elfSize);
+
+    // Create address space and load ELF.
+    memory::PagingManager& paging = memory::PagingManager::getManager();
+
+    u32 pdPhysical = paging.createAddressSpace();
+    if (!pdPhysical) {
+        operator delete(elfBuf);
+        return 0;
+    }
+
+    ElfLoadResult elf = ElfLoader::load(pdPhysical, elfBuf, elfSize);
+    operator delete(elfBuf);
+    if (!elf.success) {
+        paging.destroyAddressSpace(pdPhysical);
+        return 0;
+    }
+
+    Process* child = pm.spawn(pdPhysical, elf.entryPoint, elf.heapStart,
+                              caller->cs, caller->ds);
+    if (!child) {
+        paging.destroyAddressSpace(pdPhysical);
+        return 0;
+    }
+
+    return child->pid;
+}
+
+i32 SyscallHandler::waitpid(u32 pid) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* caller = pm.current();
+    Process* target = pm.get(pid);
+
+    if (!target || target == caller) {
+        return -1;
+    }
+
+    caller->waitPid = pid;
+    caller->state = ProcessState::WaitBlocked;
+    return 0;  // Caller should block.
 }
 
 u32 SyscallHandler::procList(os::ProcEntry* buf, u32 maxEntries) {
@@ -489,9 +545,15 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
     case os::syscall::Shutdown:
         shutdown();
         return esp;
-    case os::syscall::Exit:
-        exit(frame->ebx);
-        return esp;
+    case os::syscall::Exit: {
+        // Write to QEMU debug exit port for test framework. Harmless no-op
+        // when the isa-debug-exit device is not configured (normal run).
+        Port<u8> debug_exit(PortType::QemuDebugExit);
+        debug_exit.write(frame->ebx == 0 ? 0x00 : 0x01);
+
+        Scheduler& sched = Scheduler::getScheduler();
+        return sched.exitCurrent(esp);
+    }
     case os::syscall::MapDevice:
         frame->eax = static_cast<u32>(mapDevice(frame->ebx, frame->ecx, frame->edx));
         return esp;
@@ -513,6 +575,18 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
     case os::syscall::ProcList:
         frame->eax = procList((os::ProcEntry*)frame->ebx, frame->ecx);
         return esp;
+    case os::syscall::Exec:
+        frame->eax = exec(frame->ebx, frame->ecx);
+        return esp;
+    case os::syscall::WaitPid: {
+        i32 result = waitpid(frame->ebx);
+        if (result == 0) {
+            Scheduler& sched = Scheduler::getScheduler();
+            return sched.reschedule(esp);
+        }
+        frame->eax = static_cast<u32>(result);
+        return esp;
+    }
     default:
         frame->eax = static_cast<u32>(-1);
         return esp;

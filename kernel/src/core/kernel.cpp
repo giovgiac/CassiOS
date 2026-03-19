@@ -84,50 +84,7 @@ void start(void* multiboot, u32 magic) {
                 continue;
             }
 
-            void* userStackFrame = pmm.allocFrame();
-            if (userStackFrame) {
-                paging.mapUserPage(pdPhysical, 0xBFFFF000, (u32)userStackFrame,
-                                   PAGE_PRESENT | PAGE_READWRITE | PAGE_USER);
-            }
-
-            void* kernelStackFrame = pmm.allocFrame();
-            if (!kernelStackFrame) {
-                continue;
-            }
-
-            u32 kernelStackTop = (u32)kernelStackFrame + KERNEL_VBASE + FRAME_SIZE;
-
-            // Build fake interrupt frame on kernel stack for initial iret to ring 3.
-            // Must match the interrupt stub's stack layout: the stub does
-            // popa + addl $8 (skip number/error_code) + iret.
-            u32* frame = (u32*)kernelStackTop;
-            *(--frame) = userDS;            // SS
-            *(--frame) = 0xC0000000;        // ESP (top of user stack page)
-            *(--frame) = 0x3202;            // EFLAGS (IF=1, IOPL=3 for direct I/O)
-            *(--frame) = userCS;            // CS
-            *(--frame) = elf.entryPoint;    // EIP
-            *(--frame) = 0;                 // error_code (stub skips via addl $8)
-            *(--frame) = 0;                 // number (stub skips via addl $8)
-            *(--frame) = 0;                 // EAX
-            *(--frame) = 0;                 // ECX
-            *(--frame) = 0;                 // EDX
-            *(--frame) = 0;                 // EBX
-            *(--frame) = 0;                 // ESP (ignored by popa)
-            *(--frame) = 0;                 // EBP
-            *(--frame) = 0;                 // ESI
-            *(--frame) = 0;                 // EDI
-            *(--frame) = userDS;            // DS
-            *(--frame) = userDS;            // ES
-            *(--frame) = userDS;            // FS
-            *(--frame) = userDS;            // GS
-
-            Process* proc = pm.create(
-                elf.entryPoint, (u32)frame, userCS, userDS, pdPhysical);
-            if (proc) {
-                proc->kernelEsp = kernelStackTop;
-                proc->heapBase = elf.heapStart;
-                proc->heapBreak = elf.heapStart;
-            }
+            pm.spawn(pdPhysical, elf.entryPoint, elf.heapStart, userCS, userDS);
         }
     }
 

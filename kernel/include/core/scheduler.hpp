@@ -60,6 +60,16 @@ public:
     std::u32 reschedule(std::u32 currentEsp);
 
     /**
+     * @brief Destroys the current process and switches to the next ready one.
+     *
+     * Unlike reschedule(), does not save state into the dying process.
+     * Finds the next ready process first, then destroys the current one
+     * (address space, IPC queues, kernel stack), and switches directly.
+     *
+     */
+    std::u32 exitCurrent(std::u32 currentEsp);
+
+    /**
      * @brief Resets scheduler state. Used by the test framework.
      *
      */

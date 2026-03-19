@@ -35,7 +35,9 @@ namespace syscall {
     constexpr u32 MemInfo     = 12;
     constexpr u32 Sbrk        = 13;
     constexpr u32 ProcList    = 14;
-    constexpr u32 Count       = 15;
+    constexpr u32 Exec        = 15;
+    constexpr u32 WaitPid     = 16;
+    constexpr u32 Count       = 17;
 }
 
 /** System tick frequency in Hz. Used to convert uptime() ticks to time. */
@@ -44,7 +46,7 @@ constexpr u32 TICK_FREQUENCY = 1000;
 /** Process information returned by procList(). */
 struct ProcEntry {
     u32 pid;       ///< Process ID.
-    u32 state;     ///< 1=Ready, 2=Running, 3=SendBlocked, 4=ReceiveBlocked.
+    u32 state;     ///< 1=Ready, 2=Running, 3=SendBlocked, 4=ReceiveBlocked, 5=WaitBlocked.
     u32 heapSize;  ///< Heap size in bytes (0 if no heap).
 };
 
@@ -108,6 +110,20 @@ void* sbrk(u32 increment);
  * Returns the number of entries written.
  */
 u32 procList(ProcEntry* buf, u32 maxEntries);
+
+/**
+ * Load an ELF binary from memory and spawn it as a new process.
+ * @p elfData points to the ELF file contents in the caller's address space.
+ * @p size is the length in bytes.
+ * Returns the child PID on success, or 0 on failure.
+ */
+u32 exec(const void* elfData, u32 size);
+
+/**
+ * Block until the process with @p pid exits.
+ * Returns 0 on success, -1 if the PID does not exist.
+ */
+i32 waitpid(u32 pid);
 
 }
 }

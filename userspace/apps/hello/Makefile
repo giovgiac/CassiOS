@@ -1,0 +1,35 @@
+SERVICE = hello
+SOURCES = main.cpp
+
+ROOT     := $(dir $(lastword $(MAKEFILE_LIST)))../../..
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector $(foreach dir,$(wildcard $(ROOT)/libs/*/include),-I$(dir)) -MMD -MP
+LDFLAGS  = -melf_i386
+
+OBJDIR   = $(ROOT)/obj/userspace/apps/$(SERVICE)
+DISKDIR  = $(ROOT)/disk/bin
+OUTPUT   = $(DISKDIR)/$(SERVICE).elf
+LIBSTD_MEM  = $(ROOT)/lib/libstd_mem.a
+LIBSTD_STR  = $(ROOT)/lib/libstd_str.a
+LIBSTD_ALLOC = $(ROOT)/lib/libstd_alloc.a
+LIBSTD_HEAP = $(ROOT)/lib/libstd_heap.a
+LIBSTD_OS = $(ROOT)/lib/libstd_os.a
+LIBSTD_IPC = $(ROOT)/lib/libstd_ipc.a
+LIBSTD_NS = $(ROOT)/lib/libstd_ns.a
+LIBSTD_VGA = $(ROOT)/lib/libstd_vga.a
+
+OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
+
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_VGA)
+	@mkdir -p $(DISKDIR)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_VGA) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+
+$(OBJDIR)/%.o: src/%.cpp
+	@mkdir -p $(dir $@)
+	g++ $(CXXFLAGS) -o $@ -c $<
+
+clean:
+	rm -rf $(OBJDIR) $(OUTPUT)
+
+-include $(OBJECTS:.o=.d)
+
+.PHONY: clean
