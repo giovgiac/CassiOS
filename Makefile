@@ -20,6 +20,7 @@ VFS = bin/vfs.elf
 MOUSE = bin/mouse.elf
 ATA = bin/ata.elf
 USERSHELL = bin/shell.elf
+HELLO = disk/bin/hello.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
 LIBSTD_MEM = lib/libstd_mem.a
@@ -140,6 +141,9 @@ $(ATA): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) 
 $(USERSHELL): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_VGA) $(LIBSTD_VFS)
 	$(MAKE) -C userspace/core/shell
 
+$(HELLO): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_VGA)
+	$(MAKE) -C userspace/apps/hello
+
 # Compile test files from the kernel/tests/ directory.
 obj/tests/%.o: kernel/tests/%.cpp
 	@mkdir -p $(dir $@)
@@ -163,7 +167,7 @@ $(USERTEST): userspace/test.ld $(usertest_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $
 	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_MOUSE) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
-$(DISK): $(disk_files)
+$(DISK): $(disk_files) $(HELLO)
 	@mkdir -p bin
 	dd if=/dev/zero of=$(DISK) bs=1M count=$(DISK_SIZE_MB) 2>/dev/null
 	mkfs.fat -F 32 $(DISK) >/dev/null 2>&1
