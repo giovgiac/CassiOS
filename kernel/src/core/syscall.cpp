@@ -355,11 +355,6 @@ void SyscallHandler::memInfo(u32& total, u32& used, u32& free) {
     free = pmm.getFreeFrames();
 }
 
-void SyscallHandler::exit(u32 code) {
-    Port<u8> debug_exit(PortType::QemuDebugExit);
-    debug_exit.write(code == 0 ? 0x00 : 0x01);
-}
-
 u32 SyscallHandler::procList(os::ProcEntry* buf, u32 maxEntries) {
     ProcessManager& pm = ProcessManager::getManager();
     u32 count = 0;
@@ -489,9 +484,15 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
     case os::syscall::Shutdown:
         shutdown();
         return esp;
-    case os::syscall::Exit:
-        exit(frame->ebx);
-        return esp;
+    case os::syscall::Exit: {
+        // Write to QEMU debug exit port for test framework. Harmless no-op
+        // when the isa-debug-exit device is not configured (normal run).
+        Port<u8> debug_exit(PortType::QemuDebugExit);
+        debug_exit.write(frame->ebx == 0 ? 0x00 : 0x01);
+
+        Scheduler& sched = Scheduler::getScheduler();
+        return sched.exitCurrent(esp);
+    }
     case os::syscall::MapDevice:
         frame->eax = static_cast<u32>(mapDevice(frame->ebx, frame->ecx, frame->edx));
         return esp;

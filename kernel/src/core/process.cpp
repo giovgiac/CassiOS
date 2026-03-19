@@ -9,6 +9,9 @@
 
 #include "core/process.hpp"
 #include "core/syscall.hpp"
+#include "memory/paging.hpp"
+#include "memory/physical.hpp"
+#include "memory/virtual.hpp"
 #include <std/mem.hpp>
 
 using namespace cassio;
@@ -188,6 +191,21 @@ void ProcessManager::destroy(u32 pid) {
         Process::NotifyNode* node = p->notifyQueue.popFront();
         operator delete(node->data);
         delete node;
+    }
+
+    // Free the user address space (page directory, page tables, user frames).
+    if (p->pageDirectory) {
+        memory::PagingManager& paging = memory::PagingManager::getManager();
+        paging.destroyAddressSpace(p->pageDirectory);
+        p->pageDirectory = 0;
+    }
+
+    // Free the kernel stack frame.
+    if (p->kernelEsp) {
+        memory::PhysicalMemoryManager& pmm = memory::PhysicalMemoryManager::getManager();
+        void* kernelStackFrame = (void*)(p->kernelEsp - KERNEL_VBASE - memory::FRAME_SIZE);
+        pmm.freeFrame(kernelStackFrame);
+        p->kernelEsp = 0;
     }
 
     // Unlink from process list and free.
