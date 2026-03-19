@@ -22,10 +22,10 @@ IrqManager IrqManager::instance;
 // any constructors run, and handlers may be registered before this constructor
 // executes (static initialization order).
 IrqManager::IrqManager()
-    : pic_master_cmd(PortType::MasterProgrammableInterfaceControllerCommand),
-      pic_master_data(PortType::MasterProgrammableInterfaceControllerData),
-      pic_slave_cmd(PortType::SlaveProgrammableInterfaceControllerCommand),
-      pic_slave_data(PortType::SlaveProgrammableInterfaceControllerData) {}
+    : pic_master_cmd(PortType::MasterPicCommand),
+      pic_master_data(PortType::MasterPicData),
+      pic_slave_cmd(PortType::SlavePicCommand),
+      pic_slave_data(PortType::SlavePicData) {}
 
 void IrqManager::load() {
     InterruptManager& im = InterruptManager::getManager();

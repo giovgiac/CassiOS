@@ -11,7 +11,7 @@
 #define VGA_TERMINAL_HPP_
 
 #include <std/types.hpp>
-#include <port.hpp>
+#include <std/io.hpp>
 
 namespace cassio {
 
@@ -42,8 +42,8 @@ private:
     std::u8 y;
     std::u16 color;
 
-    hardware::Port<std::u8> crtc_index;
-    hardware::Port<std::u8> crtc_data;
+    std::io::Port<std::u8> crtc_index;
+    std::io::Port<std::u8> crtc_data;
 
     void updateCursor();
     void scrollUp();

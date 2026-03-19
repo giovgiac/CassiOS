@@ -14,7 +14,7 @@
 #include "hardware/pit.hpp"
 #include "hardware/interrupt.hpp"
 #include "hardware/irq.hpp"
-#include "hardware/port.hpp"
+#include <std/io.hpp>
 #include "hardware/serial.hpp"
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
@@ -339,7 +339,7 @@ i32 SyscallHandler::uptime() {
 }
 
 void SyscallHandler::reboot() {
-    Port<u8> kbCmd(PortType::KeyboardControllerCommand);
+    Port<u8> kbCmd(PortType::KbdCommand);
     kbCmd.write(0xFE);
 }
 

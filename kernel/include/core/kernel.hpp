@@ -13,7 +13,7 @@
 #include <std/types.hpp>
 #include <core/gdt.hpp>
 #include <hardware/interrupt.hpp>
-#include <hardware/port.hpp>
+#include <std/io.hpp>
 
 /**
  * @brief Function pointer type for global constructors.

@@ -12,10 +12,13 @@
 
 #include <std/types.hpp>
 #include <message.hpp>
-#include <hardware/port.hpp>
+#include <std/io.hpp>
 
 namespace cassio {
 namespace hardware {
+
+using std::io::Port;
+using std::io::PortType;
 
 // Offset added to PIC IRQs to avoid conflict with CPU exceptions.
 constexpr std::u8 IRQ_OFFSET = 0x20;

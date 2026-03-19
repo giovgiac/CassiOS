@@ -9,6 +9,7 @@
                 "${workspaceFolder}/libs/mem/include",
                 "${workspaceFolder}/libs/str/include",
                 "${workspaceFolder}/libs/collections/include",
+                "${workspaceFolder}/libs/io/include",
                 "${workspaceFolder}/userspace/**/include",
                 "${workspaceFolder}/kernel/tests"
             ],

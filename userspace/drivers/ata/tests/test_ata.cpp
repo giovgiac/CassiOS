@@ -8,13 +8,13 @@
  */
 
 #include <test.hpp>
-#include <port.hpp>
+#include <std/io.hpp>
 #include <ata.hpp>
 
 using namespace cassio;
 using namespace std;
 using namespace cassio::ata;
-using namespace cassio::hardware;
+using namespace std::io;
 
 TEST(ata_port_constants) {
     ASSERT_EQ(static_cast<u32>(PortType::PrimaryAtaData), 0x1F0u);

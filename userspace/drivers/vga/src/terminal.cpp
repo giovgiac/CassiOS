@@ -11,7 +11,7 @@
 
 using namespace cassio;
 using namespace std;
-using namespace cassio::hardware;
+using namespace std::io;
 
 VgaTerminal::VgaTerminal(u16* buffer)
     : buffer(buffer),
