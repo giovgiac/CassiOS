@@ -9,7 +9,7 @@
 
 #include "core/process.hpp"
 #include "core/syscall.hpp"
-#include <memory.hpp>
+#include <std/mem.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -70,7 +70,7 @@ u32 Process::sendQueuePop() {
 // -- Notification queue (heap-backed linked list) --
 
 static void copyMsg(const Message& src, Message& dst) {
-    memcpy(&dst, &src, sizeof(Message));
+    mem::copy(&dst, &src, sizeof(Message));
 }
 
 bool Process::notifyPush(u32 senderPid, const Message& m,
@@ -89,7 +89,7 @@ bool Process::notifyPush(u32 senderPid, const Message& m,
             delete node;
             return false;
         }
-        memcpy(node->data, data, dataLen);
+        mem::copy(node->data, data, dataLen);
         node->dataLen = dataLen;
     }
     notifyQueue.pushBack(node);
@@ -107,7 +107,7 @@ bool Process::notifyPop(u32& senderPid, Message& m,
     if (node->data != nullptr && node->dataLen > 0 &&
         dataDst != nullptr && dataCapacity > 0) {
         u32 copyLen = node->dataLen < dataCapacity ? node->dataLen : dataCapacity;
-        memcpy(dataDst, node->data, copyLen);
+        mem::copy(dataDst, node->data, copyLen);
     }
     operator delete(node->data);
     delete node;

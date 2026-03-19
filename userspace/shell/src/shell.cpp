@@ -9,7 +9,7 @@
 
 #include <shell.hpp>
 #include <string.hpp>
-#include <memory.hpp>
+#include <std/mem.hpp>
 #include <keycode.hpp>
 #include <message.hpp>
 #include <ipc.hpp>
@@ -106,7 +106,7 @@ void Shell::execute() {
 
     // Make a copy for parsing (parseArgs modifies the buffer).
     char copy[SHELL_MAX_INPUT];
-    memcpy(copy, buffer, length + 1);
+    mem::copy(copy, buffer, length + 1);
 
     const char* args[SHELL_MAX_ARGS];
     u8 argc = parseArgs(copy, length, args, SHELL_MAX_ARGS);

@@ -9,7 +9,7 @@
 
 #include "core/syscall.hpp"
 #include "core/process.hpp"
-#include <memory.hpp>
+#include <std/mem.hpp>
 #include "core/scheduler.hpp"
 #include "hardware/pit.hpp"
 #include "hardware/interrupt.hpp"
@@ -36,7 +36,7 @@ void SyscallHandler::load() {
 }
 
 static void copyMessage(const Message* src, Message* dst) {
-    memcpy(dst, src, sizeof(Message));
+    mem::copy(dst, src, sizeof(Message));
 }
 
 // Copy a message to a userspace buffer that belongs to a different process.
@@ -70,16 +70,16 @@ static void copyDataToProcess(Process* target, u8* dst, const u8* src, u32 len) 
             u32 n = len - offset;
             if (n > 256) n = 256;
 
-            memcpy(chunk, src + offset, n);
+            mem::copy(chunk, src + offset, n);
 
             asm volatile("mov %0, %%cr3" : : "r"(targetPD) : "memory");
-            memcpy(dst + offset, chunk, n);
+            mem::copy(dst + offset, chunk, n);
             asm volatile("mov %0, %%cr3" : : "r"(currentCR3) : "memory");
 
             offset += n;
         }
     } else {
-        memcpy(dst, src, len);
+        mem::copy(dst, src, len);
     }
 }
 
@@ -98,15 +98,15 @@ static void copyDataFromProcess(Process* source, u8* dst, const u8* src, u32 len
             if (n > 256) n = 256;
 
             asm volatile("mov %0, %%cr3" : : "r"(sourcePD) : "memory");
-            memcpy(chunk, src + offset, n);
+            mem::copy(chunk, src + offset, n);
             asm volatile("mov %0, %%cr3" : : "r"(currentCR3) : "memory");
 
-            memcpy(dst + offset, chunk, n);
+            mem::copy(dst + offset, chunk, n);
 
             offset += n;
         }
     } else {
-        memcpy(dst, src, len);
+        mem::copy(dst, src, len);
     }
 }
 

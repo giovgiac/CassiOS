@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/kernel/include",
                 "${workspaceFolder}/common/include",
-                "${workspaceFolder}/libs/*/include",
+                "${workspaceFolder}/libs/types/include",
+                "${workspaceFolder}/libs/mem/include",
                 "${workspaceFolder}/userspace/**/include",
                 "${workspaceFolder}/kernel/tests"
             ],
