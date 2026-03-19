@@ -1,27 +1,29 @@
 /**
- * keycode.hpp -- resolved key values shared between kernel and userspace
+ * kbd.hpp -- keyboard service client
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
+ * Instance-based client for the keyboard driver service. The
+ * constructor resolves the service PID from the nameserver
+ * automatically, blocking until the service is registered.
+ *
+ * Also defines KeyCode, the resolved key values after scancode
+ * translation. ASCII-range values (0x00-0x7F) correspond to their
+ * ASCII characters; non-ASCII keys use values above 0x7F.
+ *
  */
 
-#ifndef COMMON_KEYCODE_HPP_
-#define COMMON_KEYCODE_HPP_
+#ifndef STD_KBD_HPP
+#define STD_KBD_HPP
 
 #include <std/types.hpp>
 
-namespace cassio {
+namespace std {
+namespace kbd {
 
-/**
- * @brief Resolved key values after scancode translation.
- *
- * ASCII-range values (0x00-0x7F) correspond to their ASCII characters.
- * Non-ASCII keys (function keys, arrows) use values above 0x7F.
- *
- */
-enum class KeyCode : std::u8 {
+enum class KeyCode : u8 {
     Backspace                                   = 0x08,
     Tab                                         = 0x09,
     Enter                                       = 0x0D,
@@ -140,6 +142,24 @@ enum class KeyCode : std::u8 {
     RightArrow                                  = 0x8D
 };
 
-} // cassio
+class Kbd {
+public:
+    /// Construct a keyboard client. Blocks until the "kbd" service is
+    /// registered with the nameserver.
+    Kbd();
 
-#endif // COMMON_KEYCODE_HPP_
+    /// Read a single key from the keyboard. Blocks until a key is
+    /// available. Returns the raw KeyCode value (cast to u8).
+    u8 read();
+
+    Kbd(const Kbd&) = delete;
+    Kbd& operator=(const Kbd&) = delete;
+
+private:
+    u32 pid;
+};
+
+} // kbd
+} // std
+
+#endif // STD_KBD_HPP

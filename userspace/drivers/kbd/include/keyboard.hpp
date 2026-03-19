@@ -11,7 +11,9 @@
 #define KBD_KEYBOARD_HPP_
 
 #include <std/types.hpp>
-#include <keycode.hpp>
+#include <std/kbd.hpp>
+
+using std::kbd::KeyCode;
 
 namespace cassio {
 
