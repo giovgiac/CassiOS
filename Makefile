@@ -35,6 +35,7 @@ LIBSTD_IPC = lib/libstd_ipc.a
 LIBSTD_NS = lib/libstd_ns.a
 LIBSTD_VGA = lib/libstd_vga.a
 LIBSTD_VFS = lib/libstd_vfs.a
+LIBSTD_ATA = lib/libstd_ata.a
 
 
 # Discover all source files automatically.
@@ -129,6 +130,9 @@ $(LIBSTD_VGA): FORCE
 $(LIBSTD_VFS): FORCE
 	$(MAKE) -C libs/vfs
 
+$(LIBSTD_ATA): FORCE
+	$(MAKE) -C libs/ata
+
 FORCE:
 
 kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
@@ -144,7 +148,7 @@ $(KBD): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) 
 $(VGA): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/drivers/vga
 
-$(VFS): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(VFS): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_ATA)
 	$(MAKE) -C userspace/vfs
 
 $(MOUSE): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
@@ -174,9 +178,9 @@ obj/userspace/usertest/%.o: userspace/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
 
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_FMT) $(LIBSTD_TEST) $(LIBCASSIO)
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_ATA) $(LIBSTD_FMT) $(LIBSTD_TEST) $(LIBCASSIO)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
 $(DISK): $(disk_files)

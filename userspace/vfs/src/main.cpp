@@ -27,8 +27,7 @@ static Fat32Filesystem fs;
 extern "C" void _start() {
     ns::registerName("vfs");
 
-    u32 ataPid = ns::lookup("ata");
-    if (!fs.mount(ataPid)) {
+    if (!fs.mount()) {
         // Mount failed -- hang.
         while (true) {
             ipc::Message msg;

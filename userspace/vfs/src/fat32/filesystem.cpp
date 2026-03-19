@@ -8,7 +8,6 @@
  */
 
 #include <fat32/filesystem.hpp>
-#include <ata_client.hpp>
 #include <std/heap.hpp>
 #include <std/str.hpp>
 #include <std/mem.hpp>
@@ -52,7 +51,7 @@ Fat32Filesystem::CacheEntry* Fat32Filesystem::cacheEvict() {
     CacheEntry* entry = &cache[oldest];
     // Flush dirty entry before evicting.
     if (entry->dirty) {
-        AtaClient::writeSector(ataPid, entry->lba, entry->data);
+        ata->writeSector(entry->lba, entry->data);
         entry->dirty = false;
     }
     entry->valid = false;
@@ -68,9 +67,9 @@ bool Fat32Filesystem::cacheRead(u32 lba, u8* buf) {
 
     // Cache miss -- read from disk and cache it.
     entry = cacheEvict();
-    if (!entry) return AtaClient::readSector(ataPid, lba, buf);
+    if (!entry) return ata->readSector(lba, buf);
 
-    if (!AtaClient::readSector(ataPid, lba, entry->data)) return false;
+    if (!ata->readSector(lba, entry->data)) return false;
 
     entry->lba = lba;
     entry->valid = true;
@@ -84,7 +83,7 @@ bool Fat32Filesystem::cacheWrite(u32 lba, const u8* buf) {
     CacheEntry* entry = cacheLookup(lba);
     if (!entry) {
         entry = cacheEvict();
-        if (!entry) return AtaClient::writeSector(ataPid, lba, buf);
+        if (!entry) return ata->writeSector(lba, buf);
     }
 
     mem::copy(entry->data, buf, SECTOR_SIZE);
@@ -94,7 +93,7 @@ bool Fat32Filesystem::cacheWrite(u32 lba, const u8* buf) {
     entry->age = ++cacheAge;
 
     // Write through to disk immediately for durability.
-    return AtaClient::writeSector(ataPid, lba, buf);
+    return ata->writeSector(lba, buf);
 }
 
 // ---------------------------------------------------------------------------
@@ -193,7 +192,7 @@ bool Fat32Filesystem::flushFat() {
             // Check if this is a FAT1 sector.
             if (lba >= fatStartSector && lba < fatStartSector + fatSize) {
                 u32 fat2Lba = lba + fatSize;
-                AtaClient::writeSector(ataPid, fat2Lba, cache[i].data);
+                ata->writeSector(fat2Lba, cache[i].data);
             }
         }
     }
@@ -864,8 +863,8 @@ bool Fat32Filesystem::removeEntry(u32 dirCluster, const char* name) {
 // Mount
 // ---------------------------------------------------------------------------
 
-bool Fat32Filesystem::mount(u32 ataServicePid) {
-    ataPid = ataServicePid;
+bool Fat32Filesystem::mount() {
+    ata = new ata::Ata();
 
     // Heap-allocate handles and cache.
     handles = new FileHandle[MAX_HANDLES];

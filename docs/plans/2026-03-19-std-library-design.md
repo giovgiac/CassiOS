@@ -61,7 +61,7 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 | ns | libstd_ns.a | types, ipc | ns::Entry, ns::packName/unpackName, ns::registerName/lookup/listAll |
 | vga | libstd_vga.a | types, ipc, ns | vga::Vga instance class (putchar, write, clear, setCursor, getCursor) |
 | vfs | libstd_vfs.a | types, ipc, ns | vfs::Vfs instance class (mkdir, remove, open, read, write, stat, list) |
-| ata | libstd_ata.a | types, ipc, ns | Ata instance class, auto-resolves PID |
+| ata | libstd_ata.a | types, ipc, ns | ata::Ata instance class (readSector, writeSector), ata::SECTOR_SIZE |
 | kbd | libstd_kbd.a | types, ipc, ns | Kbd instance class, auto-resolves PID (new) |
 | mouse | libstd_mouse.a | types, ipc, ns | Mouse instance class, auto-resolves PID (new) |
 
@@ -138,7 +138,7 @@ Incremental module-by-module migration (Approach B). Each PR creates one module,
 12. ~~`ns`~~ *(free functions, ns::Entry replaces NsEntry)*
 13. ~~`vga`~~ *(instance class, auto-resolves PID)*
 14. ~~`vfs`~~ *(instance class, auto-resolves PID)*
-15. `ata`
+15. ~~`ata`~~ *(instance class, auto-resolves PID)*
 16. `kbd`
 17. `mouse`
 18. Cleanup (delete empty `common/` and `userspace/libs/`)

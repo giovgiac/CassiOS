@@ -11,6 +11,7 @@
 #define USERSPACE_VFS_FAT32_FILESYSTEM_HPP_
 
 #include <std/types.hpp>
+#include <std/ata.hpp>
 #include <fat32/types.hpp>
 
 namespace cassio {
@@ -32,7 +33,7 @@ struct FileHandle {
 
 class Fat32Filesystem {
 private:
-    std::u32 ataPid;
+    std::ata::Ata* ata;
 
     // BPB-derived layout.
     std::u32 bytesPerSector;
@@ -105,7 +106,7 @@ private:
 public:
     Fat32Filesystem() = default;
 
-    bool mount(std::u32 ataPid);
+    bool mount();
 
     bool createDirectory(const char* path);
     bool remove(const char* path);

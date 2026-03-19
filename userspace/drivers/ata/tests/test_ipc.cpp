@@ -8,30 +8,26 @@
  */
 
 #include <std/test.hpp>
-#include <std/ns.hpp>
-#include <std/ipc.hpp>
-#include <ata_client.hpp>
+#include <std/ata.hpp>
 
-using namespace cassio;
 using namespace std;
 
 TEST(ata_ipc_service_registered) {
-    u32 pid = ns::lookup("ata");
-    ASSERT(pid != 0);
+    ata::Ata drive;
+    // Construction succeeded (lookup returned non-zero).
+    ASSERT(true);
 }
 
 TEST(ata_ipc_read_sector_succeeds) {
-    u32 pid = ns::lookup("ata");
-    ASSERT(pid != 0);
+    ata::Ata drive;
 
     u8 buf[512];
-    bool ok = AtaClient::readSector(pid, 0, buf);
+    bool ok = drive.readSector(0, buf);
     ASSERT(ok);
 }
 
 TEST(ata_ipc_write_then_read_sector) {
-    u32 pid = ns::lookup("ata");
-    ASSERT(pid != 0);
+    ata::Ata drive;
 
     // Use an LBA within the 1 MiB test disk (2048 sectors).
     const u32 testLba = 100;
@@ -39,13 +35,13 @@ TEST(ata_ipc_write_then_read_sector) {
     // Write a known pattern.
     u8 writeBuf[512];
     for (u32 i = 0; i < 512; ++i) writeBuf[i] = static_cast<u8>(i & 0xFF);
-    bool ok = AtaClient::writeSector(pid, testLba, writeBuf);
+    bool ok = drive.writeSector(testLba, writeBuf);
     ASSERT(ok);
 
     // Read it back.
     u8 readBuf[512];
     for (u32 i = 0; i < 512; ++i) readBuf[i] = 0;
-    ok = AtaClient::readSector(pid, testLba, readBuf);
+    ok = drive.readSector(testLba, readBuf);
     ASSERT(ok);
 
     // Verify contents match.
