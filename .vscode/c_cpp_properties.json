@@ -7,6 +7,7 @@
                 "${workspaceFolder}/common/include",
                 "${workspaceFolder}/libs/types/include",
                 "${workspaceFolder}/libs/mem/include",
+                "${workspaceFolder}/libs/str/include",
                 "${workspaceFolder}/userspace/**/include",
                 "${workspaceFolder}/kernel/tests"
             ],

@@ -1,6 +1,6 @@
 #include <test.hpp>
 #include <table.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -60,8 +60,8 @@ TEST(ns_table_list_all_returns_entries) {
     bool foundVga = false;
     bool foundKbd = false;
     for (u32 i = 0; i < count; ++i) {
-        if (streq(buf[i].name, "vga") && buf[i].pid == 3) foundVga = true;
-        if (streq(buf[i].name, "kbd") && buf[i].pid == 2) foundKbd = true;
+        if (str::eq(buf[i].name, "vga") && buf[i].pid == 3) foundVga = true;
+        if (str::eq(buf[i].name, "kbd") && buf[i].pid == 2) foundKbd = true;
     }
     ASSERT(foundVga);
     ASSERT(foundKbd);

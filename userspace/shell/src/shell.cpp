@@ -8,7 +8,7 @@
  */
 
 #include <shell.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 #include <std/mem.hpp>
 #include <keycode.hpp>
 #include <message.hpp>
@@ -116,23 +116,23 @@ void Shell::execute() {
         return;
     }
 
-    if (streq(args[0], "help"))          cmdHelp();
-    else if (streq(args[0], "clear"))    cmdClear();
-    else if (streq(args[0], "echo"))     cmdEcho(args, argc);
-    else if (streq(args[0], "mem"))      cmdMem();
-    else if (streq(args[0], "ps"))       cmdPs();
-    else if (streq(args[0], "uptime"))   cmdUptime();
-    else if (streq(args[0], "reboot"))   cmdReboot();
-    else if (streq(args[0], "shutdown")) cmdShutdown();
-    else if (streq(args[0], "ls"))       cmdLs(args, argc);
-    else if (streq(args[0], "cd"))       cmdCd(args, argc);
-    else if (streq(args[0], "pwd"))      cmdPwd();
-    else if (streq(args[0], "mkdir"))    cmdMkdir(args, argc);
-    else if (streq(args[0], "rmdir"))    cmdRmdir(args, argc);
-    else if (streq(args[0], "touch"))    cmdTouch(args, argc);
-    else if (streq(args[0], "rm"))       cmdRm(args, argc);
-    else if (streq(args[0], "cat"))      cmdCat(args, argc);
-    else if (streq(args[0], "write"))    cmdWrite(args, argc);
+    if (str::eq(args[0], "help"))          cmdHelp();
+    else if (str::eq(args[0], "clear"))    cmdClear();
+    else if (str::eq(args[0], "echo"))     cmdEcho(args, argc);
+    else if (str::eq(args[0], "mem"))      cmdMem();
+    else if (str::eq(args[0], "ps"))       cmdPs();
+    else if (str::eq(args[0], "uptime"))   cmdUptime();
+    else if (str::eq(args[0], "reboot"))   cmdReboot();
+    else if (str::eq(args[0], "shutdown")) cmdShutdown();
+    else if (str::eq(args[0], "ls"))       cmdLs(args, argc);
+    else if (str::eq(args[0], "cd"))       cmdCd(args, argc);
+    else if (str::eq(args[0], "pwd"))      cmdPwd();
+    else if (str::eq(args[0], "mkdir"))    cmdMkdir(args, argc);
+    else if (str::eq(args[0], "rmdir"))    cmdRmdir(args, argc);
+    else if (str::eq(args[0], "touch"))    cmdTouch(args, argc);
+    else if (str::eq(args[0], "rm"))       cmdRm(args, argc);
+    else if (str::eq(args[0], "cat"))      cmdCat(args, argc);
+    else if (str::eq(args[0], "write"))    cmdWrite(args, argc);
     else {
         print("Unknown command: ");
         print(args[0]);
@@ -247,11 +247,11 @@ u8 Shell::parseArgs(char* buf, u8 len, const char** args, u8 maxArgs) {
 void Shell::resolvePath(const char* cwdPath, const char* input,
                         char* out, u32 maxLen) {
     if (input[0] == '/') {
-        strcpy(out, input, maxLen);
+        str::copy(out, input, maxLen);
         return;
     }
 
-    u32 cwdLen = strlen(cwdPath);
+    u32 cwdLen = str::len(cwdPath);
     u32 pos = 0;
 
     // Copy cwd.
@@ -272,7 +272,7 @@ void Shell::resolvePath(const char* cwdPath, const char* input,
 }
 
 void Shell::parentDir(char* path) {
-    u32 len = strlen(path);
+    u32 len = str::len(path);
     if (len <= 1) return;
 
     u32 last = len - 1;

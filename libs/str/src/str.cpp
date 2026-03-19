@@ -1,5 +1,5 @@
 /**
- * string.cpp
+ * str.cpp -- Standard string functions
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,12 +7,11 @@
  *
  */
 
-#include <string.hpp>
+#include <std/str.hpp>
 
-using namespace cassio;
 using namespace std;
 
-bool cassio::streq(const char* a, const char* b) {
+bool str::eq(const char* a, const char* b) {
     u32 i = 0;
     while (a[i] != '\0' && b[i] != '\0') {
         if (a[i] != b[i]) return false;
@@ -21,7 +20,7 @@ bool cassio::streq(const char* a, const char* b) {
     return a[i] == b[i];
 }
 
-void cassio::strcpy(char* dst, const char* src, usize max) {
+void str::copy(char* dst, const char* src, usize max) {
     usize i = 0;
     while (i < max - 1 && src[i] != '\0') {
         dst[i] = src[i];
@@ -30,19 +29,19 @@ void cassio::strcpy(char* dst, const char* src, usize max) {
     dst[i] = '\0';
 }
 
-usize cassio::strlen(const char* str) {
-    usize len = 0;
-    while (str[len] != '\0') {
-        ++len;
+usize str::len(const char* s) {
+    usize l = 0;
+    while (s[l] != '\0') {
+        ++l;
     }
-    return len;
+    return l;
 }
 
-u32 cassio::strtou32(const char* str) {
+u32 str::to_u32(const char* s) {
     u32 result = 0;
-    for (usize i = 0; str[i] != '\0'; ++i) {
-        if (str[i] >= '0' && str[i] <= '9') {
-            result = result * 10 + (str[i] - '0');
+    for (usize i = 0; s[i] != '\0'; ++i) {
+        if (s[i] >= '0' && s[i] <= '9') {
+            result = result * 10 + (s[i] - '0');
         } else {
             break;
         }
