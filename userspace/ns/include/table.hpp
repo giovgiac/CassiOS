@@ -11,7 +11,7 @@
 #define NS_TABLE_HPP_
 
 #include <std/types.hpp>
-#include <list.hpp>
+#include <std/collections/list.hpp>
 #include <ns.hpp>
 
 namespace cassio {
@@ -39,7 +39,7 @@ public:
     NsTable& operator=(NsTable&&) = delete;
 
 private:
-    LinkedList<Entry> entries;
+    std::collections::LinkedList<Entry> entries;
 };
 
 } // cassio

@@ -12,7 +12,7 @@
 
 #include <std/types.hpp>
 #include <message.hpp>
-#include <list.hpp>
+#include <std/collections/list.hpp>
 
 namespace cassio {
 namespace kernel {
@@ -63,13 +63,13 @@ struct Process {
     std::u32 dataLen;        // Bulk data length (outgoing) or capacity (incoming).
 
     // Send queue: PIDs of processes waiting to send to this process.
-    LinkedList<SendNode> sendQueue;
+    std::collections::LinkedList<SendNode> sendQueue;
 
     bool sendQueuePush(std::u32 senderPid);
     std::u32 sendQueuePop();
 
     // Notification queue: fire-and-forget messages (no reply expected).
-    LinkedList<NotifyNode> notifyQueue;
+    std::collections::LinkedList<NotifyNode> notifyQueue;
 
     bool notifyPush(std::u32 senderPid, const Message& msg,
                     const void* data = nullptr, std::u32 dataLen = 0);
@@ -146,7 +146,7 @@ private:
     static ProcessManager instance;
 
     Process kernelTask;
-    LinkedList<Process> processes;
+    std::collections::LinkedList<Process> processes;
     Process* currentProcess;
     std::u32 nextPid;
 };
