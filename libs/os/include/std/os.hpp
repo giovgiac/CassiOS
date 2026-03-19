@@ -75,7 +75,7 @@ void shutdown();
 
 /**
  * Query physical memory statistics.
- * Values are in 4 KiB frames (multiply by 4 for KiB).
+ * Values are returned as frame counts (1 frame = 4 KiB).
  */
 void memInfo(u32& total, u32& used, u32& free);
 
