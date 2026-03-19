@@ -10,7 +10,7 @@
 #include <test.hpp>
 #include <ns.hpp>
 #include <ipc.hpp>
-#include <message.hpp>
+#include <std/msg.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -24,8 +24,8 @@ TEST(mouse_ipc_read_state) {
     u32 pid = Nameserver::lookup("mouse");
     ASSERT(pid != 0);
 
-    Message msg = {};
-    msg.type = MessageType::MouseRead;
+    msg::Message msg = {};
+    msg.type = msg::MessageType::MouseRead;
     i32 ret = IPC::send(pid, &msg);
     ASSERT_EQ(ret, 0);
 

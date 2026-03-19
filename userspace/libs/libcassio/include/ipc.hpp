@@ -12,13 +12,13 @@
 
 #include <std/types.hpp>
 #include <syscall.hpp>
-#include <message.hpp>
+#include <std/msg.hpp>
 
 namespace cassio {
 
 class IPC {
 public:
-    static inline std::i32 send(std::u32 pid, Message* msg,
+    static inline std::i32 send(std::u32 pid, std::msg::Message* msg,
                            const void* data = nullptr, std::u32 dataLen = 0) {
         std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
@@ -28,7 +28,7 @@ public:
         return ret;
     }
 
-    static inline std::i32 receive(Message* msg,
+    static inline std::i32 receive(std::msg::Message* msg,
                               void* data = nullptr, std::u32 dataCapacity = 0) {
         std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
@@ -38,7 +38,7 @@ public:
         return ret;
     }
 
-    static inline std::i32 reply(std::u32 pid, Message* msg,
+    static inline std::i32 reply(std::u32 pid, std::msg::Message* msg,
                             const void* data = nullptr, std::u32 dataLen = 0) {
         std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
@@ -48,7 +48,7 @@ public:
         return ret;
     }
 
-    static inline std::i32 notify(std::u32 pid, Message* msg,
+    static inline std::i32 notify(std::u32 pid, std::msg::Message* msg,
                              const void* data = nullptr, std::u32 dataLen = 0) {
         std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)

@@ -11,7 +11,7 @@
  */
 
 #include <std/types.hpp>
-#include <message.hpp>
+#include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
@@ -34,27 +34,27 @@ extern "C" void _start() {
     table.registerName("ns", Nameserver::PID);
 
     while (true) {
-        Message msg;
+        msg::Message msg;
         i32 sender = IPC::receive(&msg);
         if (sender <= 0) {
             continue;
         }
 
-        Message reply = {};
+        msg::Message reply = {};
         char name[NsTable::MAX_NAME_LEN + 1];
 
         switch (msg.type) {
-        case MessageType::NsRegister:
+        case msg::MessageType::NsRegister:
             Nameserver::unpackName(msg, name);
             reply.arg1 = table.registerName(name, static_cast<u32>(sender));
             IPC::reply(static_cast<u32>(sender), &reply);
             break;
-        case MessageType::NsLookup:
+        case msg::MessageType::NsLookup:
             Nameserver::unpackName(msg, name);
             reply.arg1 = table.lookup(name);
             IPC::reply(static_cast<u32>(sender), &reply);
             break;
-        case MessageType::NsListAll: {
+        case msg::MessageType::NsListAll: {
             NsEntry buf[16];
             u32 count = table.listAll(buf, 16);
             reply.arg1 = count;

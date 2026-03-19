@@ -12,7 +12,7 @@
  */
 
 #include <std/types.hpp>
-#include <message.hpp>
+#include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
@@ -32,16 +32,16 @@ extern "C" void _start() {
     u8 sectorBuf[SECTOR_SIZE];
 
     while (true) {
-        Message msg;
+        msg::Message msg;
         i32 sender = IPC::receive(&msg, sectorBuf, SECTOR_SIZE);
 
         switch (msg.type) {
-        case MessageType::IrqNotify:
+        case msg::MessageType::IrqNotify:
             drive.handleIrq();
             break;
 
-        case MessageType::AtaRead: {
-            Message reply = {};
+        case msg::MessageType::AtaRead: {
+            msg::Message reply = {};
             u32 lba = msg.arg1;
             reply.arg1 = drive.readSector(lba, sectorBuf) ? 0 : 1;
 
@@ -52,8 +52,8 @@ extern "C" void _start() {
             break;
         }
 
-        case MessageType::AtaWrite: {
-            Message reply = {};
+        case msg::MessageType::AtaWrite: {
+            msg::Message reply = {};
             u32 lba = msg.arg1;
             reply.arg1 = drive.writeSector(lba, sectorBuf) ? 0 : 1;
 
@@ -65,7 +65,7 @@ extern "C" void _start() {
 
         default:
             if (sender > 0) {
-                Message reply = {};
+                msg::Message reply = {};
                 IPC::reply(static_cast<u32>(sender), &reply);
             }
             break;

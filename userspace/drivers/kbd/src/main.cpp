@@ -12,7 +12,7 @@
  */
 
 #include <std/types.hpp>
-#include <message.hpp>
+#include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
@@ -63,11 +63,11 @@ extern "C" void _start() {
     u32 pending_reader = 0;
 
     while (true) {
-        Message msg;
+        msg::Message msg;
         i32 sender = IPC::receive(&msg);
 
         switch (msg.type) {
-        case MessageType::IrqNotify:
+        case msg::MessageType::IrqNotify:
             // Drain all pending scancodes from the controller.
             while (cmd.read() & 0x01) {
                 keyboard.handleScancode(data.read());
@@ -75,17 +75,17 @@ extern "C" void _start() {
 
             // Wake a blocked reader if characters are now available.
             if (pending_reader != 0 && keyboard.bufferCount() > 0) {
-                Message reply = {};
+                msg::Message reply = {};
                 reply.arg1 = static_cast<u8>(keyboard.readBuffer());
                 IPC::reply(pending_reader, &reply);
                 pending_reader = 0;
             }
             break;
 
-        case MessageType::KbdRead:
+        case msg::MessageType::KbdRead:
             if (sender > 0) {
                 if (keyboard.bufferCount() > 0) {
-                    Message reply = {};
+                    msg::Message reply = {};
                     reply.arg1 = static_cast<u8>(keyboard.readBuffer());
                     IPC::reply(static_cast<u32>(sender), &reply);
                 } else {
@@ -97,7 +97,7 @@ extern "C" void _start() {
 
         default:
             if (sender > 0) {
-                Message reply = {};
+                msg::Message reply = {};
                 IPC::reply(static_cast<u32>(sender), &reply);
             }
             break;

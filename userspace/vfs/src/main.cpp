@@ -11,7 +11,7 @@
  */
 
 #include <std/types.hpp>
-#include <message.hpp>
+#include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
@@ -37,7 +37,7 @@ extern "C" void _start() {
     if (!fs.mount(ataPid)) {
         // Mount failed -- hang.
         while (true) {
-            Message msg;
+            msg::Message msg;
             IPC::receive(&msg);
         }
     }
@@ -47,29 +47,29 @@ extern "C" void _start() {
     u8* dataBuf = static_cast<u8*>(UserHeap::alloc(BUF_SIZE));
 
     while (true) {
-        Message msg;
+        msg::Message msg;
         i32 sender = IPC::receive(&msg, dataBuf, BUF_SIZE);
 
-        Message reply = {};
+        msg::Message reply = {};
 
         switch (msg.type) {
-        case MessageType::VfsMkdir: {
+        case msg::MessageType::VfsMkdir: {
             reply.arg1 = fs.createDirectory(reinterpret_cast<char*>(dataBuf)) ? 0 : 1;
             break;
         }
 
-        case MessageType::VfsRemove: {
+        case msg::MessageType::VfsRemove: {
             reply.arg1 = fs.remove(reinterpret_cast<char*>(dataBuf)) ? 0 : 1;
             break;
         }
 
-        case MessageType::VfsOpen: {
+        case msg::MessageType::VfsOpen: {
             bool create = (msg.arg1 != 0);
             reply.arg1 = fs.open(reinterpret_cast<char*>(dataBuf), create);
             break;
         }
 
-        case MessageType::VfsRead: {
+        case msg::MessageType::VfsRead: {
             u32 handle = msg.arg1;
             u32 offset = msg.arg2;
             u32 reqLen = msg.arg3;
@@ -88,14 +88,14 @@ extern "C" void _start() {
             break;
         }
 
-        case MessageType::VfsWrite: {
+        case msg::MessageType::VfsWrite: {
             u32 handle = msg.arg1;
             u32 len = msg.arg2;
             reply.arg1 = fs.write(handle, dataBuf, len) ? 0 : 1;
             break;
         }
 
-        case MessageType::VfsList: {
+        case msg::MessageType::VfsList: {
             u32 index = msg.arg1;
             char name[MAX_NAME];
 
@@ -114,7 +114,7 @@ extern "C" void _start() {
             break;
         }
 
-        case MessageType::VfsStat: {
+        case msg::MessageType::VfsStat: {
             reply.arg1 = fs.stat(reinterpret_cast<char*>(dataBuf));
             break;
         }
