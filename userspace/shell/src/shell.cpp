@@ -17,8 +17,8 @@
 using namespace cassio;
 using namespace std;
 
-Shell::Shell(u32 kbd, u32 vfs)
-    : kbdPid(kbd), vfsPid(vfs),
+Shell::Shell(u32 kbd)
+    : kbdPid(kbd),
       length(0), cursor(0), promptCol(0), promptRow(0) {
     cwd[0] = '/';
     cwd[1] = '\0';

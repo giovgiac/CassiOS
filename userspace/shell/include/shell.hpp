@@ -12,6 +12,7 @@
 
 #include <std/types.hpp>
 #include <std/vga.hpp>
+#include <std/vfs.hpp>
 
 namespace cassio {
 
@@ -23,7 +24,7 @@ class Shell {
 private:
     std::u32 kbdPid;
     std::vga::Vga vga;
-    std::u32 vfsPid;
+    std::vfs::Vfs vfs;
 
     char buffer[SHELL_MAX_INPUT + 1];  // +1 for null terminator in execute()
     std::u8 length;
@@ -61,7 +62,7 @@ private:
     void cmdWrite(const char** args, std::u8 argc);
 
 public:
-    Shell(std::u32 kbd, std::u32 vfs);
+    Shell(std::u32 kbd);
     void run();
 
     // Testable helpers.
