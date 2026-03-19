@@ -299,20 +299,31 @@ bool Fat32Filesystem::extractLfn(const DirEntry* entries, u32 lfnStart, u32 shor
     return true;
 }
 
+static char toLower(char c) {
+    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c;
+}
+
 // Extract the short name (8.3) into a readable string.
-static void shortNameToString(const u8* shortName, char* out, u32 outMax) {
+// The ntRes byte (DirEntry byte 12) encodes case: bit 3 = base name lowercase,
+// bit 4 = extension lowercase. Tools like mtools use these bits instead of
+// creating LFN entries for names that fit 8.3.
+static void shortNameToString(const u8* shortName, u8 ntRes, char* out, u32 outMax) {
     u32 pos = 0;
+    bool baseLower = (ntRes & 0x08) != 0;
+    bool extLower  = (ntRes & 0x10) != 0;
     // Base name: up to 8 chars, strip trailing spaces.
     for (u32 i = 0; i < 8 && pos < outMax - 1; i++) {
         if (shortName[i] == ' ') break;
-        out[pos++] = static_cast<char>(shortName[i]);
+        char c = static_cast<char>(shortName[i]);
+        out[pos++] = baseLower ? toLower(c) : c;
     }
     // Extension: up to 3 chars, strip trailing spaces.
     if (shortName[8] != ' ') {
         out[pos++] = '.';
         for (u32 i = 8; i < 11 && pos < outMax - 1; i++) {
             if (shortName[i] == ' ') break;
-            out[pos++] = static_cast<char>(shortName[i]);
+            char c = static_cast<char>(shortName[i]);
+            out[pos++] = extLower ? toLower(c) : c;
         }
     }
     out[pos] = '\0';
@@ -390,7 +401,7 @@ bool Fat32Filesystem::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
                     mem::copy(&lfnBuf[lfnCount], &entries[i], sizeof(DirEntry));
                     extractLfn(lfnBuf, 0, lfnCount, nameOut, nameMax);
                 } else {
-                    shortNameToString(entries[i].name, nameOut, nameMax);
+                    shortNameToString(entries[i].name, entries[i].ntReserved, nameOut, nameMax);
                 }
                 mem::copy(entryOut, &entries[i], sizeof(DirEntry));
                 *entryCluster = cluster;
