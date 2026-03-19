@@ -11,8 +11,7 @@
 #define USERSPACE_LIB_NS_HPP_
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
-#include <ipc.hpp>
+#include <std/ipc.hpp>
 
 namespace cassio {
 
@@ -25,7 +24,7 @@ class Nameserver {
 public:
     static constexpr std::u32 PID = 1;
 
-    static inline void packName(const char* name, std::msg::Message& msg) {
+    static inline void packName(const char* name, std::ipc::Message& msg) {
         std::u32* words = &msg.arg1;
         for (std::u32 i = 0; i < 4; i++) {
             words[i] = 0;
@@ -35,7 +34,7 @@ public:
         }
     }
 
-    static inline void unpackName(const std::msg::Message& msg, char* out) {
+    static inline void unpackName(const std::ipc::Message& msg, char* out) {
         const std::u32* words = &msg.arg1;
         for (std::u32 i = 0; i < 16; i++) {
             out[i] = (words[i / 4] >> ((i % 4) * 8)) & 0xFF;
@@ -44,25 +43,25 @@ public:
     }
 
     static inline std::u32 registerName(const char* name) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::NsRegister;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::NsRegister;
         packName(name, msg);
-        IPC::send(PID, &msg);
+        std::ipc::send(PID, &msg);
         return msg.arg1;
     }
 
     static inline std::u32 lookup(const char* name) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::NsLookup;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::NsLookup;
         packName(name, msg);
-        IPC::send(PID, &msg);
+        std::ipc::send(PID, &msg);
         return msg.arg1;
     }
 
     static inline std::u32 listAll(NsEntry* buf, std::u32 maxEntries) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::NsListAll;
-        IPC::send(PID, &msg, buf, maxEntries * sizeof(NsEntry));
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::NsListAll;
+        std::ipc::send(PID, &msg, buf, maxEntries * sizeof(NsEntry));
         return msg.arg1;
     }
 };

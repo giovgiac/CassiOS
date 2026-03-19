@@ -73,11 +73,11 @@ u32 IrqManager::handleIrq(u8 number, u32 esp) {
         if (target && target->state == kernel::ProcessState::ReceiveBlocked) {
             // Deliver IrqNotify message directly to the waiting process.
             // Must switch to target's page directory to access its userspace buffer.
-            msg::Message notification = {};
-            notification.type = msg::MessageType::IrqNotify;
+            ipc::Message notification = {};
+            notification.type = ipc::MessageType::IrqNotify;
             notification.arg1 = irq;
 
-            msg::Message* buf = (msg::Message*)target->msgPtr;
+            ipc::Message* buf = (ipc::Message*)target->msgPtr;
             u32 currentCR3;
             asm volatile("mov %%cr3, %0" : "=r"(currentCR3));
             u32 targetPD = target->pageDirectory;
@@ -110,11 +110,11 @@ i32 IrqManager::registerForward(u8 irq, u32 pid) {
     return 0;
 }
 
-bool IrqManager::deliverPending(u32 pid, msg::Message* msg) {
+bool IrqManager::deliverPending(u32 pid, ipc::Message* msg) {
     for (u8 irq = 0; irq < 16; irq++) {
         if (forwardPid[irq] == pid && pendingIrq[irq]) {
             pendingIrq[irq] = false;
-            msg->type = msg::MessageType::IrqNotify;
+            msg->type = ipc::MessageType::IrqNotify;
             msg->arg1 = irq;
             msg->arg2 = 0;
             msg->arg3 = 0;

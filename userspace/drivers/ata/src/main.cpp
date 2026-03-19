@@ -12,8 +12,7 @@
  */
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
-#include <ipc.hpp>
+#include <std/ipc.hpp>
 #include <ns.hpp>
 #include <std/os.hpp>
 #include <ata.hpp>
@@ -32,41 +31,41 @@ extern "C" void _start() {
     u8 sectorBuf[SECTOR_SIZE];
 
     while (true) {
-        msg::Message msg;
-        i32 sender = IPC::receive(&msg, sectorBuf, SECTOR_SIZE);
+        ipc::Message msg;
+        i32 sender = ipc::receive(&msg, sectorBuf, SECTOR_SIZE);
 
         switch (msg.type) {
-        case msg::MessageType::IrqNotify:
+        case ipc::MessageType::IrqNotify:
             drive.handleIrq();
             break;
 
-        case msg::MessageType::AtaRead: {
-            msg::Message reply = {};
+        case ipc::MessageType::AtaRead: {
+            ipc::Message reply = {};
             u32 lba = msg.arg1;
             reply.arg1 = drive.readSector(lba, sectorBuf) ? 0 : 1;
 
             if (sender > 0) {
-                IPC::reply(static_cast<u32>(sender), &reply, sectorBuf,
+                ipc::reply(static_cast<u32>(sender), &reply, sectorBuf,
                            SECTOR_SIZE);
             }
             break;
         }
 
-        case msg::MessageType::AtaWrite: {
-            msg::Message reply = {};
+        case ipc::MessageType::AtaWrite: {
+            ipc::Message reply = {};
             u32 lba = msg.arg1;
             reply.arg1 = drive.writeSector(lba, sectorBuf) ? 0 : 1;
 
             if (sender > 0) {
-                IPC::reply(static_cast<u32>(sender), &reply);
+                ipc::reply(static_cast<u32>(sender), &reply);
             }
             break;
         }
 
         default:
             if (sender > 0) {
-                msg::Message reply = {};
-                IPC::reply(static_cast<u32>(sender), &reply);
+                ipc::Message reply = {};
+                ipc::reply(static_cast<u32>(sender), &reply);
             }
             break;
         }

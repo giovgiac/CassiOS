@@ -69,11 +69,11 @@ u32 Process::sendQueuePop() {
 
 // -- Notification queue (heap-backed linked list) --
 
-static void copyMsg(const msg::Message& src, msg::Message& dst) {
-    mem::copy(&dst, &src, sizeof(msg::Message));
+static void copyMsg(const ipc::Message& src, ipc::Message& dst) {
+    mem::copy(&dst, &src, sizeof(ipc::Message));
 }
 
-bool Process::notifyPush(u32 senderPid, const msg::Message& m,
+bool Process::notifyPush(u32 senderPid, const ipc::Message& m,
                          const void* data, u32 dataLen) {
     NotifyNode* node = new NotifyNode;
     if (!node) {
@@ -96,7 +96,7 @@ bool Process::notifyPush(u32 senderPid, const msg::Message& m,
     return true;
 }
 
-bool Process::notifyPop(u32& senderPid, msg::Message& m,
+bool Process::notifyPop(u32& senderPid, ipc::Message& m,
                         void* dataDst, u32 dataCapacity) {
     NotifyNode* node = notifyQueue.popFront();
     if (!node) {

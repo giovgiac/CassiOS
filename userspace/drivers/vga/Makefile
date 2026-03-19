@@ -14,12 +14,13 @@ LIBSTD_STR  = $(ROOT)/lib/libstd_str.a
 LIBSTD_ALLOC = $(ROOT)/lib/libstd_alloc.a
 LIBSTD_HEAP = $(ROOT)/lib/libstd_heap.a
 LIBSTD_OS = $(ROOT)/lib/libstd_os.a
+LIBSTD_IPC = $(ROOT)/lib/libstd_ipc.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS)
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC)
 	@mkdir -p $(BINDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)

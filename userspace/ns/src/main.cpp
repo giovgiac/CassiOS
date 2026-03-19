@@ -11,8 +11,7 @@
  */
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
-#include <ipc.hpp>
+#include <std/ipc.hpp>
 #include <ns.hpp>
 #include <std/os.hpp>
 #include <std/heap.hpp>
@@ -29,36 +28,36 @@ extern "C" void _start() {
     table.registerName("ns", Nameserver::PID);
 
     while (true) {
-        msg::Message msg;
-        i32 sender = IPC::receive(&msg);
+        ipc::Message msg;
+        i32 sender = ipc::receive(&msg);
         if (sender <= 0) {
             continue;
         }
 
-        msg::Message reply = {};
+        ipc::Message reply = {};
         char name[NsTable::MAX_NAME_LEN + 1];
 
         switch (msg.type) {
-        case msg::MessageType::NsRegister:
+        case ipc::MessageType::NsRegister:
             Nameserver::unpackName(msg, name);
             reply.arg1 = table.registerName(name, static_cast<u32>(sender));
-            IPC::reply(static_cast<u32>(sender), &reply);
+            ipc::reply(static_cast<u32>(sender), &reply);
             break;
-        case msg::MessageType::NsLookup:
+        case ipc::MessageType::NsLookup:
             Nameserver::unpackName(msg, name);
             reply.arg1 = table.lookup(name);
-            IPC::reply(static_cast<u32>(sender), &reply);
+            ipc::reply(static_cast<u32>(sender), &reply);
             break;
-        case msg::MessageType::NsListAll: {
+        case ipc::MessageType::NsListAll: {
             NsEntry buf[16];
             u32 count = table.listAll(buf, 16);
             reply.arg1 = count;
-            IPC::reply(static_cast<u32>(sender), &reply,
+            ipc::reply(static_cast<u32>(sender), &reply,
                        buf, count * sizeof(NsEntry));
             break;
         }
         default:
-            IPC::reply(static_cast<u32>(sender), &reply);
+            ipc::reply(static_cast<u32>(sender), &reply);
             break;
         }
     }

@@ -12,7 +12,7 @@
 
 #include <std/types.hpp>
 #include <std/os.hpp>
-#include <std/msg.hpp>
+#include <std/ipc.hpp>
 
 namespace cassio {
 namespace kernel {
@@ -88,8 +88,8 @@ public:
      * Returns 0 if caller should block, -1 on error.
      *
      */
-    std::i32 send(std::u32 targetPid, std::msg::Message* msg, std::u32 dataPtr, std::u32 dataLen);
-    std::i32 notify(std::u32 targetPid, std::msg::Message* msg, std::u32 dataPtr, std::u32 dataLen);
+    std::i32 send(std::u32 targetPid, std::ipc::Message* msg, std::u32 dataPtr, std::u32 dataLen);
+    std::i32 notify(std::u32 targetPid, std::ipc::Message* msg, std::u32 dataPtr, std::u32 dataLen);
 
     /**
      * @brief IPC receive: receives a message into msg.
@@ -98,7 +98,7 @@ public:
      * 0 if caller should block, -1 on error.
      *
      */
-    std::i32 receive(std::msg::Message* msg, std::u32 dataPtr, std::u32 dataCapacity);
+    std::i32 receive(std::ipc::Message* msg, std::u32 dataPtr, std::u32 dataCapacity);
 
     /**
      * @brief IPC reply: sends a reply to a SendBlocked process.
@@ -106,7 +106,7 @@ public:
      * Returns 0 on success, -1 on error.
      *
      */
-    std::i32 reply(std::u32 targetPid, std::msg::Message* msg, std::u32 dataPtr, std::u32 dataLen);
+    std::i32 reply(std::u32 targetPid, std::ipc::Message* msg, std::u32 dataPtr, std::u32 dataLen);
 
     /**
      * @brief Grows the calling process's heap by increment bytes.

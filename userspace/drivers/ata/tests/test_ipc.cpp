@@ -9,8 +9,7 @@
 
 #include <std/test.hpp>
 #include <ns.hpp>
-#include <ipc.hpp>
-#include <std/msg.hpp>
+#include <std/ipc.hpp>
 #include <ata_client.hpp>
 
 using namespace cassio;

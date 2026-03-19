@@ -11,7 +11,7 @@
 #define HARDWARE_IRQ_HPP_
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
+#include <std/ipc.hpp>
 #include <std/io.hpp>
 
 namespace cassio {
@@ -109,7 +109,7 @@ public:
      * delivered, false if none pending.
      *
      */
-    bool deliverPending(std::u32 pid, std::msg::Message* msg);
+    bool deliverPending(std::u32 pid, std::ipc::Message* msg);
 
     /** Deleted Methods */
     IrqManager(const IrqManager&) = delete;

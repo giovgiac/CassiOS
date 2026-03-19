@@ -11,8 +11,7 @@
  */
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
-#include <ipc.hpp>
+#include <std/ipc.hpp>
 #include <ns.hpp>
 #include <std/os.hpp>
 #include <std/heap.hpp>
@@ -32,8 +31,8 @@ extern "C" void _start() {
     if (!fs.mount(ataPid)) {
         // Mount failed -- hang.
         while (true) {
-            msg::Message msg;
-            IPC::receive(&msg);
+            ipc::Message msg;
+            ipc::receive(&msg);
         }
     }
 
@@ -42,29 +41,29 @@ extern "C" void _start() {
     u8* dataBuf = static_cast<u8*>(heap::Heap::alloc(BUF_SIZE));
 
     while (true) {
-        msg::Message msg;
-        i32 sender = IPC::receive(&msg, dataBuf, BUF_SIZE);
+        ipc::Message msg;
+        i32 sender = ipc::receive(&msg, dataBuf, BUF_SIZE);
 
-        msg::Message reply = {};
+        ipc::Message reply = {};
 
         switch (msg.type) {
-        case msg::MessageType::VfsMkdir: {
+        case ipc::MessageType::VfsMkdir: {
             reply.arg1 = fs.createDirectory(reinterpret_cast<char*>(dataBuf)) ? 0 : 1;
             break;
         }
 
-        case msg::MessageType::VfsRemove: {
+        case ipc::MessageType::VfsRemove: {
             reply.arg1 = fs.remove(reinterpret_cast<char*>(dataBuf)) ? 0 : 1;
             break;
         }
 
-        case msg::MessageType::VfsOpen: {
+        case ipc::MessageType::VfsOpen: {
             bool create = (msg.arg1 != 0);
             reply.arg1 = fs.open(reinterpret_cast<char*>(dataBuf), create);
             break;
         }
 
-        case msg::MessageType::VfsRead: {
+        case ipc::MessageType::VfsRead: {
             u32 handle = msg.arg1;
             u32 offset = msg.arg2;
             u32 reqLen = msg.arg3;
@@ -76,21 +75,21 @@ extern "C" void _start() {
             if (sender > 0) {
                 u32 replyDataLen = (bytesRead > 0)
                                  ? static_cast<u32>(bytesRead) : 0;
-                IPC::reply(static_cast<u32>(sender), &reply,
+                ipc::reply(static_cast<u32>(sender), &reply,
                            dataBuf, replyDataLen);
                 continue;
             }
             break;
         }
 
-        case msg::MessageType::VfsWrite: {
+        case ipc::MessageType::VfsWrite: {
             u32 handle = msg.arg1;
             u32 len = msg.arg2;
             reply.arg1 = fs.write(handle, dataBuf, len) ? 0 : 1;
             break;
         }
 
-        case msg::MessageType::VfsList: {
+        case ipc::MessageType::VfsList: {
             u32 index = msg.arg1;
             char name[MAX_NAME];
 
@@ -99,7 +98,7 @@ extern "C" void _start() {
                 reply.arg1 = 1;
                 u32 nameLen = str::len(name);
                 if (sender > 0) {
-                    IPC::reply(static_cast<u32>(sender), &reply,
+                    ipc::reply(static_cast<u32>(sender), &reply,
                                name, nameLen + 1);
                     continue;
                 }
@@ -109,7 +108,7 @@ extern "C" void _start() {
             break;
         }
 
-        case msg::MessageType::VfsStat: {
+        case ipc::MessageType::VfsStat: {
             reply.arg1 = fs.stat(reinterpret_cast<char*>(dataBuf));
             break;
         }
@@ -119,7 +118,7 @@ extern "C" void _start() {
         }
 
         if (sender > 0) {
-            IPC::reply(static_cast<u32>(sender), &reply);
+            ipc::reply(static_cast<u32>(sender), &reply);
         }
     }
 }
