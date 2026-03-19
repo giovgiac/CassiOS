@@ -2,7 +2,7 @@ SERVICE = vfs
 SOURCES = main.cpp fat32/filesystem.cpp
 
 ROOT     := $(dir $(lastword $(MAKEFILE_LIST)))../../..
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -Iinclude/ $(foreach dir,$(wildcard $(ROOT)/libs/*/include),-I$(dir)) -MMD -MP
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -Iinclude/ $(foreach dir,$(wildcard $(ROOT)/libs/*/include),-I$(dir)) -MMD -MP
 LDFLAGS  = -melf_i386
 
 OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
