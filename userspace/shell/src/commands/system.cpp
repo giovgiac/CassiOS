@@ -8,7 +8,6 @@
  */
 
 #include <shell.hpp>
-#include <vga.hpp>
 #include <std/os.hpp>
 #include <std/ns.hpp>
 #include <std/fmt.hpp>
@@ -38,7 +37,7 @@ void Shell::cmdHelp() {
 }
 
 void Shell::cmdClear() {
-    Vga::clear(vgaPid);
+    vga.clear();
 }
 
 void Shell::cmdEcho(const char** args, u8 argc) {

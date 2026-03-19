@@ -12,6 +12,7 @@
                 "${workspaceFolder}/libs/io/include",
                 "${workspaceFolder}/libs/ipc/include",
                 "${workspaceFolder}/libs/ns/include",
+                "${workspaceFolder}/libs/vga/include",
                 "${workspaceFolder}/libs/alloc/include",
                 "${workspaceFolder}/libs/heap/include",
                 "${workspaceFolder}/libs/fmt/include",

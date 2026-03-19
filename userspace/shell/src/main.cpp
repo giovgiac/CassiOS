@@ -24,11 +24,6 @@ extern "C" void _start() {
         kbdPid = ns::lookup("kbd");
     }
 
-    u32 vgaPid = 0;
-    while (vgaPid == 0) {
-        vgaPid = ns::lookup("vga");
-    }
-
     u32 vfsPid = 0;
     while (vfsPid == 0) {
         vfsPid = ns::lookup("vfs");
@@ -36,6 +31,6 @@ extern "C" void _start() {
 
     ns::registerName("shell");
 
-    Shell shell(kbdPid, vgaPid, vfsPid);
+    Shell shell(kbdPid, vfsPid);
     shell.run();
 }
