@@ -11,7 +11,7 @@
 #define USERSPACE_LIB_IPC_HPP_
 
 #include <std/types.hpp>
-#include <syscall.hpp>
+#include <std/os.hpp>
 #include <std/msg.hpp>
 
 namespace cassio {
@@ -22,7 +22,7 @@ public:
                            const void* data = nullptr, std::u32 dataLen = 0) {
         std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::Send), "b"(pid), "c"((std::u32)msg),
+                     : "a"(std::os::syscall::Send), "b"(pid), "c"((std::u32)msg),
                        "S"((std::u32)data), "D"(dataLen)
                      : "memory");
         return ret;
@@ -32,7 +32,7 @@ public:
                               void* data = nullptr, std::u32 dataCapacity = 0) {
         std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::Receive), "b"((std::u32)msg),
+                     : "a"(std::os::syscall::Receive), "b"((std::u32)msg),
                        "S"((std::u32)data), "D"(dataCapacity)
                      : "memory");
         return ret;
@@ -42,7 +42,7 @@ public:
                             const void* data = nullptr, std::u32 dataLen = 0) {
         std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::Reply), "b"(pid), "c"((std::u32)msg),
+                     : "a"(std::os::syscall::Reply), "b"(pid), "c"((std::u32)msg),
                        "S"((std::u32)data), "D"(dataLen)
                      : "memory");
         return ret;
@@ -52,7 +52,7 @@ public:
                              const void* data = nullptr, std::u32 dataLen = 0) {
         std::i32 ret;
         asm volatile("int $0x80" : "=a"(ret)
-                     : "a"(SyscallNumber::Notify), "b"(pid), "c"((std::u32)msg),
+                     : "a"(std::os::syscall::Notify), "b"(pid), "c"((std::u32)msg),
                        "S"((std::u32)data), "D"(dataLen)
                      : "memory");
         return ret;

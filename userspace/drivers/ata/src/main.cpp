@@ -15,7 +15,7 @@
 #include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
-#include <system.hpp>
+#include <std/os.hpp>
 #include <ata.hpp>
 
 using namespace cassio;
@@ -24,7 +24,7 @@ using namespace cassio::ata;
 
 extern "C" void _start() {
     Nameserver::registerName("ata");
-    System::irqRegister(14);
+    os::irqRegister(14);
 
     Ata drive;
     drive.init();

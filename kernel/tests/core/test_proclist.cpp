@@ -11,7 +11,7 @@ using namespace cassio::memory;
 TEST(proclist_skips_kernel_task) {
     SyscallHandler& sh = SyscallHandler::getSyscallHandler();
 
-    ProcEntry buf[16];
+    os::ProcEntry buf[16];
     u32 count = sh.procList(buf, 16);
 
     // Should not include PID 0 (kernel task).
@@ -29,7 +29,7 @@ TEST(proclist_includes_created_process) {
     p->heapBase = 0x00500000;
     p->heapBreak = 0x00503000;
 
-    ProcEntry buf[16];
+    os::ProcEntry buf[16];
     u32 count = sh.procList(buf, 16);
 
     bool found = false;
@@ -54,7 +54,7 @@ TEST(proclist_zero_heap_size_when_no_heap) {
     ASSERT(p != nullptr);
     // heapBase and heapBreak both 0 (default).
 
-    ProcEntry buf[16];
+    os::ProcEntry buf[16];
     u32 count = sh.procList(buf, 16);
 
     for (u32 i = 0; i < count; ++i) {
@@ -76,7 +76,7 @@ TEST(proclist_respects_max_entries) {
     ASSERT(p1 != nullptr);
     ASSERT(p2 != nullptr);
 
-    ProcEntry buf[1];
+    os::ProcEntry buf[1];
     u32 count = sh.procList(buf, 1);
 
     // Should return at most 1 entry.

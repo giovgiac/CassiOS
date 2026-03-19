@@ -8,27 +8,23 @@
  */
 
 #include <std/heap.hpp>
+#include <std/os.hpp>
 
 using namespace std;
 
-heap::Heap::GrowFn heap::Heap::growFn = nullptr;
 alloc::HeapAllocator* heap::Heap::allocator = nullptr;
 
 alignas(alloc::HeapAllocator) static u8 heap_storage[sizeof(alloc::HeapAllocator)];
 
-void heap::Heap::init(GrowFn grow, u32 initialSize) {
-    growFn = grow;
-    void* base = grow(initialSize);
-    if (!base) {
-        return;
-    }
-
-    allocator = new (heap_storage) alloc::HeapAllocator(base, initialSize);
-}
+static constexpr u32 INITIAL_HEAP_SIZE = 4096;
 
 void* heap::Heap::alloc(usize size) {
     if (!allocator) {
-        return nullptr;
+        void* base = os::sbrk(INITIAL_HEAP_SIZE);
+        if (!base) {
+            return nullptr;
+        }
+        allocator = new (heap_storage) alloc::HeapAllocator(base, INITIAL_HEAP_SIZE);
     }
 
     void* ptr = allocator->allocate(size);
@@ -39,12 +35,11 @@ void* heap::Heap::alloc(usize size) {
     // Allocation failed -- grow the heap and retry.
     u32 needed = size + sizeof(alloc::BlockHeader) + 4096;
     needed = (needed + 4095) & ~4095u;
-    void* newMem = growFn(needed);
+    void* newMem = os::sbrk(needed);
     if (!newMem) {
         return nullptr;
     }
 
-    // sbrk extends contiguously, so extend the allocator's managed region.
     allocator->extend(needed);
     return allocator->allocate(size);
 }

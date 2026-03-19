@@ -11,10 +11,9 @@
  */
 
 #include <std/test.hpp>
-#include <system.hpp>
+#include <std/os.hpp>
 #include <std/heap.hpp>
 
-using namespace cassio;
 using namespace std;
 
 typedef void (*ctor)();
@@ -28,20 +27,14 @@ static void ctors() {
 }
 
 static void userspace_write(const char* buf, u32 len) {
-    System::write(2, buf, len);
-}
-
-static void* sbrkGrow(u32 size) {
-    return System::sbrk(size);
+    os::write(2, buf, len);
 }
 
 extern "C" void _start() {
     ctors();
 
-    heap::Heap::init(sbrkGrow, 4096);
-
     test::init(userspace_write);
     u32 failed = test::run();
 
-    System::exit(failed > 0 ? 1 : 0);
+    os::exit(failed > 0 ? 1 : 0);
 }

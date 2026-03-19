@@ -14,7 +14,7 @@
 #include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
-#include <system.hpp>
+#include <std/os.hpp>
 #include <std/heap.hpp>
 #include <std/str.hpp>
 #include <fat32/filesystem.hpp>
@@ -23,14 +23,9 @@ using namespace cassio;
 using namespace std;
 using namespace cassio::vfs;
 
-static void* sbrkGrow(u32 size) {
-    return System::sbrk(size);
-}
-
 static Fat32Filesystem fs;
 
 extern "C" void _start() {
-    heap::Heap::init(sbrkGrow, 4096);
     Nameserver::registerName("vfs");
 
     u32 ataPid = Nameserver::lookup("ata");

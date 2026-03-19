@@ -30,6 +30,7 @@ LIBSTD_ALLOC = lib/libstd_alloc.a
 LIBSTD_HEAP = lib/libstd_heap.a
 LIBSTD_FMT = lib/libstd_fmt.a
 LIBSTD_TEST = lib/libstd_test.a
+LIBSTD_OS = lib/libstd_os.a
 
 
 # Discover all source files automatically.
@@ -109,31 +110,34 @@ $(LIBSTD_FMT): FORCE
 $(LIBSTD_TEST): FORCE
 	$(MAKE) -C libs/test
 
+$(LIBSTD_OS): FORCE
+	$(MAKE) -C libs/os
+
 FORCE:
 
 kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
-$(NAMESERVER): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBCASSIO)
+$(NAMESERVER): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBCASSIO)
 	$(MAKE) -C userspace/ns
 
-$(KBD): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP)
+$(KBD): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS)
 	$(MAKE) -C userspace/drivers/kbd
 
-$(VGA): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP)
+$(VGA): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS)
 	$(MAKE) -C userspace/drivers/vga
 
-$(VFS): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBCASSIO)
+$(VFS): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBCASSIO)
 	$(MAKE) -C userspace/vfs
 
-$(MOUSE): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP)
+$(MOUSE): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS)
 	$(MAKE) -C userspace/drivers/mouse
 
-$(ATA): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP)
+$(ATA): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS)
 	$(MAKE) -C userspace/drivers/ata
 
-$(USERSHELL): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP)
+$(USERSHELL): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS)
 	$(MAKE) -C userspace/shell
 
 # Compile test files from the kernel/tests/ directory.
@@ -154,9 +158,9 @@ obj/userspace/usertest/%.o: userspace/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
 
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_FMT) $(LIBSTD_TEST) $(LIBCASSIO)
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_FMT) $(LIBSTD_TEST) $(LIBCASSIO)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_HEAP) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
 $(DISK): $(disk_files)

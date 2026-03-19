@@ -9,16 +9,16 @@ using namespace cassio::hardware;
 
 TEST(syscall_uptime_returns_nonnegative) {
     i32 result;
-    asm volatile("int $0x80" : "=a"(result) : "a"(SyscallNumber::Uptime));
+    asm volatile("int $0x80" : "=a"(result) : "a"(os::syscall::Uptime));
     ASSERT(result >= 0);
 }
 
 TEST(syscall_uptime_monotonic) {
     i32 first;
-    asm volatile("int $0x80" : "=a"(first) : "a"(SyscallNumber::Uptime));
+    asm volatile("int $0x80" : "=a"(first) : "a"(os::syscall::Uptime));
 
     i32 second;
-    asm volatile("int $0x80" : "=a"(second) : "a"(SyscallNumber::Uptime));
+    asm volatile("int $0x80" : "=a"(second) : "a"(os::syscall::Uptime));
 
     ASSERT(second >= first);
 }
@@ -38,7 +38,7 @@ TEST(syscall_write_serial_returns_length) {
     const char* msg = "test";
     i32 result;
     asm volatile("int $0x80" : "=a"(result)
-                 : "a"(SyscallNumber::Write), "b"(2u), "c"((u32)msg), "d"(4u));
+                 : "a"(os::syscall::Write), "b"(2u), "c"((u32)msg), "d"(4u));
     ASSERT_EQ(result, 4);
 }
 
@@ -46,7 +46,7 @@ TEST(syscall_write_vga_removed) {
     const char* msg = "x";
     i32 result;
     asm volatile("int $0x80" : "=a"(result)
-                 : "a"(SyscallNumber::Write), "b"(1u), "c"((u32)msg), "d"(1u));
+                 : "a"(os::syscall::Write), "b"(1u), "c"((u32)msg), "d"(1u));
     ASSERT_EQ(result, static_cast<i32>(-1));
 }
 
@@ -54,7 +54,7 @@ TEST(syscall_write_invalid_fd) {
     const char* msg = "x";
     i32 result;
     asm volatile("int $0x80" : "=a"(result)
-                 : "a"(SyscallNumber::Write), "b"(99u), "c"((u32)msg), "d"(1u));
+                 : "a"(os::syscall::Write), "b"(99u), "c"((u32)msg), "d"(1u));
     ASSERT_EQ(result, static_cast<i32>(-1));
 }
 

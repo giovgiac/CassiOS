@@ -47,7 +47,7 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 | str | libstd_str.a | types | str::eq, str::copy, str::len, str::to_u32 |
 | fmt | libstd_fmt.a | types | fmt::format with %[flags][width]specifier |
 | alloc | libstd_alloc.a | types | alloc::HeapAllocator, alloc::BlockHeader, placement new |
-| heap | libstd_heap.a | alloc | heap::Heap (userspace only), operator new/delete |
+| heap | libstd_heap.a | alloc, os | heap::Heap (auto-init via sbrk), operator new/delete |
 | collections | *(header-only)* | types | collections::LinkedList\<T\> (at `std/collections/list.hpp`) |
 | io | *(header-only)* | types | io::Port\<T\>, io::PortType enum (at `std/io.hpp`) |
 | msg | libstd_msg.a | types | Message struct, MessageType constants |
@@ -57,8 +57,8 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 
 | Module | Lib | Depends on | Contents |
 |--------|-----|-----------|----------|
-| syscall | libstd_syscall.a | types | SyscallNumber constants, System class (write, sleep, uptime, etc.) |
-| ipc | libstd_ipc.a | types, msg, syscall | IPC::send/receive/reply/notify |
+| os | libstd_os.a | types | os::syscall constants, ProcEntry, free functions (write, sleep, sbrk, etc.) |
+| ipc | libstd_ipc.a | types, msg, os | IPC::send/receive/reply/notify |
 | ns | libstd_ns.a | types, ipc | Nameserver client (lookup, register) |
 | vga | libstd_vga.a | types, ipc, ns, msg | Vga instance class, auto-resolves PID |
 | vfs | libstd_vfs.a | types, ipc, ns, msg | Vfs instance class, auto-resolves PID |
@@ -134,7 +134,7 @@ Incremental module-by-module migration (Approach B). Each PR creates one module,
 7. `heap`
 8. `fmt`
 9. `test`
-10. `syscall`
+10. `os`
 11. `ipc`
 12. `ns`
 13. `vga`
