@@ -24,13 +24,8 @@ extern "C" void _start() {
         kbdPid = ns::lookup("kbd");
     }
 
-    u32 vfsPid = 0;
-    while (vfsPid == 0) {
-        vfsPid = ns::lookup("vfs");
-    }
-
     ns::registerName("shell");
 
-    Shell shell(kbdPid, vfsPid);
+    Shell shell(kbdPid);
     shell.run();
 }

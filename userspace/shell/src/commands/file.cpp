@@ -9,7 +9,6 @@
 
 #include <shell.hpp>
 #include <std/str.hpp>
-#include <vfs.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -23,7 +22,7 @@ void Shell::cmdMkdir(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];
     resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
 
-    u32 result = Vfs::mkdir(vfsPid, path);
+    u32 result = vfs.mkdir(path);
     if (result != 0) {
         print("mkdir: cannot create directory: ");
         print(args[1]);
@@ -40,7 +39,7 @@ void Shell::cmdRmdir(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];
     resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
 
-    u32 result = Vfs::remove(vfsPid, path);
+    u32 result = vfs.remove(path);
     if (result != 0) {
         print("rmdir: cannot remove: ");
         print(args[1]);
@@ -57,7 +56,7 @@ void Shell::cmdTouch(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];
     resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
 
-    u32 handle = Vfs::open(vfsPid, path, true);
+    u32 handle = vfs.open(path, true);
     if (handle == 0) {
         print("touch: cannot create file: ");
         print(args[1]);
@@ -74,7 +73,7 @@ void Shell::cmdRm(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];
     resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
 
-    u32 result = Vfs::remove(vfsPid, path);
+    u32 result = vfs.remove(path);
     if (result != 0) {
         print("rm: cannot remove: ");
         print(args[1]);
@@ -91,7 +90,7 @@ void Shell::cmdCat(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];
     resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
 
-    u32 handle = Vfs::open(vfsPid, path);
+    u32 handle = vfs.open(path);
     if (handle == 0) {
         print("cat: no such file: ");
         print(args[1]);
@@ -102,7 +101,7 @@ void Shell::cmdCat(const char** args, u8 argc) {
     u8 buf[256];
     u32 offset = 0;
     while (true) {
-        i32 n = Vfs::read(vfsPid, handle, offset, buf, sizeof(buf));
+        i32 n = vfs.read(handle, offset, buf, sizeof(buf));
         if (n <= 0) break;
         for (i32 i = 0; i < n; ++i) {
             putchar(static_cast<char>(buf[i]));
@@ -121,7 +120,7 @@ void Shell::cmdWrite(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];
     resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
 
-    u32 handle = Vfs::open(vfsPid, path, true);
+    u32 handle = vfs.open(path, true);
     if (handle == 0) {
         print("write: cannot create file: ");
         print(args[1]);
@@ -141,5 +140,5 @@ void Shell::cmdWrite(const char** args, u8 argc) {
         }
     }
 
-    Vfs::write(vfsPid, handle, text, pos);
+    vfs.write(handle, text, pos);
 }
