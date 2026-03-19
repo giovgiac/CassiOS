@@ -28,6 +28,7 @@ LIBSTD_MEM = lib/libstd_mem.a
 LIBSTD_STR = lib/libstd_str.a
 LIBSTD_ALLOC = lib/libstd_alloc.a
 LIBSTD_HEAP = lib/libstd_heap.a
+LIBSTD_FMT = lib/libstd_fmt.a
 
 
 # Discover all source files automatically.
@@ -101,6 +102,9 @@ $(LIBSTD_ALLOC):
 $(LIBSTD_HEAP):
 	$(MAKE) -C libs/heap
 
+$(LIBSTD_FMT):
+	$(MAKE) -C libs/fmt
+
 kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC)
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
@@ -135,9 +139,9 @@ obj/libs/%.o: libs/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/ $(STD_INCLUDES)
 
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC)
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 # Compile userspace test files (runner + service tests + service impls).
 obj/userspace/usertest/%.o: userspace/%.cpp
