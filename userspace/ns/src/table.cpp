@@ -9,7 +9,7 @@
 
 #include <table.hpp>
 #include <std/str.hpp>
-#include <userheap.hpp>
+#include <std/heap.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -21,7 +21,7 @@ u32 NsTable::registerName(const char* name, u32 pid) {
         return 0;
     }
 
-    void* mem = UserHeap::alloc(sizeof(Entry));
+    void* mem = heap::Heap::alloc(sizeof(Entry));
     if (!mem) {
         return 0;
     }

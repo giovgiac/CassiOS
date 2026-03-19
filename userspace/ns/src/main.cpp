@@ -15,7 +15,7 @@
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
-#include <userheap.hpp>
+#include <std/heap.hpp>
 #include <table.hpp>
 
 using namespace cassio;
@@ -28,7 +28,7 @@ static void* sbrkGrow(u32 size) {
 static NsTable table;
 
 extern "C" void _start() {
-    UserHeap::init(sbrkGrow, 4096);
+    heap::Heap::init(sbrkGrow, 4096);
 
     // Self-register (can't use IPC to send to ourselves).
     table.registerName("ns", Nameserver::PID);

@@ -16,7 +16,7 @@
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
 #include "memory/virtual.hpp"
-#include <new.hpp>
+#include <std/alloc.hpp>
 
 using namespace cassio;
 using namespace std;

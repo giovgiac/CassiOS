@@ -10,14 +10,13 @@
 #include "memory/heap.hpp"
 #include "memory/physical.hpp"
 #include "memory/virtual.hpp"
-#include <new.hpp>
 
 using namespace cassio;
 using namespace std;
 using namespace cassio::memory;
 
-HeapAllocator* KernelHeap::instance = nullptr;
-alignas(HeapAllocator) static u8 kernel_heap_storage[sizeof(HeapAllocator)];
+alloc::HeapAllocator* KernelHeap::instance = nullptr;
+alignas(alloc::HeapAllocator) static u8 kernel_heap_storage[sizeof(alloc::HeapAllocator)];
 
 void KernelHeap::init() {
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
@@ -33,5 +32,5 @@ void KernelHeap::init() {
         pmm.allocFrame();
     }
 
-    instance = new (kernel_heap_storage) HeapAllocator(base, KERNEL_HEAP_SIZE);
+    instance = new (kernel_heap_storage) alloc::HeapAllocator(base, KERNEL_HEAP_SIZE);
 }

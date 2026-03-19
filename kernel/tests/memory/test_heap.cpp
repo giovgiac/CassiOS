@@ -6,20 +6,20 @@ using namespace std;
 using namespace cassio::memory;
 
 TEST(heap_allocate_returns_non_null) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     void* ptr = heap.allocate(64);
     ASSERT(ptr != nullptr);
     heap.free(ptr);
 }
 
 TEST(heap_allocate_zero_returns_null) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     void* ptr = heap.allocate(0);
     ASSERT(ptr == nullptr);
 }
 
 TEST(heap_allocate_different_addresses) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     void* a = heap.allocate(32);
     void* b = heap.allocate(32);
     ASSERT(a != nullptr);
@@ -30,7 +30,7 @@ TEST(heap_allocate_different_addresses) {
 }
 
 TEST(heap_free_and_realloc) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     void* a = heap.allocate(64);
     ASSERT(a != nullptr);
     heap.free(a);
@@ -41,7 +41,7 @@ TEST(heap_free_and_realloc) {
 }
 
 TEST(heap_coalesce_adjacent_free) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     void* a = heap.allocate(64);
     void* b = heap.allocate(64);
     ASSERT(a != nullptr);
@@ -49,26 +49,26 @@ TEST(heap_coalesce_adjacent_free) {
     heap.free(a);
     heap.free(b);
     // After coalescing, should be able to allocate a larger block.
-    void* c = heap.allocate(128 + sizeof(BlockHeader));
+    void* c = heap.allocate(128 + sizeof(alloc::BlockHeader));
     ASSERT(c != nullptr);
     heap.free(c);
 }
 
 TEST(heap_split_block) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     void* a = heap.allocate(32);
     void* b = heap.allocate(32);
     ASSERT(a != nullptr);
     ASSERT(b != nullptr);
     // Second allocation should immediately follow the first.
-    u32 expected = (u32)a + 32 + sizeof(BlockHeader);
+    u32 expected = (u32)a + 32 + sizeof(alloc::BlockHeader);
     ASSERT_EQ(expected, (u32)b);
     heap.free(b);
     heap.free(a);
 }
 
 TEST(heap_large_allocation) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     void* ptr = heap.allocate(4096);
     ASSERT(ptr != nullptr);
     heap.free(ptr);
@@ -94,7 +94,7 @@ TEST(heap_operator_new_array_delete_array) {
 }
 
 TEST(heap_double_free_does_not_corrupt) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     void* a = heap.allocate(64);
     ASSERT(a != nullptr);
     heap.free(a);
@@ -107,7 +107,7 @@ TEST(heap_double_free_does_not_corrupt) {
 }
 
 TEST(heap_free_null_is_safe) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     heap.free(nullptr);
     // Should not crash. Heap still works.
     void* p = heap.allocate(32);
@@ -116,7 +116,7 @@ TEST(heap_free_null_is_safe) {
 }
 
 TEST(heap_free_out_of_range_is_ignored) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     // Free a pointer that is clearly outside the heap region.
     u8 stack_var = 0;
     heap.free(&stack_var);
@@ -127,7 +127,7 @@ TEST(heap_free_out_of_range_is_ignored) {
 }
 
 TEST(heap_extend_too_small_is_ignored) {
-    HeapAllocator& heap = KernelHeap::getAllocator();
+    alloc::HeapAllocator& heap = KernelHeap::getAllocator();
     // Extending by less than sizeof(BlockHeader) should be silently ignored
     // (not wrap around to a huge value).
     heap.extend(4);

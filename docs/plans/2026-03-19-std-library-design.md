@@ -46,7 +46,8 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 | mem | libstd_mem.a | types | mem::copy, mem::move, mem::set, mem::compare |
 | str | libstd_str.a | types | str::eq, str::copy, str::len, str::to_u32 |
 | fmt | libstd_fmt.a | types, str | sprintf-like string formatting (new) |
-| heap | libstd_heap.a | types, mem | HeapAllocator, operator new/delete, userspace sbrk grow |
+| alloc | libstd_alloc.a | types | alloc::HeapAllocator, alloc::BlockHeader, placement new |
+| heap | libstd_heap.a | alloc | heap::Heap (userspace only), operator new/delete |
 | collections | *(header-only)* | types | collections::LinkedList\<T\> (at `std/collections/list.hpp`) |
 | io | *(header-only)* | types | io::Port\<T\>, io::PortType enum (at `std/io.hpp`) |
 | msg | libstd_msg.a | types | Message struct, MessageType constants |

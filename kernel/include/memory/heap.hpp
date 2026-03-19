@@ -10,21 +10,17 @@
 #ifndef MEMORY_HEAP_HPP_
 #define MEMORY_HEAP_HPP_
 
-#include <heap.hpp>
+#include <std/alloc.hpp>
 
 namespace cassio {
 namespace memory {
-
-// Re-export into cassio::memory for backward compatibility.
-using cassio::BlockHeader;
-using cassio::HeapAllocator;
 
 static constexpr std::u32 KERNEL_HEAP_FRAMES = 256;
 static constexpr std::u32 KERNEL_HEAP_SIZE = KERNEL_HEAP_FRAMES * 4096;
 
 class KernelHeap final {
 public:
-    inline static HeapAllocator& getAllocator() {
+    inline static std::alloc::HeapAllocator& getAllocator() {
         return *instance;
     }
 
@@ -33,7 +29,7 @@ public:
     KernelHeap() = delete;
 
 private:
-    static HeapAllocator* instance;
+    static std::alloc::HeapAllocator* instance;
 };
 
 } // memory
