@@ -11,26 +11,25 @@
 #define USERSPACE_LIB_ATA_CLIENT_HPP_
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
-#include <ipc.hpp>
+#include <std/ipc.hpp>
 
 namespace cassio {
 
 class AtaClient {
 public:
     static inline bool readSector(std::u32 pid, std::u32 lba, std::u8* buf) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::AtaRead;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::AtaRead;
         msg.arg1 = lba;
-        IPC::send(pid, &msg, buf, 512);
+        std::ipc::send(pid, &msg, buf, 512);
         return msg.arg1 == 0;
     }
 
     static inline bool writeSector(std::u32 pid, std::u32 lba, const std::u8* buf) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::AtaWrite;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::AtaWrite;
         msg.arg1 = lba;
-        IPC::send(pid, &msg, buf, 512);
+        std::ipc::send(pid, &msg, buf, 512);
         return msg.arg1 == 0;
     }
 };

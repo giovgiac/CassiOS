@@ -11,47 +11,46 @@
 #define USERSPACE_LIB_VGA_HPP_
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
-#include <ipc.hpp>
+#include <std/ipc.hpp>
 
 namespace cassio {
 
 class Vga {
 public:
     static inline void putchar(std::u32 pid, char ch) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VgaPutchar;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VgaPutchar;
         msg.arg1 = static_cast<std::u8>(ch);
-        IPC::notify(pid, &msg);
+        std::ipc::notify(pid, &msg);
     }
 
     static inline void write(std::u32 pid, const char* str) {
         std::u32 len = 0;
         while (str[len] != '\0') len++;
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VgaWrite;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VgaWrite;
         msg.arg1 = len;
-        IPC::notify(pid, &msg, str, len);
+        std::ipc::notify(pid, &msg, str, len);
     }
 
     static inline void clear(std::u32 pid) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VgaClear;
-        IPC::send(pid, &msg);
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VgaClear;
+        std::ipc::send(pid, &msg);
     }
 
     static inline void setCursor(std::u32 pid, std::u8 col, std::u8 row) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VgaSetCursor;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VgaSetCursor;
         msg.arg1 = col;
         msg.arg2 = row;
-        IPC::send(pid, &msg);
+        std::ipc::send(pid, &msg);
     }
 
     static inline void getCursor(std::u32 pid, std::u8& col, std::u8& row) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VgaGetCursor;
-        IPC::send(pid, &msg);
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VgaGetCursor;
+        std::ipc::send(pid, &msg);
         col = static_cast<std::u8>(msg.arg1);
         row = static_cast<std::u8>(msg.arg2);
     }

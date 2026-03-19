@@ -9,8 +9,7 @@
 
 #include <std/test.hpp>
 #include <ns.hpp>
-#include <ipc.hpp>
-#include <std/msg.hpp>
+#include <std/ipc.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -24,9 +23,9 @@ TEST(mouse_ipc_read_state) {
     u32 pid = Nameserver::lookup("mouse");
     ASSERT(pid != 0);
 
-    msg::Message msg = {};
-    msg.type = msg::MessageType::MouseRead;
-    i32 ret = IPC::send(pid, &msg);
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::MouseRead;
+    i32 ret = ipc::send(pid, &msg);
     ASSERT_EQ(ret, 0);
 
     // No mouse movement in QEMU without input, so deltas should be zero.

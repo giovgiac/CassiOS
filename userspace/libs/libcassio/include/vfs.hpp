@@ -11,8 +11,7 @@
 #define USERSPACE_LIB_VFS_HPP_
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
-#include <ipc.hpp>
+#include <std/ipc.hpp>
 
 namespace cassio {
 
@@ -21,28 +20,28 @@ public:
     static inline std::u32 mkdir(std::u32 pid, const char* path) {
         std::u32 len = 0;
         while (path[len] != '\0') len++;
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VfsMkdir;
-        IPC::send(pid, &msg, path, len + 1);
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VfsMkdir;
+        std::ipc::send(pid, &msg, path, len + 1);
         return msg.arg1;
     }
 
     static inline std::u32 remove(std::u32 pid, const char* path) {
         std::u32 len = 0;
         while (path[len] != '\0') len++;
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VfsRemove;
-        IPC::send(pid, &msg, path, len + 1);
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VfsRemove;
+        std::ipc::send(pid, &msg, path, len + 1);
         return msg.arg1;
     }
 
     static inline std::u32 open(std::u32 pid, const char* path, bool create = false) {
         std::u32 len = 0;
         while (path[len] != '\0') len++;
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VfsOpen;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VfsOpen;
         msg.arg1 = create ? 1 : 0;
-        IPC::send(pid, &msg, path, len + 1);
+        std::ipc::send(pid, &msg, path, len + 1);
         return msg.arg1;
     }
 
@@ -52,21 +51,21 @@ public:
         // across address spaces. The VFS ignores incoming data for reads
         // and replies with file contents in the same buffer.
         for (std::u32 i = 0; i < bufLen; i++) buf[i] = 0;
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VfsRead;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VfsRead;
         msg.arg1 = handle;
         msg.arg2 = offset;
         msg.arg3 = bufLen;
-        IPC::send(pid, &msg, buf, bufLen);
+        std::ipc::send(pid, &msg, buf, bufLen);
         return static_cast<std::i32>(msg.arg1);
     }
 
     static inline std::u32 write(std::u32 pid, std::u32 handle, const std::u8* data, std::u32 len) {
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VfsWrite;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VfsWrite;
         msg.arg1 = handle;
         msg.arg2 = len;
-        IPC::send(pid, &msg, data, len);
+        std::ipc::send(pid, &msg, data, len);
         return msg.arg1;
     }
 
@@ -74,9 +73,9 @@ public:
     static inline std::u32 stat(std::u32 pid, const char* path) {
         std::u32 len = 0;
         while (path[len] != '\0') len++;
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VfsStat;
-        IPC::send(pid, &msg, path, len + 1);
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VfsStat;
+        std::ipc::send(pid, &msg, path, len + 1);
         return msg.arg1;
     }
 
@@ -96,11 +95,11 @@ public:
             i++;
         }
 
-        std::msg::Message msg = {};
-        msg.type = std::msg::MessageType::VfsList;
+        std::ipc::Message msg = {};
+        msg.type = std::ipc::MessageType::VfsList;
         msg.arg1 = index;
         msg.arg2 = pathLen + 1;
-        IPC::send(pid, &msg, buf, sizeof(buf));
+        std::ipc::send(pid, &msg, buf, sizeof(buf));
 
         if (msg.arg1 == 0) {
             return false;

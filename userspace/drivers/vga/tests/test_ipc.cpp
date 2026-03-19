@@ -9,8 +9,7 @@
 
 #include <std/test.hpp>
 #include <ns.hpp>
-#include <ipc.hpp>
-#include <std/msg.hpp>
+#include <std/ipc.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -19,10 +18,10 @@ TEST(vga_ipc_putchar) {
     u32 pid = Nameserver::lookup("vga");
     ASSERT(pid != 0);
 
-    msg::Message msg = {};
-    msg.type = msg::MessageType::VgaPutchar;
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::VgaPutchar;
     msg.arg1 = 'T';
-    i32 ret = IPC::send(pid, &msg);
+    i32 ret = ipc::send(pid, &msg);
     ASSERT_EQ(ret, 0);
 }
 
@@ -30,9 +29,9 @@ TEST(vga_ipc_clear) {
     u32 pid = Nameserver::lookup("vga");
     ASSERT(pid != 0);
 
-    msg::Message msg = {};
-    msg.type = msg::MessageType::VgaClear;
-    i32 ret = IPC::send(pid, &msg);
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::VgaClear;
+    i32 ret = ipc::send(pid, &msg);
     ASSERT_EQ(ret, 0);
 }
 
@@ -40,11 +39,11 @@ TEST(vga_ipc_set_cursor) {
     u32 pid = Nameserver::lookup("vga");
     ASSERT(pid != 0);
 
-    msg::Message msg = {};
-    msg.type = msg::MessageType::VgaSetCursor;
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::VgaSetCursor;
     msg.arg1 = 5;
     msg.arg2 = 3;
-    i32 ret = IPC::send(pid, &msg);
+    i32 ret = ipc::send(pid, &msg);
     ASSERT_EQ(ret, 0);
 
     // Reply carries cursor position back.
@@ -57,10 +56,10 @@ TEST(vga_ipc_write) {
     ASSERT(pid != 0);
 
     const char* text = "Hi";
-    msg::Message msg = {};
-    msg.type = msg::MessageType::VgaWrite;
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::VgaWrite;
     msg.arg1 = 2;
-    i32 ret = IPC::send(pid, &msg, text, 2);
+    i32 ret = ipc::send(pid, &msg, text, 2);
     ASSERT_EQ(ret, 0);
 }
 
@@ -72,9 +71,9 @@ TEST(vga_ipc_write_long) {
     u32 len = 0;
     while (text[len]) len++;
 
-    msg::Message msg = {};
-    msg.type = msg::MessageType::VgaWrite;
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::VgaWrite;
     msg.arg1 = len;
-    i32 ret = IPC::send(pid, &msg, text, len);
+    i32 ret = ipc::send(pid, &msg, text, len);
     ASSERT_EQ(ret, 0);
 }

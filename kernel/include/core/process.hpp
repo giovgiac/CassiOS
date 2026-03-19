@@ -11,7 +11,7 @@
 #define CORE_PROCESS_HPP_
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
+#include <std/ipc.hpp>
 #include <std/collections/list.hpp>
 
 namespace cassio {
@@ -35,7 +35,7 @@ struct Process {
     // Linked list node for heap-backed IPC notification queue.
     struct NotifyNode {
         std::u32 senderPid;
-        std::msg::Message msg;
+        std::ipc::Message msg;
         std::u8* data;      // Heap-allocated copy of sender's bulk data (nullptr if none).
         std::u32 dataLen;   // Length of copied data.
         NotifyNode* next;
@@ -57,7 +57,7 @@ struct Process {
     std::u32 heapBreak;  // Current top of process heap (page-aligned, for sbrk).
 
     // IPC state.
-    std::msg::Message msg;        // Outgoing message (sender) or staging buffer.
+    std::ipc::Message msg;        // Outgoing message (sender) or staging buffer.
     std::u32 msgPtr;         // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
     std::u32 dataPtr;        // Userspace pointer to bulk data buffer.
     std::u32 dataLen;        // Bulk data length (outgoing) or capacity (incoming).
@@ -71,9 +71,9 @@ struct Process {
     // Notification queue: fire-and-forget messages (no reply expected).
     std::collections::LinkedList<NotifyNode> notifyQueue;
 
-    bool notifyPush(std::u32 senderPid, const std::msg::Message& msg,
+    bool notifyPush(std::u32 senderPid, const std::ipc::Message& msg,
                     const void* data = nullptr, std::u32 dataLen = 0);
-    bool notifyPop(std::u32& senderPid, std::msg::Message& msg,
+    bool notifyPop(std::u32& senderPid, std::ipc::Message& msg,
                    void* dataDst = nullptr, std::u32 dataCapacity = 0);
 };
 

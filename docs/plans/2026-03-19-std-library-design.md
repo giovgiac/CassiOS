@@ -50,21 +50,20 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 | heap | libstd_heap.a | alloc, os | heap::Heap (auto-init via sbrk), operator new/delete |
 | collections | *(header-only)* | types | collections::LinkedList\<T\> (at `std/collections/list.hpp`) |
 | io | *(header-only)* | types | io::Port\<T\>, io::PortType enum (at `std/io.hpp`) |
-| msg | libstd_msg.a | types | Message struct, MessageType constants |
 | test | libstd_test.a | types, fmt | std::test — TEST/ASSERT macros, test runner, fail/fail_eq |
 
 ### Userspace only
 
 | Module | Lib | Depends on | Contents |
 |--------|-----|-----------|----------|
-| os | libstd_os.a | types | os::syscall constants, ProcEntry, free functions (write, sleep, sbrk, etc.) |
-| ipc | libstd_ipc.a | types, msg, os | IPC::send/receive/reply/notify |
+| os | libstd_os.a | types | os::syscall constants, ProcEntry, TICK_FREQUENCY, free functions |
+| ipc | libstd_ipc.a | types, os | ipc::Message, ipc::MessageType, send/receive/reply/notify |
 | ns | libstd_ns.a | types, ipc | Nameserver client (lookup, register) |
-| vga | libstd_vga.a | types, ipc, ns, msg | Vga instance class, auto-resolves PID |
-| vfs | libstd_vfs.a | types, ipc, ns, msg | Vfs instance class, auto-resolves PID |
-| ata | libstd_ata.a | types, ipc, ns, msg | Ata instance class, auto-resolves PID |
-| kbd | libstd_kbd.a | types, ipc, ns, msg | Kbd instance class, auto-resolves PID (new) |
-| mouse | libstd_mouse.a | types, ipc, ns, msg | Mouse instance class, auto-resolves PID (new) |
+| vga | libstd_vga.a | types, ipc, ns | Vga instance class, auto-resolves PID |
+| vfs | libstd_vfs.a | types, ipc, ns | Vfs instance class, auto-resolves PID |
+| ata | libstd_ata.a | types, ipc, ns | Ata instance class, auto-resolves PID |
+| kbd | libstd_kbd.a | types, ipc, ns | Kbd instance class, auto-resolves PID (new) |
+| mouse | libstd_mouse.a | types, ipc, ns | Mouse instance class, auto-resolves PID (new) |
 
 ## Service Client Redesign
 
@@ -130,12 +129,12 @@ Incremental module-by-module migration (Approach B). Each PR creates one module,
 3. `str`
 4. `collections`
 5. `io`
-6. `msg`
+6. `msg` *(merged into ipc)*
 7. `heap`
 8. `fmt`
 9. `test`
 10. `os`
-11. `ipc`
+11. `ipc` *(includes msg)*
 12. `ns`
 13. `vga`
 14. `vfs`

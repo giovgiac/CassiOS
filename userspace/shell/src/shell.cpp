@@ -12,8 +12,7 @@
 #include <std/mem.hpp>
 #include <std/fmt.hpp>
 #include <keycode.hpp>
-#include <std/msg.hpp>
-#include <ipc.hpp>
+#include <std/ipc.hpp>
 #include <vga.hpp>
 
 using namespace cassio;
@@ -47,10 +46,10 @@ void Shell::putchar(char ch) {
 void Shell::printPrompt() {
     // Single blocking send for "$ "; read cursor position from reply.
     const char* prompt = "$ ";
-    msg::Message msg = {};
-    msg.type = msg::MessageType::VgaWrite;
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::VgaWrite;
     msg.arg1 = 2;
-    IPC::send(vgaPid, &msg, prompt, 2);
+    ipc::send(vgaPid, &msg, prompt, 2);
     promptCol = static_cast<u8>(msg.arg1);
     promptRow = static_cast<u8>(msg.arg2);
 }
@@ -60,10 +59,10 @@ void Shell::redrawLine() {
 
     // Write the entire buffer in a single send.
     if (length > 0) {
-        msg::Message msg = {};
-        msg.type = msg::MessageType::VgaWrite;
+        ipc::Message msg = {};
+        msg.type = ipc::MessageType::VgaWrite;
         msg.arg1 = length;
-        IPC::send(vgaPid, &msg, buffer, length);
+        ipc::send(vgaPid, &msg, buffer, length);
     }
 
     // Clear any leftover character from a previous longer line.
@@ -126,9 +125,9 @@ void Shell::run() {
     printPrompt();
 
     while (true) {
-        msg::Message msg = {};
-        msg.type = msg::MessageType::KbdRead;
-        IPC::send(kbdPid, &msg);
+        ipc::Message msg = {};
+        msg.type = ipc::MessageType::KbdRead;
+        ipc::send(kbdPid, &msg);
 
         u8 key = static_cast<u8>(msg.arg1);
         if (key == 0) continue;

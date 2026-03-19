@@ -12,8 +12,7 @@
  */
 
 #include <std/types.hpp>
-#include <std/msg.hpp>
-#include <ipc.hpp>
+#include <std/ipc.hpp>
 #include <ns.hpp>
 #include <std/os.hpp>
 #include <std/io.hpp>
@@ -63,11 +62,11 @@ extern "C" void _start() {
     u32 pending_reader = 0;
 
     while (true) {
-        msg::Message msg;
-        i32 sender = IPC::receive(&msg);
+        ipc::Message msg;
+        i32 sender = ipc::receive(&msg);
 
         switch (msg.type) {
-        case msg::MessageType::IrqNotify:
+        case ipc::MessageType::IrqNotify:
             // Drain all pending scancodes from the controller.
             while (cmd.read() & 0x01) {
                 keyboard.handleScancode(data.read());
@@ -75,19 +74,19 @@ extern "C" void _start() {
 
             // Wake a blocked reader if characters are now available.
             if (pending_reader != 0 && keyboard.bufferCount() > 0) {
-                msg::Message reply = {};
+                ipc::Message reply = {};
                 reply.arg1 = static_cast<u8>(keyboard.readBuffer());
-                IPC::reply(pending_reader, &reply);
+                ipc::reply(pending_reader, &reply);
                 pending_reader = 0;
             }
             break;
 
-        case msg::MessageType::KbdRead:
+        case ipc::MessageType::KbdRead:
             if (sender > 0) {
                 if (keyboard.bufferCount() > 0) {
-                    msg::Message reply = {};
+                    ipc::Message reply = {};
                     reply.arg1 = static_cast<u8>(keyboard.readBuffer());
-                    IPC::reply(static_cast<u32>(sender), &reply);
+                    ipc::reply(static_cast<u32>(sender), &reply);
                 } else {
                     // Buffer empty -- hold the request until a character arrives.
                     pending_reader = static_cast<u32>(sender);
@@ -97,8 +96,8 @@ extern "C" void _start() {
 
         default:
             if (sender > 0) {
-                msg::Message reply = {};
-                IPC::reply(static_cast<u32>(sender), &reply);
+                ipc::Message reply = {};
+                ipc::reply(static_cast<u32>(sender), &reply);
             }
             break;
         }
