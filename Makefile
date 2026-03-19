@@ -90,20 +90,22 @@ $(LIBCASSIO): $(cassio_lib_objects)
 	@mkdir -p lib
 	ar rcs $@ $(cassio_lib_objects)
 
-$(LIBSTD_MEM):
+$(LIBSTD_MEM): FORCE
 	$(MAKE) -C libs/mem
 
-$(LIBSTD_STR):
+$(LIBSTD_STR): FORCE
 	$(MAKE) -C libs/str
 
-$(LIBSTD_ALLOC):
+$(LIBSTD_ALLOC): FORCE
 	$(MAKE) -C libs/alloc
 
-$(LIBSTD_HEAP):
+$(LIBSTD_HEAP): FORCE
 	$(MAKE) -C libs/heap
 
-$(LIBSTD_FMT):
+$(LIBSTD_FMT): FORCE
 	$(MAKE) -C libs/fmt
+
+FORCE:
 
 kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
 	@mkdir -p bin
