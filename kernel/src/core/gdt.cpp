@@ -8,7 +8,7 @@
  */
 
 #include "core/gdt.hpp"
-#include <memory.hpp>
+#include <std/mem.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -29,7 +29,7 @@ GlobalDescriptorTable::GlobalDescriptorTable()
     tssBytes[6] &= 0x0F;
 
     // Initialize TSS: zero all fields, then set the kernel stack segment.
-    memset(&tss, 0, sizeof(TaskStateSegment));
+    mem::set(&tss, 0, sizeof(TaskStateSegment));
     tss.ss0 = 0x10;
     tss.iomap_base = sizeof(TaskStateSegment);
 

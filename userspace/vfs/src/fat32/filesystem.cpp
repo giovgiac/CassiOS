@@ -11,7 +11,7 @@
 #include <ata_client.hpp>
 #include <userheap.hpp>
 #include <string.hpp>
-#include <memory.hpp>
+#include <std/mem.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -62,7 +62,7 @@ Fat32Filesystem::CacheEntry* Fat32Filesystem::cacheEvict() {
 bool Fat32Filesystem::cacheRead(u32 lba, u8* buf) {
     CacheEntry* entry = cacheLookup(lba);
     if (entry) {
-        memcpy(buf, entry->data, SECTOR_SIZE);
+        mem::copy(buf, entry->data, SECTOR_SIZE);
         return true;
     }
 
@@ -76,7 +76,7 @@ bool Fat32Filesystem::cacheRead(u32 lba, u8* buf) {
     entry->valid = true;
     entry->dirty = false;
     entry->age = ++cacheAge;
-    memcpy(buf, entry->data, SECTOR_SIZE);
+    mem::copy(buf, entry->data, SECTOR_SIZE);
     return true;
 }
 
@@ -87,7 +87,7 @@ bool Fat32Filesystem::cacheWrite(u32 lba, const u8* buf) {
         if (!entry) return AtaClient::writeSector(ataPid, lba, buf);
     }
 
-    memcpy(entry->data, buf, SECTOR_SIZE);
+    mem::copy(entry->data, buf, SECTOR_SIZE);
     entry->lba = lba;
     entry->valid = true;
     entry->dirty = true;
@@ -143,7 +143,7 @@ u32 Fat32Filesystem::fatGet(u32 cluster) {
     if (!readSector(sector, buf)) return FAT_EOC;
 
     u32 value;
-    memcpy(&value, buf + offset, 4);
+    mem::copy(&value, buf + offset, 4);
     return value & FAT_ENTRY_MASK;
 }
 
@@ -157,9 +157,9 @@ void Fat32Filesystem::fatSet(u32 cluster, u32 value) {
     if (!readSector(sector, buf)) return;
 
     u32 existing;
-    memcpy(&existing, buf + offset, 4);
+    mem::copy(&existing, buf + offset, 4);
     u32 newVal = (existing & ~FAT_ENTRY_MASK) | (value & FAT_ENTRY_MASK);
-    memcpy(buf + offset, &newVal, 4);
+    mem::copy(buf + offset, &newVal, 4);
 
     writeSector(sector, buf);
 }
@@ -234,7 +234,7 @@ static bool isLfnEntry(const DirEntry* e) {
 // Convert a readable name to 8.3 short name format.
 // For simplicity, generates a unique short name using a tilde (~) suffix.
 void Fat32Filesystem::nameToShort(const char* name, u8* shortName) {
-    memset(shortName, ' ', 11);
+    mem::set(shortName, ' ', 11);
 
     // Find the last dot for extension.
     i32 lastDot = -1;
@@ -365,7 +365,7 @@ bool Fat32Filesystem::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
 
             if (isLfnEntry(&entries[i])) {
                 if (lfnCount < MAX_LFN_ENTRIES) {
-                    memcpy(&lfnBuf[lfnCount], &entries[i], sizeof(DirEntry));
+                    mem::copy(&lfnBuf[lfnCount], &entries[i], sizeof(DirEntry));
                     lfnCount++;
                 }
                 continue;
@@ -388,12 +388,12 @@ bool Fat32Filesystem::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
                     // Extract LFN from the collected buffer.
                     // lfnBuf[0..lfnCount-1] are the LFN entries in order,
                     // followed by the short entry at position lfnCount.
-                    memcpy(&lfnBuf[lfnCount], &entries[i], sizeof(DirEntry));
+                    mem::copy(&lfnBuf[lfnCount], &entries[i], sizeof(DirEntry));
                     extractLfn(lfnBuf, 0, lfnCount, nameOut, nameMax);
                 } else {
                     shortNameToString(entries[i].name, nameOut, nameMax);
                 }
-                memcpy(entryOut, &entries[i], sizeof(DirEntry));
+                mem::copy(entryOut, &entries[i], sizeof(DirEntry));
                 *entryCluster = cluster;
                 *entryOffset = i * sizeof(DirEntry);
                 UserHeap::free(clusterBuf);
@@ -421,7 +421,7 @@ bool Fat32Filesystem::findEntry(u32 dirCluster, const char* name, DirEntry* entr
             return false;
         }
         if (nameEquals(entryName, name)) {
-            memcpy(entryOut, &entry, sizeof(DirEntry));
+            mem::copy(entryOut, &entry, sizeof(DirEntry));
             *entryCluster = ec;
             *entryOffset = eo;
             return true;
@@ -442,7 +442,7 @@ bool Fat32Filesystem::resolvePath(const char* path, u32* clusterOut,
         if (path[1] == '\0') {
             // Root directory -- fill a synthetic entry.
             if (entryOut) {
-                memset(entryOut, 0, sizeof(DirEntry));
+                mem::set(entryOut, 0, sizeof(DirEntry));
                 entryOut->attr = DirAttr::Directory;
                 entryOut->firstClusterHigh = static_cast<u16>(rootCluster >> 16);
                 entryOut->firstClusterLow = static_cast<u16>(rootCluster);
@@ -487,7 +487,7 @@ bool Fat32Filesystem::resolvePath(const char* path, u32* clusterOut,
             // entryCluster/entryOffset are zeroed because the synthetic
             // entry has no real on-disk location (same as root).
             if (entryOut) {
-                memset(entryOut, 0, sizeof(DirEntry));
+                mem::set(entryOut, 0, sizeof(DirEntry));
                 entryOut->attr = DirAttr::Directory;
                 entryOut->firstClusterHigh = static_cast<u16>(cluster >> 16);
                 entryOut->firstClusterLow = static_cast<u16>(cluster);
@@ -506,7 +506,7 @@ bool Fat32Filesystem::resolvePath(const char* path, u32* clusterOut,
         cluster = (static_cast<u32>(entry.firstClusterHigh) << 16) |
                    static_cast<u32>(entry.firstClusterLow);
 
-        if (entryOut) memcpy(entryOut, &entry, sizeof(DirEntry));
+        if (entryOut) mem::copy(entryOut, &entry, sizeof(DirEntry));
         if (entryCluster) *entryCluster = ec;
         if (entryOffset) *entryOffset = eo;
     }
@@ -651,7 +651,7 @@ bool Fat32Filesystem::createEntry(u32 dirCluster, const char* name, u8 attr,
             flushFat();
 
             // Zero out the new cluster.
-            memset(clusterBuf, 0, bytesPerCluster);
+            mem::set(clusterBuf, 0, bytesPerCluster);
             writeCluster(newCluster, clusterBuf);
 
             nextCluster = newCluster;
@@ -679,7 +679,7 @@ found:
     if (needsLfn) {
         for (u32 seq = lfnCount; seq >= 1; seq--) {
             LfnEntry* lfn = reinterpret_cast<LfnEntry*>(&entries[writeIdx]);
-            memset(lfn, 0xFF, sizeof(LfnEntry));
+            mem::set(lfn, 0xFF, sizeof(LfnEntry));
 
             lfn->order = static_cast<u8>(seq);
             if (seq == lfnCount) lfn->order |= LFN_LAST_ENTRY;
@@ -720,8 +720,8 @@ found:
 
     // Write the short entry.
     DirEntry* shortEntry = &entries[writeIdx];
-    memset(shortEntry, 0, sizeof(DirEntry));
-    memcpy(shortEntry->name, shortName, 11);
+    mem::set(shortEntry, 0, sizeof(DirEntry));
+    mem::copy(shortEntry->name, shortName, 11);
     shortEntry->attr = attr;
 
     if (attr & DirAttr::Directory) {
@@ -740,19 +740,19 @@ found:
             UserHeap::free(clusterBuf);
             return false;
         }
-        memset(dirBuf, 0, bytesPerCluster);
+        mem::set(dirBuf, 0, bytesPerCluster);
 
         DirEntry* dotEntries = reinterpret_cast<DirEntry*>(dirBuf);
 
         // "." entry.
-        memset(dotEntries[0].name, ' ', 11);
+        mem::set(dotEntries[0].name, ' ', 11);
         dotEntries[0].name[0] = '.';
         dotEntries[0].attr = DirAttr::Directory;
         dotEntries[0].firstClusterHigh = static_cast<u16>(contentCluster >> 16);
         dotEntries[0].firstClusterLow = static_cast<u16>(contentCluster);
 
         // ".." entry.
-        memset(dotEntries[1].name, ' ', 11);
+        mem::set(dotEntries[1].name, ' ', 11);
         dotEntries[1].name[0] = '.';
         dotEntries[1].name[1] = '.';
         dotEntries[1].attr = DirAttr::Directory;
@@ -966,7 +966,7 @@ u32 Fat32Filesystem::open(const char* path, bool create) {
         readCluster(ec, sectorBuf);
         DirEntry* entries = reinterpret_cast<DirEntry*>(sectorBuf);
         u32 idx = eo / sizeof(DirEntry);
-        memcpy(&entry, &entries[idx], sizeof(DirEntry));
+        mem::copy(&entry, &entries[idx], sizeof(DirEntry));
         UserHeap::free(sectorBuf);
 
         cluster = (static_cast<u32>(entry.firstClusterHigh) << 16) |
@@ -1030,7 +1030,7 @@ i32 Fat32Filesystem::read(u32 handle, u32 offset, u8* buf, u32 len) {
         u32 remaining = toRead - bytesRead;
         u32 chunk = (canRead < remaining) ? canRead : remaining;
 
-        memcpy(buf + bytesRead, clusterBuf + clusterOffset, chunk);
+        mem::copy(buf + bytesRead, clusterBuf + clusterOffset, chunk);
         bytesRead += chunk;
     }
 
@@ -1106,7 +1106,7 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
             readCluster(cluster, clusterBuf);
         }
 
-        memcpy(clusterBuf + clusterOffset, data + bytesWritten, chunk);
+        mem::copy(clusterBuf + clusterOffset, data + bytesWritten, chunk);
         writeCluster(cluster, clusterBuf);
 
         bytesWritten += chunk;
