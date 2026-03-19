@@ -13,7 +13,7 @@
 
 #include <std/types.hpp>
 #include <std/ipc.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <std/os.hpp>
 #include <ata.hpp>
 
@@ -22,7 +22,7 @@ using namespace std;
 using namespace cassio::ata;
 
 extern "C" void _start() {
-    Nameserver::registerName("ata");
+    ns::registerName("ata");
     os::irqRegister(14);
 
     Ata drive;

@@ -12,7 +12,7 @@
 
 #include <std/types.hpp>
 #include <std/collections/list.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 
 namespace cassio {
 
@@ -30,7 +30,7 @@ public:
 
     std::u32 registerName(const char* name, std::u32 pid);
     std::u32 lookup(const char* name);
-    std::u32 listAll(NsEntry* buf, std::u32 maxEntries) const;
+    std::u32 listAll(std::ns::Entry* buf, std::u32 maxEntries) const;
     std::u32 count() const;
 
     NsTable(const NsTable&) = delete;

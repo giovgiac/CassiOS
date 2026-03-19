@@ -10,7 +10,7 @@
 #include <shell.hpp>
 #include <vga.hpp>
 #include <std/os.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <std/fmt.hpp>
 
 using namespace cassio;
@@ -77,8 +77,8 @@ void Shell::cmdPs() {
     os::ProcEntry procs[16];
     u32 procCount = os::procList(procs, 16);
 
-    NsEntry names[16];
-    u32 nameCount = Nameserver::listAll(names, 16);
+    ns::Entry names[16];
+    u32 nameCount = ns::listAll(names, 16);
 
     print("PID  NAME       STATE           HEAP\n");
 

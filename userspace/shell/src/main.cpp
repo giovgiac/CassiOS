@@ -11,7 +11,7 @@
  */
 
 #include <std/types.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <shell.hpp>
 
 using namespace cassio;
@@ -21,20 +21,20 @@ extern "C" void _start() {
     // Wait for required services to register.
     u32 kbdPid = 0;
     while (kbdPid == 0) {
-        kbdPid = Nameserver::lookup("kbd");
+        kbdPid = ns::lookup("kbd");
     }
 
     u32 vgaPid = 0;
     while (vgaPid == 0) {
-        vgaPid = Nameserver::lookup("vga");
+        vgaPid = ns::lookup("vga");
     }
 
     u32 vfsPid = 0;
     while (vfsPid == 0) {
-        vfsPid = Nameserver::lookup("vfs");
+        vfsPid = ns::lookup("vfs");
     }
 
-    Nameserver::registerName("shell");
+    ns::registerName("shell");
 
     Shell shell(kbdPid, vgaPid, vfsPid);
     shell.run();

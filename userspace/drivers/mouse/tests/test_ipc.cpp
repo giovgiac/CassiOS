@@ -8,19 +8,18 @@
  */
 
 #include <std/test.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <std/ipc.hpp>
 
-using namespace cassio;
 using namespace std;
 
 TEST(mouse_ipc_service_registered) {
-    u32 pid = Nameserver::lookup("mouse");
+    u32 pid = ns::lookup("mouse");
     ASSERT(pid != 0);
 }
 
 TEST(mouse_ipc_read_state) {
-    u32 pid = Nameserver::lookup("mouse");
+    u32 pid = ns::lookup("mouse");
     ASSERT(pid != 0);
 
     ipc::Message msg = {};

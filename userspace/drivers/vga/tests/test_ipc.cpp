@@ -8,14 +8,13 @@
  */
 
 #include <std/test.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <std/ipc.hpp>
 
-using namespace cassio;
 using namespace std;
 
 TEST(vga_ipc_putchar) {
-    u32 pid = Nameserver::lookup("vga");
+    u32 pid = ns::lookup("vga");
     ASSERT(pid != 0);
 
     ipc::Message msg = {};
@@ -26,7 +25,7 @@ TEST(vga_ipc_putchar) {
 }
 
 TEST(vga_ipc_clear) {
-    u32 pid = Nameserver::lookup("vga");
+    u32 pid = ns::lookup("vga");
     ASSERT(pid != 0);
 
     ipc::Message msg = {};
@@ -36,7 +35,7 @@ TEST(vga_ipc_clear) {
 }
 
 TEST(vga_ipc_set_cursor) {
-    u32 pid = Nameserver::lookup("vga");
+    u32 pid = ns::lookup("vga");
     ASSERT(pid != 0);
 
     ipc::Message msg = {};
@@ -52,7 +51,7 @@ TEST(vga_ipc_set_cursor) {
 }
 
 TEST(vga_ipc_write) {
-    u32 pid = Nameserver::lookup("vga");
+    u32 pid = ns::lookup("vga");
     ASSERT(pid != 0);
 
     const char* text = "Hi";
@@ -64,7 +63,7 @@ TEST(vga_ipc_write) {
 }
 
 TEST(vga_ipc_write_long) {
-    u32 pid = Nameserver::lookup("vga");
+    u32 pid = ns::lookup("vga");
     ASSERT(pid != 0);
 
     const char* text = "This is a long string that exceeds 20 characters!";

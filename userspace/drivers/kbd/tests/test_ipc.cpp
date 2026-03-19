@@ -8,12 +8,11 @@
  */
 
 #include <std/test.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 
-using namespace cassio;
 using namespace std;
 
 TEST(kbd_ipc_service_registered) {
-    u32 kbd_pid = Nameserver::lookup("kbd");
+    u32 kbd_pid = ns::lookup("kbd");
     ASSERT(kbd_pid != 0);
 }
