@@ -12,7 +12,6 @@
 #include <vga.hpp>
 #include <system.hpp>
 #include <ns.hpp>
-#include <std/str.hpp>
 #include <std/fmt.hpp>
 
 using namespace cassio;
@@ -94,36 +93,11 @@ void Shell::cmdPs() {
             }
         }
 
-        // PID (right-aligned, 3 chars).
-        char pidBuf[8];
-        if (procs[i].pid < 10) print("  ");
-        else if (procs[i].pid < 100) print(" ");
-        fmt::format(pidBuf, sizeof(pidBuf), "%u", procs[i].pid);
-        print(pidBuf);
-        print("  ");
-
-        // NAME (left-aligned, 9 chars).
-        print(name);
-        u32 nameLen = str::len(name);
-        for (u32 pad = nameLen; pad < 9; ++pad) {
-            putchar(' ');
-        }
-        print("  ");
-
-        // STATE (left-aligned, 14 chars).
-        const char* state = stateStr(procs[i].state);
-        print(state);
-        u32 stateLen = str::len(state);
-        for (u32 pad = stateLen; pad < 14; ++pad) {
-            putchar(' ');
-        }
-        print("  ");
-
-        // HEAP (in KB).
-        char heapBuf[12];
-        fmt::format(heapBuf, sizeof(heapBuf), "%u", procs[i].heapSize / 1024);
-        print(heapBuf);
-        print(" KB\n");
+        char line[64];
+        fmt::format(line, sizeof(line), "%3u  %-9s  %-14s  %u KB\n",
+                    procs[i].pid, name, stateStr(procs[i].state),
+                    procs[i].heapSize / 1024);
+        print(line);
     }
 }
 
@@ -134,11 +108,7 @@ void Shell::cmdUptime() {
     u32 ms = total_ms % 1000;
 
     char buf[32];
-    fmt::format(buf, sizeof(buf), "Up %u.", seconds);
-    print(buf);
-    if (ms < 100) putchar('0');
-    if (ms < 10) putchar('0');
-    fmt::format(buf, sizeof(buf), "%us\n", ms);
+    fmt::format(buf, sizeof(buf), "Up %u.%03us\n", seconds, ms);
     print(buf);
 }
 

@@ -163,3 +163,98 @@ TEST(fmt_unknown_specifier) {
     fmt::format(buf, sizeof(buf), "%z");
     ASSERT(str::eq(buf, "%z"));
 }
+
+// --- width (right-aligned, space-padded) ---
+
+TEST(fmt_width_u_right) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%5u", (u32)42);
+    ASSERT(str::eq(buf, "   42"));
+}
+
+TEST(fmt_width_d_right) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%5d", -7);
+    ASSERT(str::eq(buf, "   -7"));
+}
+
+TEST(fmt_width_s_right) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%10s", "hello");
+    ASSERT(str::eq(buf, "     hello"));
+}
+
+TEST(fmt_width_x_right) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%8X", (u32)0xFF);
+    ASSERT(str::eq(buf, "      FF"));
+}
+
+TEST(fmt_width_no_effect) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%3u", (u32)12345);
+    ASSERT(str::eq(buf, "12345"));
+}
+
+// --- left-align flag ---
+
+TEST(fmt_left_u) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%-5u", (u32)42);
+    ASSERT(str::eq(buf, "42   "));
+}
+
+TEST(fmt_left_s) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%-10s", "hello");
+    ASSERT(str::eq(buf, "hello     "));
+}
+
+TEST(fmt_left_d) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%-5d", -7);
+    ASSERT(str::eq(buf, "-7   "));
+}
+
+// --- zero-pad flag ---
+
+TEST(fmt_zeropad_u) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%05u", (u32)42);
+    ASSERT(str::eq(buf, "00042"));
+}
+
+TEST(fmt_zeropad_d_negative) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%05d", -7);
+    ASSERT(str::eq(buf, "-0007"));
+}
+
+TEST(fmt_zeropad_x) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%08X", (u32)0xFF);
+    ASSERT(str::eq(buf, "000000FF"));
+}
+
+TEST(fmt_zeropad_d_positive) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%03u", (u32)5);
+    ASSERT(str::eq(buf, "005"));
+}
+
+// --- left-align overrides zero-pad ---
+
+TEST(fmt_left_overrides_zeropad) {
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "%-05u", (u32)42);
+    ASSERT(str::eq(buf, "42   "));
+}
+
+// --- combined (real-world table row) ---
+
+TEST(fmt_table_row) {
+    char buf[64];
+    fmt::format(buf, sizeof(buf), "%3u  %-9s  %-14s  %u KB",
+                (u32)3, "shell", "Ready", (u32)4);
+    ASSERT(str::eq(buf, "  3  shell      Ready           4 KB"));
+}
