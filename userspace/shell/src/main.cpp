@@ -10,7 +10,6 @@
  *
  */
 
-#include <std/types.hpp>
 #include <std/ns.hpp>
 #include <shell.hpp>
 
@@ -18,14 +17,8 @@ using namespace cassio;
 using namespace std;
 
 extern "C" void _start() {
-    // Wait for required services to register.
-    u32 kbdPid = 0;
-    while (kbdPid == 0) {
-        kbdPid = ns::lookup("kbd");
-    }
-
     ns::registerName("shell");
 
-    Shell shell(kbdPid);
+    Shell shell;
     shell.run();
 }

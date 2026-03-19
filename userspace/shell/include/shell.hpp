@@ -11,6 +11,7 @@
 #define USERSPACE_SHELL_SHELL_HPP_
 
 #include <std/types.hpp>
+#include <std/kbd.hpp>
 #include <std/vga.hpp>
 #include <std/vfs.hpp>
 
@@ -22,7 +23,7 @@ constexpr std::u32 SHELL_MAX_PATH = 64;
 
 class Shell {
 private:
-    std::u32 kbdPid;
+    std::kbd::Kbd kbd;
     std::vga::Vga vga;
     std::vfs::Vfs vfs;
 
@@ -62,7 +63,7 @@ private:
     void cmdWrite(const char** args, std::u8 argc);
 
 public:
-    Shell(std::u32 kbd);
+    Shell();
     void run();
 
     // Testable helpers.

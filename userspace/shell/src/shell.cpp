@@ -11,15 +11,14 @@
 #include <std/str.hpp>
 #include <std/mem.hpp>
 #include <std/fmt.hpp>
-#include <keycode.hpp>
 #include <std/ipc.hpp>
 
 using namespace cassio;
 using namespace std;
+using std::kbd::KeyCode;
 
-Shell::Shell(u32 kbd)
-    : kbdPid(kbd),
-      length(0), cursor(0), promptCol(0), promptRow(0) {
+Shell::Shell()
+    : length(0), cursor(0), promptCol(0), promptRow(0) {
     cwd[0] = '/';
     cwd[1] = '\0';
     for (u8 i = 0; i < SHELL_MAX_INPUT; ++i) {
@@ -115,11 +114,7 @@ void Shell::run() {
     printPrompt();
 
     while (true) {
-        ipc::Message msg = {};
-        msg.type = ipc::MessageType::KbdRead;
-        ipc::send(kbdPid, &msg);
-
-        u8 key = static_cast<u8>(msg.arg1);
+        u8 key = kbd.read();
         if (key == 0) continue;
 
         switch (static_cast<KeyCode>(key)) {

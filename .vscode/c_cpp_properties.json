@@ -15,6 +15,7 @@
                 "${workspaceFolder}/libs/vga/include",
                 "${workspaceFolder}/libs/vfs/include",
                 "${workspaceFolder}/libs/ata/include",
+                "${workspaceFolder}/libs/kbd/include",
                 "${workspaceFolder}/libs/alloc/include",
                 "${workspaceFolder}/libs/heap/include",
                 "${workspaceFolder}/libs/fmt/include",
