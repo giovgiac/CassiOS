@@ -13,6 +13,8 @@
                 "${workspaceFolder}/libs/msg/include",
                 "${workspaceFolder}/libs/alloc/include",
                 "${workspaceFolder}/libs/heap/include",
+                "${workspaceFolder}/libs/fmt/include",
+                "${workspaceFolder}/libs/test/include",
                 "${workspaceFolder}/userspace/**/include",
                 "${workspaceFolder}/kernel/tests"
             ],

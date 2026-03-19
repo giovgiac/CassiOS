@@ -6,7 +6,7 @@
 #include <memory/heap.hpp>
 #include <memory/paging.hpp>
 #include <memory/physical.hpp>
-#include <test.hpp>
+#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;

@@ -2,7 +2,7 @@
 #include <core/process.hpp>
 #include <core/syscall.hpp>
 #include <hardware/pit.hpp>
-#include <test.hpp>
+#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;

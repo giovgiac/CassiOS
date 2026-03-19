@@ -7,7 +7,7 @@
  *
  */
 
-#include <test.hpp>
+#include <std/test.hpp>
 #include <mouse.hpp>
 
 using namespace cassio;
