@@ -15,6 +15,7 @@
 using namespace cassio;
 using namespace std;
 using namespace cassio::vfs;
+using str::StringView;
 
 // ---------------------------------------------------------------------------
 // Sector cache
@@ -237,7 +238,7 @@ void Fat32Filesystem::nameToShort(const char* name, u8* shortName) {
 
     // Find the last dot for extension.
     i32 lastDot = -1;
-    u32 nameLen = str::len(name);
+    u32 nameLen = StringView(name).length();
     for (u32 i = 0; i < nameLen; i++) {
         if (name[i] == '.') lastDot = static_cast<i32>(i);
     }
@@ -472,11 +473,11 @@ bool Fat32Filesystem::resolvePath(const char* path, u32* clusterOut,
         if (path[i] == '/') i++;
         if (j == 0) continue;
 
-        if (str::eq(component, ".")) {
+        if (StringView(component) == ".") {
             continue;
         }
 
-        if (str::eq(component, "..")) {
+        if (StringView(component) == "..") {
             if (cluster == rootCluster) continue;  // already at root
 
             // Read the ".." entry from this directory to get the parent.
@@ -582,7 +583,7 @@ bool Fat32Filesystem::createEntry(u32 dirCluster, const char* name, u8 attr,
     u8 checksum = lfnChecksum(shortName);
 
     // Calculate LFN entries needed.
-    u32 nameLen = str::len(name);
+    u32 nameLen = StringView(name).length();
     u32 lfnCount = (nameLen + LFN_CHARS_PER_ENTRY - 1) / LFN_CHARS_PER_ENTRY;
 
     // Check if we even need LFN entries.
@@ -941,7 +942,7 @@ bool Fat32Filesystem::createDirectory(const char* path) {
 }
 
 bool Fat32Filesystem::remove(const char* path) {
-    if (!path || str::eq(path, "/")) return false;
+    if (!path || StringView(path) == "/") return false;
 
     char name[MAX_NAME];
     u32 parentCluster;
@@ -1158,7 +1159,7 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
 
 u32 Fat32Filesystem::stat(const char* path) {
     if (!path || path[0] == '\0') return 0;
-    if (str::eq(path, "/")) return 2;
+    if (StringView(path) == "/") return 2;
 
     DirEntry entry;
     if (!resolvePath(path, nullptr, &entry, nullptr, nullptr)) return 0;

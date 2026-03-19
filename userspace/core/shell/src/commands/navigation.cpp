@@ -12,13 +12,14 @@
 
 using namespace cassio;
 using namespace std;
+using str::StringView;
 
 void Shell::cmdLs(const char** args, u8 argc) {
     char path[SHELL_MAX_PATH];
     if (argc > 1) {
         resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
     } else {
-        str::copy(path, cwd, SHELL_MAX_PATH);
+        StringView(cwd).copyTo(path, SHELL_MAX_PATH);
     }
 
     if (vfs.stat(path) != 2) {
@@ -45,7 +46,7 @@ void Shell::cmdCd(const char** args, u8 argc) {
         return;
     }
 
-    if (str::eq(args[1], "..")) {
+    if (StringView(args[1]) == "..") {
         parentDir(cwd);
         return;
     }
@@ -60,7 +61,7 @@ void Shell::cmdCd(const char** args, u8 argc) {
         return;
     }
 
-    str::copy(cwd, path, SHELL_MAX_PATH);
+    StringView(path).copyTo(cwd, SHELL_MAX_PATH);
 }
 
 void Shell::cmdPwd() {
