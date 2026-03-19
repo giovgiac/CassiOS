@@ -13,13 +13,12 @@
 #include <std/fmt.hpp>
 #include <keycode.hpp>
 #include <std/ipc.hpp>
-#include <vga.hpp>
 
 using namespace cassio;
 using namespace std;
 
-Shell::Shell(u32 kbd, u32 vga, u32 vfs)
-    : kbdPid(kbd), vgaPid(vga), vfsPid(vfs),
+Shell::Shell(u32 kbd, u32 vfs)
+    : kbdPid(kbd), vfsPid(vfs),
       length(0), cursor(0), promptCol(0), promptRow(0) {
     cwd[0] = '/';
     cwd[1] = '\0';
@@ -34,42 +33,33 @@ Shell::Shell(u32 kbd, u32 vga, u32 vfs)
 // or ordering with setCursor).
 
 void Shell::print(const char* str) {
-    Vga::write(vgaPid, str);
+    vga.write(str);
 }
 
 void Shell::putchar(char ch) {
-    Vga::putchar(vgaPid, ch);
+    vga.putchar(ch);
 }
 
 // --- Prompt and line editing ---
 
 void Shell::printPrompt() {
-    // Single blocking send for "$ "; read cursor position from reply.
-    const char* prompt = "$ ";
-    ipc::Message msg = {};
-    msg.type = ipc::MessageType::VgaWrite;
-    msg.arg1 = 2;
-    ipc::send(vgaPid, &msg, prompt, 2);
-    promptCol = static_cast<u8>(msg.arg1);
-    promptRow = static_cast<u8>(msg.arg2);
+    print("$ ");
+    vga.getCursor(promptCol, promptRow);
 }
 
 void Shell::redrawLine() {
-    Vga::setCursor(vgaPid, promptCol, promptRow);
+    vga.setCursor(promptCol, promptRow);
 
-    // Write the entire buffer in a single send.
+    // Write the entire buffer.
     if (length > 0) {
-        ipc::Message msg = {};
-        msg.type = ipc::MessageType::VgaWrite;
-        msg.arg1 = length;
-        ipc::send(vgaPid, &msg, buffer, length);
+        vga.write(buffer, length);
     }
 
     // Clear any leftover character from a previous longer line.
     putchar(' ');
 
     // Position cursor at the editing point.
-    Vga::setCursor(vgaPid, promptCol + cursor, promptRow);
+    vga.setCursor(promptCol + cursor, promptRow);
 }
 
 void Shell::execute() {
@@ -168,14 +158,14 @@ void Shell::run() {
         case KeyCode::LeftArrow:
             if (cursor > 0) {
                 --cursor;
-                Vga::setCursor(vgaPid, promptCol + cursor, promptRow);
+                vga.setCursor(promptCol + cursor, promptRow);
             }
             continue;
 
         case KeyCode::RightArrow:
             if (cursor < length) {
                 ++cursor;
-                Vga::setCursor(vgaPid, promptCol + cursor, promptRow);
+                vga.setCursor(promptCol + cursor, promptRow);
             }
             continue;
 

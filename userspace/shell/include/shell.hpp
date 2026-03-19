@@ -11,6 +11,7 @@
 #define USERSPACE_SHELL_SHELL_HPP_
 
 #include <std/types.hpp>
+#include <std/vga.hpp>
 
 namespace cassio {
 
@@ -21,7 +22,7 @@ constexpr std::u32 SHELL_MAX_PATH = 64;
 class Shell {
 private:
     std::u32 kbdPid;
-    std::u32 vgaPid;
+    std::vga::Vga vga;
     std::u32 vfsPid;
 
     char buffer[SHELL_MAX_INPUT + 1];  // +1 for null terminator in execute()
@@ -60,7 +61,7 @@ private:
     void cmdWrite(const char** args, std::u8 argc);
 
 public:
-    Shell(std::u32 kbd, std::u32 vga, std::u32 vfs);
+    Shell(std::u32 kbd, std::u32 vfs);
     void run();
 
     // Testable helpers.

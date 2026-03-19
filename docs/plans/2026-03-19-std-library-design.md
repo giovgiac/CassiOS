@@ -59,7 +59,7 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 | os | libstd_os.a | types | os::syscall constants, ProcEntry, TICK_FREQUENCY, free functions |
 | ipc | libstd_ipc.a | types, os | ipc::Message, ipc::MessageType, send/receive/reply/notify |
 | ns | libstd_ns.a | types, ipc | ns::Entry, ns::packName/unpackName, ns::registerName/lookup/listAll |
-| vga | libstd_vga.a | types, ipc, ns | Vga instance class, auto-resolves PID |
+| vga | libstd_vga.a | types, ipc, ns | vga::Vga instance class (putchar, write, clear, setCursor, getCursor) |
 | vfs | libstd_vfs.a | types, ipc, ns | Vfs instance class, auto-resolves PID |
 | ata | libstd_ata.a | types, ipc, ns | Ata instance class, auto-resolves PID |
 | kbd | libstd_kbd.a | types, ipc, ns | Kbd instance class, auto-resolves PID (new) |
@@ -136,7 +136,7 @@ Incremental module-by-module migration (Approach B). Each PR creates one module,
 10. ~~`os`~~
 11. ~~`ipc`~~ *(includes msg)*
 12. ~~`ns`~~ *(free functions, ns::Entry replaces NsEntry)*
-13. `vga`
+13. ~~`vga`~~ *(instance class, auto-resolves PID)*
 14. `vfs`
 15. `ata`
 16. `kbd`
