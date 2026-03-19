@@ -102,6 +102,17 @@ public:
     Process* create(std::u32 eip, std::u32 esp, std::u32 cs, std::u32 ds, std::u32 pageDirectory);
 
     /**
+     * @brief Spawns a new userspace process from a loaded ELF.
+     *
+     * Allocates user stack, kernel stack, builds the initial interrupt
+     * frame, and creates the process. Returns the new Process, or null
+     * on failure (cleans up on error).
+     *
+     */
+    Process* spawn(std::u32 pdPhysical, std::u32 entryPoint, std::u32 heapStart,
+                   std::u32 userCS, std::u32 userDS);
+
+    /**
      * @brief Destroys a process, freeing its IPC queues and the process itself.
      *
      */

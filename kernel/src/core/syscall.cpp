@@ -369,17 +369,15 @@ u32 SyscallHandler::exec(u32 elfPtr, u32 elfSize) {
         return 0;
     }
 
-    // Allocate a kernel-heap buffer and copy the ELF data from the caller's
-    // address space. The caller is the current process so its pages are mapped.
+    // Copy ELF data from the caller's address space into a kernel buffer.
     u8* elfBuf = static_cast<u8*>(operator new(elfSize));
     if (!elfBuf) {
         return 0;
     }
     mem::copy(elfBuf, (const void*)elfPtr, elfSize);
 
-    // Create a new address space.
+    // Create address space and load ELF.
     memory::PagingManager& paging = memory::PagingManager::getManager();
-    memory::PhysicalMemoryManager& pmm = memory::PhysicalMemoryManager::getManager();
 
     u32 pdPhysical = paging.createAddressSpace();
     if (!pdPhysical) {
@@ -387,7 +385,6 @@ u32 SyscallHandler::exec(u32 elfPtr, u32 elfSize) {
         return 0;
     }
 
-    // Load the ELF into the new address space.
     ElfLoadResult elf = ElfLoader::load(pdPhysical, elfBuf, elfSize);
     operator delete(elfBuf);
     if (!elf.success) {
@@ -395,60 +392,12 @@ u32 SyscallHandler::exec(u32 elfPtr, u32 elfSize) {
         return 0;
     }
 
-    // Allocate user stack page.
-    void* userStackFrame = pmm.allocFrame();
-    if (!userStackFrame) {
-        paging.destroyAddressSpace(pdPhysical);
-        return 0;
-    }
-    paging.mapUserPage(pdPhysical, 0xBFFFF000, (u32)userStackFrame,
-                       memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER);
-
-    // Allocate kernel stack for the new process.
-    void* kernelStackFrame = pmm.allocFrame();
-    if (!kernelStackFrame) {
-        paging.destroyAddressSpace(pdPhysical);
-        return 0;
-    }
-    u32 kernelStackTop = (u32)kernelStackFrame + KERNEL_VBASE + memory::FRAME_SIZE;
-
-    // Reuse the caller's user segment selectors (all userspace processes share them).
-    u32 userCS = caller->cs;
-    u32 userDS = caller->ds;
-
-    // Build fake interrupt frame on kernel stack for initial iret to ring 3.
-    u32* frame = (u32*)kernelStackTop;
-    *(--frame) = userDS;            // SS
-    *(--frame) = 0xC0000000;        // ESP (top of user stack page)
-    *(--frame) = 0x3202;            // EFLAGS (IF=1, IOPL=3)
-    *(--frame) = userCS;            // CS
-    *(--frame) = elf.entryPoint;    // EIP
-    *(--frame) = 0;                 // error_code
-    *(--frame) = 0;                 // number
-    *(--frame) = 0;                 // EAX
-    *(--frame) = 0;                 // ECX
-    *(--frame) = 0;                 // EDX
-    *(--frame) = 0;                 // EBX
-    *(--frame) = 0;                 // ESP (ignored by popa)
-    *(--frame) = 0;                 // EBP
-    *(--frame) = 0;                 // ESI
-    *(--frame) = 0;                 // EDI
-    *(--frame) = userDS;            // DS
-    *(--frame) = userDS;            // ES
-    *(--frame) = userDS;            // FS
-    *(--frame) = userDS;            // GS
-
-    Process* child = pm.create(
-        elf.entryPoint, (u32)frame, userCS, userDS, pdPhysical);
+    Process* child = pm.spawn(pdPhysical, elf.entryPoint, elf.heapStart,
+                              caller->cs, caller->ds);
     if (!child) {
-        pmm.freeFrame(kernelStackFrame);
         paging.destroyAddressSpace(pdPhysical);
         return 0;
     }
-
-    child->kernelEsp = kernelStackTop;
-    child->heapBase = elf.heapStart;
-    child->heapBreak = elf.heapStart;
 
     return child->pid;
 }
