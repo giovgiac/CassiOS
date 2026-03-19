@@ -10,7 +10,7 @@
 #include <shell.hpp>
 #include <timer.hpp>
 #include <vga.hpp>
-#include <system.hpp>
+#include <std/os.hpp>
 #include <ns.hpp>
 #include <std/fmt.hpp>
 
@@ -52,7 +52,7 @@ void Shell::cmdEcho(const char** args, u8 argc) {
 
 void Shell::cmdMem() {
     u32 total, used, free;
-    System::memInfo(total, used, free);
+    os::memInfo(total, used, free);
 
     char buf[48];
     print("Physical memory:\n");
@@ -75,8 +75,8 @@ static const char* stateStr(u32 state) {
 }
 
 void Shell::cmdPs() {
-    ProcEntry procs[16];
-    u32 procCount = System::procList(procs, 16);
+    os::ProcEntry procs[16];
+    u32 procCount = os::procList(procs, 16);
 
     NsEntry names[16];
     u32 nameCount = Nameserver::listAll(names, 16);
@@ -102,7 +102,7 @@ void Shell::cmdPs() {
 }
 
 void Shell::cmdUptime() {
-    i32 ticks = System::uptime();
+    i32 ticks = os::uptime();
     u32 total_ms = (static_cast<u32>(ticks) * 1000) / TICK_FREQUENCY;
     u32 seconds = total_ms / 1000;
     u32 ms = total_ms % 1000;
@@ -114,10 +114,10 @@ void Shell::cmdUptime() {
 
 void Shell::cmdReboot() {
     print("Rebooting...\n");
-    System::reboot();
+    os::reboot();
 }
 
 void Shell::cmdShutdown() {
     print("Shutting down...\n");
-    System::shutdown();
+    os::shutdown();
 }

@@ -1,7 +1,7 @@
 SERVICE = mouse
 SOURCES = main.cpp mouse.cpp
 
-ROOT     = $(dir $(lastword $(MAKEFILE_LIST)))../../..
+ROOT     := $(dir $(lastword $(MAKEFILE_LIST)))../../..
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/libs/libcassio/include/ -Iinclude/ $(foreach dir,$(wildcard $(ROOT)/libs/*/include),-I$(dir)) -MMD -MP
 LDFLAGS  = -melf_i386
 
@@ -13,12 +13,13 @@ LIBSTD_MEM  = $(ROOT)/lib/libstd_mem.a
 LIBSTD_STR  = $(ROOT)/lib/libstd_str.a
 LIBSTD_ALLOC = $(ROOT)/lib/libstd_alloc.a
 LIBSTD_HEAP = $(ROOT)/lib/libstd_heap.a
+LIBSTD_OS = $(ROOT)/lib/libstd_os.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP)
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS)
 	@mkdir -p $(BINDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_HEAP) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)

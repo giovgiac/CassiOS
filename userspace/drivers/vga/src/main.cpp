@@ -15,7 +15,7 @@
 #include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
-#include <system.hpp>
+#include <std/os.hpp>
 #include <terminal.hpp>
 
 using namespace cassio;
@@ -27,7 +27,7 @@ extern "C" void _start() {
     Nameserver::registerName("vga");
 
     // Map VGA buffer into our address space.
-    System::mapDevice(VGA_PHYSICAL, VGA_PHYSICAL, 1);
+    os::mapDevice(VGA_PHYSICAL, VGA_PHYSICAL, 1);
 
     VgaTerminal terminal(reinterpret_cast<u16*>(VGA_PHYSICAL));
     terminal.clear();

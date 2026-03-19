@@ -6,13 +6,11 @@
  * license that can be found in the LICENSE file.
  *
  * Provides the userspace dynamic memory allocator. Links on top of
- * std::alloc::HeapAllocator and grows via a caller-provided callback
- * (typically wrapping the sbrk syscall). Includes global operator
- * new/delete so that userspace programs get working dynamic allocation
- * by linking libstd_heap.a.
+ * std::alloc::HeapAllocator and grows via the sbrk syscall. Includes
+ * global operator new/delete so that userspace programs get working
+ * dynamic allocation by linking libstd_heap.a.
  *
- * Note: the GrowFn callback will be replaced by a direct sbrk call
- * once the std::syscall module is migrated (#145).
+ * Auto-initializes on first allocation -- no explicit init required.
  *
  */
 
@@ -26,14 +24,10 @@ namespace heap {
 
 class Heap {
 public:
-    using GrowFn = void*(*)(u32);
-
-    static void init(GrowFn grow, u32 initialSize);
     static void* alloc(usize size);
     static void free(void* ptr);
 
 private:
-    static GrowFn growFn;
     static alloc::HeapAllocator* allocator;
 };
 

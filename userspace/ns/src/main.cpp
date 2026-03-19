@@ -14,21 +14,16 @@
 #include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
-#include <system.hpp>
+#include <std/os.hpp>
 #include <std/heap.hpp>
 #include <table.hpp>
 
 using namespace cassio;
 using namespace std;
 
-static void* sbrkGrow(u32 size) {
-    return System::sbrk(size);
-}
-
 static NsTable table;
 
 extern "C" void _start() {
-    heap::Heap::init(sbrkGrow, 4096);
 
     // Self-register (can't use IPC to send to ourselves).
     table.registerName("ns", Nameserver::PID);

@@ -11,7 +11,7 @@
 #define CORE_SYSCALL_HPP_
 
 #include <std/types.hpp>
-#include <syscall.hpp>
+#include <std/os.hpp>
 #include <std/msg.hpp>
 
 namespace cassio {
@@ -123,7 +123,7 @@ public:
      * Returns the number of entries written.
      *
      */
-    std::u32 procList(ProcEntry* buf, std::u32 maxEntries);
+    std::u32 procList(std::os::ProcEntry* buf, std::u32 maxEntries);
 
     /** Deleted Methods */
     SyscallHandler(const SyscallHandler&) = delete;

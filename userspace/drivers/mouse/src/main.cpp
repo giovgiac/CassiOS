@@ -15,7 +15,7 @@
 #include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
-#include <system.hpp>
+#include <std/os.hpp>
 #include <std/io.hpp>
 #include <mouse.hpp>
 
@@ -46,7 +46,7 @@ static void activate() {
 
 extern "C" void _start() {
     Nameserver::registerName("mouse");
-    System::irqRegister(12);
+    os::irqRegister(12);
     mouse.init();
     activate();
 

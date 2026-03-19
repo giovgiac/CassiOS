@@ -15,7 +15,7 @@
 #include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
-#include <system.hpp>
+#include <std/os.hpp>
 #include <std/io.hpp>
 #include <keyboard.hpp>
 
@@ -52,7 +52,7 @@ static void activate() {
 
 extern "C" void _start() {
     Nameserver::registerName("kbd");
-    System::irqRegister(1);
+    os::irqRegister(1);
     activate();
 
     Port<u8> data(PortType::KbdData);

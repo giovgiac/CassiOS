@@ -360,7 +360,7 @@ void SyscallHandler::exit(u32 code) {
     debug_exit.write(code == 0 ? 0x00 : 0x01);
 }
 
-u32 SyscallHandler::procList(ProcEntry* buf, u32 maxEntries) {
+u32 SyscallHandler::procList(os::ProcEntry* buf, u32 maxEntries) {
     ProcessManager& pm = ProcessManager::getManager();
     u32 count = 0;
 
@@ -436,7 +436,7 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
     u32 number = frame->eax;
 
     switch (number) {
-    case SyscallNumber::Send: {
+    case os::syscall::Send: {
         i32 result = send(frame->ebx, (msg::Message*)frame->ecx,
                           frame->esi, frame->edi);
         if (result == 0) {
@@ -446,7 +446,7 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         frame->eax = static_cast<u32>(result);
         return esp;
     }
-    case SyscallNumber::Receive: {
+    case os::syscall::Receive: {
         i32 result = receive((msg::Message*)frame->ebx,
                              frame->esi, frame->edi);
         if (result == 0) {
@@ -461,45 +461,45 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         frame->eax = static_cast<u32>(result);
         return esp;
     }
-    case SyscallNumber::Reply: {
+    case os::syscall::Reply: {
         i32 result = reply(frame->ebx, (msg::Message*)frame->ecx,
                            frame->esi, frame->edi);
         frame->eax = static_cast<u32>(result);
         return esp;
     }
-    case SyscallNumber::IrqRegister: {
+    case os::syscall::IrqRegister: {
         IrqManager& irqMgr = IrqManager::getManager();
         ProcessManager& pm = ProcessManager::getManager();
         frame->eax = static_cast<u32>(irqMgr.registerForward(
             static_cast<u8>(frame->ebx), pm.current()->pid));
         return esp;
     }
-    case SyscallNumber::Write:
+    case os::syscall::Write:
         frame->eax = static_cast<u32>(write(frame->ebx, frame->ecx, frame->edx));
         return esp;
-    case SyscallNumber::Sleep:
+    case os::syscall::Sleep:
         frame->eax = static_cast<u32>(sleep(frame->ebx));
         return esp;
-    case SyscallNumber::Uptime:
+    case os::syscall::Uptime:
         frame->eax = static_cast<u32>(uptime());
         return esp;
-    case SyscallNumber::Reboot:
+    case os::syscall::Reboot:
         reboot();
         return esp;
-    case SyscallNumber::Shutdown:
+    case os::syscall::Shutdown:
         shutdown();
         return esp;
-    case SyscallNumber::Exit:
+    case os::syscall::Exit:
         exit(frame->ebx);
         return esp;
-    case SyscallNumber::MapDevice:
+    case os::syscall::MapDevice:
         frame->eax = static_cast<u32>(mapDevice(frame->ebx, frame->ecx, frame->edx));
         return esp;
-    case SyscallNumber::Notify:
+    case os::syscall::Notify:
         frame->eax = static_cast<u32>(notify(frame->ebx, (msg::Message*)frame->ecx,
                                              frame->esi, frame->edi));
         return esp;
-    case SyscallNumber::MemInfo: {
+    case os::syscall::MemInfo: {
         u32 total, used, free;
         memInfo(total, used, free);
         frame->eax = total;
@@ -507,11 +507,11 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         frame->ecx = free;
         return esp;
     }
-    case SyscallNumber::Sbrk:
+    case os::syscall::Sbrk:
         frame->eax = sbrk(frame->ebx);
         return esp;
-    case SyscallNumber::ProcList:
-        frame->eax = procList((ProcEntry*)frame->ebx, frame->ecx);
+    case os::syscall::ProcList:
+        frame->eax = procList((os::ProcEntry*)frame->ebx, frame->ecx);
         return esp;
     default:
         frame->eax = static_cast<u32>(-1);
