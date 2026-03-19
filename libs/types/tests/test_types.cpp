@@ -1,5 +1,5 @@
 #include <std/types.hpp>
-#include <test.hpp>
+#include <std/test.hpp>
 
 TEST(types_sizes) {
     ASSERT_EQ(sizeof(std::u8), 1u);

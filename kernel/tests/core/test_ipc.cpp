@@ -1,7 +1,7 @@
 #include <core/syscall.hpp>
 #include <core/process.hpp>
 #include <core/scheduler.hpp>
-#include <test.hpp>
+#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;

@@ -1,6 +1,6 @@
 #include <hardware/exception.hpp>
 #include <hardware/interrupt.hpp>
-#include <test.hpp>
+#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;

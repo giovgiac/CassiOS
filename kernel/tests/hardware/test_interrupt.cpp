@@ -1,7 +1,7 @@
 #include <hardware/interrupt.hpp>
 #include <hardware/irq.hpp>
 #include <core/gdt.hpp>
-#include <test.hpp>
+#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;

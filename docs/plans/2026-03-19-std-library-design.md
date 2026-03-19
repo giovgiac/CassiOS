@@ -45,13 +45,13 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 | types | libstd_types.a | *(none)* | u8, u16, u32, u64, i8-i64, f32, f64, usize, isize |
 | mem | libstd_mem.a | types | mem::copy, mem::move, mem::set, mem::compare |
 | str | libstd_str.a | types | str::eq, str::copy, str::len, str::to_u32 |
-| fmt | libstd_fmt.a | types, str | sprintf-like string formatting (new) |
+| fmt | libstd_fmt.a | types | fmt::format with %[flags][width]specifier |
 | alloc | libstd_alloc.a | types | alloc::HeapAllocator, alloc::BlockHeader, placement new |
 | heap | libstd_heap.a | alloc | heap::Heap (userspace only), operator new/delete |
 | collections | *(header-only)* | types | collections::LinkedList\<T\> (at `std/collections/list.hpp`) |
 | io | *(header-only)* | types | io::Port\<T\>, io::PortType enum (at `std/io.hpp`) |
 | msg | libstd_msg.a | types | Message struct, MessageType constants |
-| test | libstd_test.a | types, str | TEST/ASSERT macros, test runner (uses `test::` namespace) |
+| test | libstd_test.a | types, fmt | std::test — TEST/ASSERT macros, test runner, fail/fail_eq |
 
 ### Userspace only
 
