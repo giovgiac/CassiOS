@@ -11,7 +11,7 @@
 #include <std/str.hpp>
 #include <std/mem.hpp>
 #include <keycode.hpp>
-#include <message.hpp>
+#include <std/msg.hpp>
 #include <ipc.hpp>
 #include <vga.hpp>
 
@@ -69,8 +69,8 @@ void Shell::printDec(u32 val) {
 void Shell::printPrompt() {
     // Single blocking send for "$ "; read cursor position from reply.
     const char* prompt = "$ ";
-    Message msg = {};
-    msg.type = MessageType::VgaWrite;
+    msg::Message msg = {};
+    msg.type = msg::MessageType::VgaWrite;
     msg.arg1 = 2;
     IPC::send(vgaPid, &msg, prompt, 2);
     promptCol = static_cast<u8>(msg.arg1);
@@ -82,8 +82,8 @@ void Shell::redrawLine() {
 
     // Write the entire buffer in a single send.
     if (length > 0) {
-        Message msg = {};
-        msg.type = MessageType::VgaWrite;
+        msg::Message msg = {};
+        msg.type = msg::MessageType::VgaWrite;
         msg.arg1 = length;
         IPC::send(vgaPid, &msg, buffer, length);
     }
@@ -148,8 +148,8 @@ void Shell::run() {
     printPrompt();
 
     while (true) {
-        Message msg = {};
-        msg.type = MessageType::KbdRead;
+        msg::Message msg = {};
+        msg.type = msg::MessageType::KbdRead;
         IPC::send(kbdPid, &msg);
 
         u8 key = static_cast<u8>(msg.arg1);

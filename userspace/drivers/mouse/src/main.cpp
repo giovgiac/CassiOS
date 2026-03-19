@@ -12,7 +12,7 @@
  */
 
 #include <std/types.hpp>
-#include <message.hpp>
+#include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
@@ -54,24 +54,24 @@ extern "C" void _start() {
     Port<u8> data(PortType::KbdData);
 
     while (true) {
-        Message msg;
+        msg::Message msg;
         i32 sender = IPC::receive(&msg);
 
         switch (msg.type) {
-        case MessageType::IrqNotify:
+        case msg::MessageType::IrqNotify:
             // Read all pending mouse bytes.
             while (cmd.read() & 0x21) {
                 mouse.handleByte(data.read());
             }
             break;
 
-        case MessageType::MouseRead:
+        case msg::MessageType::MouseRead:
             if (sender > 0) {
                 u8 btns;
                 i32 mx, my;
                 mouse.readState(btns, mx, my);
 
-                Message reply = {};
+                msg::Message reply = {};
                 reply.arg1 = btns;
                 reply.arg2 = static_cast<u32>(mx);
                 reply.arg3 = static_cast<u32>(my);
@@ -81,7 +81,7 @@ extern "C" void _start() {
 
         default:
             if (sender > 0) {
-                Message reply = {};
+                msg::Message reply = {};
                 IPC::reply(static_cast<u32>(sender), &reply);
             }
             break;

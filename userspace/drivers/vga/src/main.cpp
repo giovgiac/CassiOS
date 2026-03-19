@@ -12,7 +12,7 @@
  */
 
 #include <std/types.hpp>
-#include <message.hpp>
+#include <std/msg.hpp>
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
@@ -38,16 +38,16 @@ extern "C" void _start() {
     }
 
     while (true) {
-        Message msg;
+        msg::Message msg;
         char dataBuf[256];
         i32 sender = IPC::receive(&msg, dataBuf, sizeof(dataBuf));
 
         switch (msg.type) {
-        case MessageType::VgaPutchar:
+        case msg::MessageType::VgaPutchar:
             terminal.putchar(static_cast<char>(msg.arg1));
             break;
 
-        case MessageType::VgaWrite: {
+        case msg::MessageType::VgaWrite: {
             u32 len = msg.arg1;
             if (len > sizeof(dataBuf)) len = sizeof(dataBuf);
             for (u32 i = 0; i < len; ++i) {
@@ -56,17 +56,17 @@ extern "C" void _start() {
             break;
         }
 
-        case MessageType::VgaClear:
+        case msg::MessageType::VgaClear:
             terminal.clear();
             break;
 
-        case MessageType::VgaSetCursor:
+        case msg::MessageType::VgaSetCursor:
             terminal.setCursor(
                 static_cast<u8>(msg.arg1),
                 static_cast<u8>(msg.arg2));
             break;
 
-        case MessageType::VgaGetCursor:
+        case msg::MessageType::VgaGetCursor:
             break;
 
         default:
@@ -74,7 +74,7 @@ extern "C" void _start() {
         }
 
         if (sender > 0) {
-            Message reply = {};
+            msg::Message reply = {};
             reply.arg1 = terminal.getCursorX();
             reply.arg2 = terminal.getCursorY();
             IPC::reply(static_cast<u32>(sender), &reply);

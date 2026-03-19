@@ -35,14 +35,14 @@ void SyscallHandler::load() {
     im.setTrapGate(0x80, &syscallEntry, 3);
 }
 
-static void copyMessage(const Message* src, Message* dst) {
-    mem::copy(dst, src, sizeof(Message));
+static void copyMessage(const msg::Message* src, msg::Message* dst) {
+    mem::copy(dst, src, sizeof(msg::Message));
 }
 
 // Copy a message to a userspace buffer that belongs to a different process.
 // Temporarily switches page directory so the target's virtual address resolves
 // to the correct physical page.
-static void copyMessageToProcess(Process* target, Message* dst, const Message* src) {
+static void copyMessageToProcess(Process* target, msg::Message* dst, const msg::Message* src) {
     u32 currentCR3;
     asm volatile("mov %%cr3, %0" : "=r"(currentCR3));
 
@@ -110,7 +110,7 @@ static void copyDataFromProcess(Process* source, u8* dst, const u8* src, u32 len
     }
 }
 
-i32 SyscallHandler::send(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen) {
+i32 SyscallHandler::send(u32 targetPid, msg::Message* msg, u32 dataPtr, u32 dataLen) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* sender = pm.current();
     Process* target = pm.get(targetPid);
@@ -127,7 +127,7 @@ i32 SyscallHandler::send(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen) 
 
     if (target->state == ProcessState::ReceiveBlocked) {
         // Target is waiting for a message -- deliver immediately.
-        Message* targetBuf = (Message*)target->msgPtr;
+        msg::Message* targetBuf = (msg::Message*)target->msgPtr;
         copyMessageToProcess(target, targetBuf, &sender->msg);
 
         // Copy bulk data if both sides provided buffers.
@@ -154,7 +154,7 @@ i32 SyscallHandler::send(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen) 
     return 0;  // Caller should block.
 }
 
-i32 SyscallHandler::receive(Message* msg, u32 dataPtr, u32 dataCapacity) {
+i32 SyscallHandler::receive(msg::Message* msg, u32 dataPtr, u32 dataCapacity) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* receiver = pm.current();
 
@@ -205,7 +205,7 @@ i32 SyscallHandler::receive(Message* msg, u32 dataPtr, u32 dataCapacity) {
     return 0;  // Caller should block.
 }
 
-i32 SyscallHandler::reply(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen) {
+i32 SyscallHandler::reply(u32 targetPid, msg::Message* msg, u32 dataPtr, u32 dataLen) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* target = pm.get(targetPid);
 
@@ -216,10 +216,10 @@ i32 SyscallHandler::reply(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen)
     // Copy reply to kernel space first, then to sender's userspace buffer.
     // The msg pointer is in the replier's address space and becomes invalid
     // after switching to the sender's page directory.
-    Message replyBuf;
+    msg::Message replyBuf;
     copyMessage(msg, &replyBuf);
 
-    Message* senderBuf = (Message*)target->msgPtr;
+    msg::Message* senderBuf = (msg::Message*)target->msgPtr;
     copyMessageToProcess(target, senderBuf, &replyBuf);
 
     // Copy reply bulk data to sender's data buffer.
@@ -238,7 +238,7 @@ i32 SyscallHandler::reply(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen)
     return 0;
 }
 
-i32 SyscallHandler::notify(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen) {
+i32 SyscallHandler::notify(u32 targetPid, msg::Message* msg, u32 dataPtr, u32 dataLen) {
     ProcessManager& pm = ProcessManager::getManager();
     Process* sender = pm.current();
     Process* target = pm.get(targetPid);
@@ -248,12 +248,12 @@ i32 SyscallHandler::notify(u32 targetPid, Message* msg, u32 dataPtr, u32 dataLen
     }
 
     // Copy message to kernel space (source is in caller's address space).
-    Message temp;
+    msg::Message temp;
     copyMessage(msg, &temp);
 
     if (target->state == ProcessState::ReceiveBlocked) {
         // Deliver immediately.
-        Message* targetBuf = (Message*)target->msgPtr;
+        msg::Message* targetBuf = (msg::Message*)target->msgPtr;
         copyMessageToProcess(target, targetBuf, &temp);
 
         // Copy bulk data if both sides provided buffers.
@@ -437,7 +437,7 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
 
     switch (number) {
     case SyscallNumber::Send: {
-        i32 result = send(frame->ebx, (Message*)frame->ecx,
+        i32 result = send(frame->ebx, (msg::Message*)frame->ecx,
                           frame->esi, frame->edi);
         if (result == 0) {
             Scheduler& sched = Scheduler::getScheduler();
@@ -447,7 +447,7 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     }
     case SyscallNumber::Receive: {
-        i32 result = receive((Message*)frame->ebx,
+        i32 result = receive((msg::Message*)frame->ebx,
                              frame->esi, frame->edi);
         if (result == 0) {
             Scheduler& sched = Scheduler::getScheduler();
@@ -462,7 +462,7 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     }
     case SyscallNumber::Reply: {
-        i32 result = reply(frame->ebx, (Message*)frame->ecx,
+        i32 result = reply(frame->ebx, (msg::Message*)frame->ecx,
                            frame->esi, frame->edi);
         frame->eax = static_cast<u32>(result);
         return esp;
@@ -496,7 +496,7 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         frame->eax = static_cast<u32>(mapDevice(frame->ebx, frame->ecx, frame->edx));
         return esp;
     case SyscallNumber::Notify:
-        frame->eax = static_cast<u32>(notify(frame->ebx, (Message*)frame->ecx,
+        frame->eax = static_cast<u32>(notify(frame->ebx, (msg::Message*)frame->ecx,
                                              frame->esi, frame->edi));
         return esp;
     case SyscallNumber::MemInfo: {
