@@ -1,5 +1,5 @@
 /**
- * list.hpp -- intrusive linked list template
+ * collections/list.hpp -- intrusive linked list template
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,19 +7,19 @@
  *
  */
 
-#ifndef COMMON_LIST_HPP_
-#define COMMON_LIST_HPP_
+#ifndef STD_COLLECTIONS_LIST_HPP
+#define STD_COLLECTIONS_LIST_HPP
 
 #include <std/types.hpp>
 
-namespace cassio {
+namespace std {
+namespace collections {
 
 /**
- * @brief Intrusive singly-linked list.
+ * Intrusive singly-linked list.
  *
  * T must have a public `T* next` member. The list manages head/tail
  * pointers and a count; callers handle node allocation and deallocation.
- *
  */
 template <typename T>
 class LinkedList {
@@ -83,15 +83,16 @@ public:
 
     T* getHead() const { return head; }
     T* getTail() const { return tail; }
-    std::u32 getCount() const { return count; }
+    u32 getCount() const { return count; }
     bool isEmpty() const { return head == nullptr; }
 
 private:
     T* head;
     T* tail;
-    std::u32 count;
+    u32 count;
 };
 
-} // cassio
+}
+}
 
-#endif // COMMON_LIST_HPP_
+#endif // STD_COLLECTIONS_LIST_HPP
