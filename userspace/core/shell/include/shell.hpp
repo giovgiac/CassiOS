@@ -61,6 +61,7 @@ private:
     void cmdRm(const char** args, std::u8 argc);
     void cmdCat(const char** args, std::u8 argc);
     void cmdWrite(const char** args, std::u8 argc);
+    void cmdExec(const char** args, std::u8 argc);
 
 public:
     Shell();

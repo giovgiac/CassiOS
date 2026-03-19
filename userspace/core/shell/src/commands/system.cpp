@@ -11,6 +11,7 @@
 #include <std/os.hpp>
 #include <std/ns.hpp>
 #include <std/fmt.hpp>
+#include <std/heap.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -34,6 +35,7 @@ void Shell::cmdHelp() {
     print("  rm          - Remove file\n");
     print("  cat         - Print file contents\n");
     print("  write       - Write text to file\n");
+    print("  exec        - Execute a program\n");
 }
 
 void Shell::cmdClear() {
@@ -68,6 +70,7 @@ static const char* stateStr(u32 state) {
     case 2: return "Running";
     case 3: return "SendBlocked";
     case 4: return "ReceiveBlocked";
+    case 5: return "WaitBlocked";
     default: return "Unknown";
     }
 }
@@ -118,4 +121,53 @@ void Shell::cmdReboot() {
 void Shell::cmdShutdown() {
     print("Shutting down...\n");
     os::shutdown();
+}
+
+void Shell::cmdExec(const char** args, u8 argc) {
+    if (argc < 2) {
+        print("exec: usage: exec <path>\n");
+        return;
+    }
+
+    char path[SHELL_MAX_PATH];
+    resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
+
+    u32 handle = vfs.open(path);
+    if (handle == 0) {
+        print("exec: no such file: ");
+        print(args[1]);
+        putchar('\n');
+        return;
+    }
+
+    // Read the entire file into a heap buffer.
+    static constexpr u32 MAX_ELF_SIZE = 65536;
+    u8* elfBuf = static_cast<u8*>(heap::alloc(MAX_ELF_SIZE));
+    if (!elfBuf) {
+        print("exec: out of memory\n");
+        return;
+    }
+
+    u32 total = 0;
+    while (total < MAX_ELF_SIZE) {
+        i32 n = vfs.read(handle, total, elfBuf + total, 512);
+        if (n <= 0) break;
+        total += static_cast<u32>(n);
+    }
+
+    if (total == 0) {
+        print("exec: empty file\n");
+        heap::free(elfBuf);
+        return;
+    }
+
+    u32 childPid = os::exec(elfBuf, total);
+    heap::free(elfBuf);
+
+    if (childPid == 0) {
+        print("exec: failed to load program\n");
+        return;
+    }
+
+    os::waitpid(childPid);
 }

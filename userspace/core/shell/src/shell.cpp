@@ -99,6 +99,7 @@ void Shell::execute() {
     else if (str::eq(args[0], "rm"))       cmdRm(args, argc);
     else if (str::eq(args[0], "cat"))      cmdCat(args, argc);
     else if (str::eq(args[0], "write"))    cmdWrite(args, argc);
+    else if (str::eq(args[0], "exec"))     cmdExec(args, argc);
     else {
         print("Unknown command: ");
         print(args[0]);
