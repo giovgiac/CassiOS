@@ -141,7 +141,7 @@ Incremental module-by-module migration (Approach B). Each PR creates one module,
 15. ~~`ata`~~ *(instance class, auto-resolves PID)*
 16. ~~`kbd`~~ *(instance class, auto-resolves PID, includes KeyCode enum)*
 17. ~~`mouse`~~ *(instance class, auto-resolves PID)*
-18. Cleanup (delete empty `common/` and `userspace/libs/`)
+18. ~~Cleanup~~ *(deleted common/, userspace/libs/, libcommon, libcassio)*
 
 Each PR:
 1. Creates `libs/<module>/` with include/src/tests/Makefile

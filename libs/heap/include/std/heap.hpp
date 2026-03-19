@@ -22,14 +22,11 @@
 namespace std {
 namespace heap {
 
-class Heap {
-public:
-    static void* alloc(usize size);
-    static void free(void* ptr);
+/// Allocate size bytes from the userspace heap. Returns nullptr on failure.
+void* alloc(usize size);
 
-private:
-    static alloc::HeapAllocator* allocator;
-};
+/// Free a previously allocated pointer.
+void free(void* ptr);
 
 }
 }

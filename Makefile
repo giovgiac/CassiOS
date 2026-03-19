@@ -22,8 +22,6 @@ ATA = bin/ata.elf
 USERSHELL = bin/shell.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
-LIBCOMMON = lib/libcommon.a
-LIBCASSIO = lib/libcassio.a
 LIBSTD_MEM = lib/libstd_mem.a
 LIBSTD_STR = lib/libstd_str.a
 LIBSTD_ALLOC = lib/libstd_alloc.a
@@ -45,10 +43,6 @@ cpp_sources = $(shell find kernel/src/ -name '*.cpp')
 asm_sources = $(shell find kernel/src/ -name '*.s')
 objects = $(patsubst kernel/src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
 
-# Common library sources.
-common_sources = $(shell find common/src/ -name '*.cpp')
-common_objects = $(patsubst common/src/%.cpp, obj/common/%.o, $(common_sources))
-
 # Shared objects for the test kernel (everything except kernel.o).
 shared_objects = $(filter-out obj/core/kernel.o, $(objects))
 
@@ -58,46 +52,24 @@ test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 lib_test_sources = $(shell find libs/ -path '*/tests/test_*.cpp' 2>/dev/null)
 lib_test_objects = $(patsubst libs/%.cpp, obj/libs/%.o, $(lib_test_sources))
 
-# Userspace shared library sources.
-cassio_lib_sources = $(shell find userspace/libs/libcassio/src/ -name '*.cpp' 2>/dev/null)
-cassio_lib_objects = $(patsubst userspace/libs/libcassio/src/%.cpp, obj/userspace/libs/libcassio/%.o, $(cassio_lib_sources))
-
-# Userspace test: runner + all service tests + all service impls (excluding main.cpp and shared lib).
+# Userspace test: runner + all service tests + all service impls (excluding main.cpp).
 usertest_sources = userspace/test.cpp \
     $(shell find userspace/ -path '*/tests/test_*.cpp' 2>/dev/null) \
-    $(shell find userspace/ -path '*/src/*.cpp' -not -name 'main.cpp' -not -path 'userspace/libs/*' 2>/dev/null)
+    $(shell find userspace/ -path '*/src/*.cpp' -not -name 'main.cpp' 2>/dev/null)
 usertest_objects = $(patsubst userspace/%.cpp, obj/userspace/usertest/%.o, $(usertest_sources))
 USERTEST_CXXFLAGS = $(COMMON_CXXFLAGS) -fno-use-cxa-atexit \
-    -Icommon/include/ -Iuserspace/libs/libcassio/include/ $(STD_INCLUDES) \
+    $(STD_INCLUDES) \
     $(foreach dir,$(shell find userspace/ -type d -name include),-I$(dir))
 
 # Compile C++ source files.
 obj/%.o: kernel/src/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/ $(STD_INCLUDES)
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
 
 # Compile assembly source files.
 obj/%.o: kernel/src/%.s
 	@mkdir -p $(dir $@)
 	as $(ASMFLAGS) -o $@ $<
-
-# Compile common library source files.
-obj/common/%.o: common/src/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(COMMON_CXXFLAGS) -o $@ -c $< -Icommon/include/ $(STD_INCLUDES)
-
-$(LIBCOMMON): $(common_objects)
-	@mkdir -p lib
-	ar rcs $@ $(common_objects)
-
-# Compile libcassio source files.
-obj/userspace/libs/libcassio/%.o: userspace/libs/libcassio/src/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(COMMON_CXXFLAGS) -fno-use-cxa-atexit -o $@ -c $< -Icommon/include/ -Iuserspace/libs/libcassio/include/ $(STD_INCLUDES)
-
-$(LIBCASSIO): $(cassio_lib_objects)
-	@mkdir -p lib
-	ar rcs $@ $(cassio_lib_objects)
 
 $(LIBSTD_MEM): FORCE
 	$(MAKE) -C libs/mem
@@ -143,52 +115,52 @@ $(LIBSTD_MOUSE): FORCE
 
 FORCE:
 
-kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
+kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
-$(NAMESERVER): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBCASSIO)
+$(NAMESERVER): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/ns
 
-$(KBD): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(KBD): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/drivers/kbd
 
-$(VGA): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(VGA): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/drivers/vga
 
-$(VFS): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_ATA)
+$(VFS): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_ATA)
 	$(MAKE) -C userspace/vfs
 
-$(MOUSE): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(MOUSE): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/drivers/mouse
 
-$(ATA): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(ATA): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/drivers/ata
 
-$(USERSHELL): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_VGA) $(LIBSTD_VFS)
+$(USERSHELL): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_VGA) $(LIBSTD_VFS)
 	$(MAKE) -C userspace/shell
 
 # Compile test files from the kernel/tests/ directory.
 obj/tests/%.o: kernel/tests/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/ $(STD_INCLUDES) -Ikernel/tests/
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES) -Ikernel/tests/
 
 obj/libs/%.o: libs/%.cpp
 	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/ $(STD_INCLUDES)
+	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
 
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_TEST)
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_TEST)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 # Compile userspace test files (runner + service tests + service impls).
 obj/userspace/usertest/%.o: userspace/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
 
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_MOUSE) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_ATA) $(LIBSTD_FMT) $(LIBSTD_TEST) $(LIBCASSIO)
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_MOUSE) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_ATA) $(LIBSTD_FMT) $(LIBSTD_TEST)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_MOUSE) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_MOUSE) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
 $(DISK): $(disk_files)
@@ -280,8 +252,6 @@ run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) $(DI
 
 # Include auto-generated header dependencies (produced by -MMD -MP).
 -include $(objects:.o=.d)
--include $(common_objects:.o=.d)
--include $(cassio_lib_objects:.o=.d)
 -include $(test_objects:.o=.d)
 -include $(lib_test_objects:.o=.d)
 -include $(usertest_objects:.o=.d)

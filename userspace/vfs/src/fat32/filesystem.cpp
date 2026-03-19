@@ -35,7 +35,7 @@ Fat32Filesystem::CacheEntry* Fat32Filesystem::cacheEvict() {
     for (u32 i = 0; i < CACHE_SIZE; i++) {
         if (!cache[i].valid) {
             if (!cache[i].data) {
-                cache[i].data = static_cast<u8*>(heap::Heap::alloc(SECTOR_SIZE));
+                cache[i].data = static_cast<u8*>(heap::alloc(SECTOR_SIZE));
                 if (!cache[i].data) return nullptr;
             }
             return &cache[i];
@@ -331,7 +331,7 @@ static bool nameEquals(const char* a, const char* b) {
 bool Fat32Filesystem::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
                          u32 nameMax, DirEntry* entryOut,
                          u32* entryCluster, u32* entryOffset) {
-    u8* clusterBuf = static_cast<u8*>(heap::Heap::alloc(bytesPerCluster));
+    u8* clusterBuf = static_cast<u8*>(heap::alloc(bytesPerCluster));
     if (!clusterBuf) return false;
 
     // Buffer to collect LFN entries across cluster boundaries.
@@ -345,7 +345,7 @@ bool Fat32Filesystem::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
 
     while (cluster >= 2 && cluster < FAT_EOC) {
         if (!readCluster(cluster, clusterBuf)) {
-            heap::Heap::free(clusterBuf);
+            heap::free(clusterBuf);
             return false;
         }
 
@@ -354,7 +354,7 @@ bool Fat32Filesystem::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
 
         for (u32 i = 0; i < entriesPerCluster; i++) {
             if (entries[i].name[0] == DIR_ENTRY_END) {
-                heap::Heap::free(clusterBuf);
+                heap::free(clusterBuf);
                 return false;
             }
             if (entries[i].name[0] == DIR_ENTRY_FREE) {
@@ -395,7 +395,7 @@ bool Fat32Filesystem::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
                 mem::copy(entryOut, &entries[i], sizeof(DirEntry));
                 *entryCluster = cluster;
                 *entryOffset = i * sizeof(DirEntry);
-                heap::Heap::free(clusterBuf);
+                heap::free(clusterBuf);
                 return true;
             }
 
@@ -406,7 +406,7 @@ bool Fat32Filesystem::readDirEntry(u32 dirCluster, u32 index, char* nameOut,
         cluster = fatGet(cluster);
     }
 
-    heap::Heap::free(clusterBuf);
+    heap::free(clusterBuf);
     return false;
 }
 
@@ -604,7 +604,7 @@ bool Fat32Filesystem::createEntry(u32 dirCluster, const char* name, u8 attr,
     u32 totalEntries = (needsLfn ? lfnCount : 0) + 1;
 
     // Find a contiguous run of free entries in the directory.
-    u8* clusterBuf = static_cast<u8*>(heap::Heap::alloc(bytesPerCluster));
+    u8* clusterBuf = static_cast<u8*>(heap::alloc(bytesPerCluster));
     if (!clusterBuf) return false;
 
     u32 cluster = dirCluster;
@@ -614,7 +614,7 @@ bool Fat32Filesystem::createEntry(u32 dirCluster, const char* name, u8 attr,
 
     while (cluster >= 2 && cluster < FAT_EOC) {
         if (!readCluster(cluster, clusterBuf)) {
-            heap::Heap::free(clusterBuf);
+            heap::free(clusterBuf);
             return false;
         }
 
@@ -642,7 +642,7 @@ bool Fat32Filesystem::createEntry(u32 dirCluster, const char* name, u8 attr,
             // Extend the directory by allocating a new cluster.
             u32 newCluster = allocateCluster();
             if (newCluster == 0) {
-                heap::Heap::free(clusterBuf);
+                heap::free(clusterBuf);
                 return false;
             }
             fatSet(cluster, newCluster);
@@ -658,14 +658,14 @@ bool Fat32Filesystem::createEntry(u32 dirCluster, const char* name, u8 attr,
         cluster = nextCluster;
     }
 
-    heap::Heap::free(clusterBuf);
+    heap::free(clusterBuf);
     return false;
 
 found:
     // We have a contiguous run starting at freeStartCluster:freeStartIdx.
     // Write entries. We might need to re-read the starting cluster.
     if (!readCluster(freeStartCluster, clusterBuf)) {
-        heap::Heap::free(clusterBuf);
+        heap::free(clusterBuf);
         return false;
     }
 
@@ -708,7 +708,7 @@ found:
                 writeCluster(writeCluster_, clusterBuf);
                 writeCluster_ = fatGet(writeCluster_);
                 if (!readCluster(writeCluster_, clusterBuf)) {
-                    heap::Heap::free(clusterBuf);
+                    heap::free(clusterBuf);
                     return false;
                 }
                 entries = reinterpret_cast<DirEntry*>(clusterBuf);
@@ -727,16 +727,16 @@ found:
         // Allocate a cluster for the new directory's contents.
         u32 contentCluster = allocateCluster();
         if (contentCluster == 0) {
-            heap::Heap::free(clusterBuf);
+            heap::free(clusterBuf);
             return false;
         }
         shortEntry->firstClusterHigh = static_cast<u16>(contentCluster >> 16);
         shortEntry->firstClusterLow = static_cast<u16>(contentCluster);
 
         // Initialize the directory with . and .. entries.
-        u8* dirBuf = static_cast<u8*>(heap::Heap::alloc(bytesPerCluster));
+        u8* dirBuf = static_cast<u8*>(heap::alloc(bytesPerCluster));
         if (!dirBuf) {
-            heap::Heap::free(clusterBuf);
+            heap::free(clusterBuf);
             return false;
         }
         mem::set(dirBuf, 0, bytesPerCluster);
@@ -760,7 +760,7 @@ found:
         dotEntries[1].firstClusterLow = static_cast<u16>(parentCluster);
 
         writeCluster(contentCluster, dirBuf);
-        heap::Heap::free(dirBuf);
+        heap::free(dirBuf);
         flushFat();
     }
 
@@ -768,7 +768,7 @@ found:
     *outOffset = writeIdx * sizeof(DirEntry);
 
     writeCluster(writeCluster_, clusterBuf);
-    heap::Heap::free(clusterBuf);
+    heap::free(clusterBuf);
     return true;
 }
 
@@ -807,11 +807,11 @@ bool Fat32Filesystem::removeEntry(u32 dirCluster, const char* name) {
     }
 
     // Mark the short entry as deleted.
-    u8* clusterBuf = static_cast<u8*>(heap::Heap::alloc(bytesPerCluster));
+    u8* clusterBuf = static_cast<u8*>(heap::alloc(bytesPerCluster));
     if (!clusterBuf) return false;
 
     if (!readCluster(entryCluster, clusterBuf)) {
-        heap::Heap::free(clusterBuf);
+        heap::free(clusterBuf);
         return false;
     }
 
@@ -837,7 +837,7 @@ bool Fat32Filesystem::removeEntry(u32 dirCluster, const char* name) {
             cur = fatGet(cur);
         }
         if (prevCluster != entryCluster) {
-            u8* prevBuf = static_cast<u8*>(heap::Heap::alloc(bytesPerCluster));
+            u8* prevBuf = static_cast<u8*>(heap::alloc(bytesPerCluster));
             if (prevBuf) {
                 if (readCluster(prevCluster, prevBuf)) {
                     u32 epc = bytesPerCluster / sizeof(DirEntry);
@@ -848,14 +848,14 @@ bool Fat32Filesystem::removeEntry(u32 dirCluster, const char* name) {
                     }
                     writeCluster(prevCluster, prevBuf);
                 }
-                heap::Heap::free(prevBuf);
+                heap::free(prevBuf);
             }
         }
     }
 
     writeCluster(entryCluster, clusterBuf);
     flushFat();
-    heap::Heap::free(clusterBuf);
+    heap::free(clusterBuf);
     return true;
 }
 
@@ -960,13 +960,13 @@ u32 Fat32Filesystem::open(const char* path, bool create) {
         }
 
         // Read back the created entry.
-        u8* sectorBuf = static_cast<u8*>(heap::Heap::alloc(bytesPerCluster));
+        u8* sectorBuf = static_cast<u8*>(heap::alloc(bytesPerCluster));
         if (!sectorBuf) return 0;
         readCluster(ec, sectorBuf);
         DirEntry* entries = reinterpret_cast<DirEntry*>(sectorBuf);
         u32 idx = eo / sizeof(DirEntry);
         mem::copy(&entry, &entries[idx], sizeof(DirEntry));
-        heap::Heap::free(sectorBuf);
+        heap::free(sectorBuf);
 
         cluster = (static_cast<u32>(entry.firstClusterHigh) << 16) |
                    static_cast<u32>(entry.firstClusterLow);
@@ -1010,7 +1010,7 @@ i32 Fat32Filesystem::read(u32 handle, u32 offset, u8* buf, u32 len) {
     u32 available = fh.size - offset;
     u32 toRead = (len < available) ? len : available;
 
-    u8* clusterBuf = static_cast<u8*>(heap::Heap::alloc(bytesPerCluster));
+    u8* clusterBuf = static_cast<u8*>(heap::alloc(bytesPerCluster));
     if (!clusterBuf) return -1;
 
     u32 bytesRead = 0;
@@ -1020,7 +1020,7 @@ i32 Fat32Filesystem::read(u32 handle, u32 offset, u8* buf, u32 len) {
         if (cluster == 0 || cluster >= FAT_EOC) break;
 
         if (!readCluster(cluster, clusterBuf)) {
-            heap::Heap::free(clusterBuf);
+            heap::free(clusterBuf);
             return -1;
         }
 
@@ -1033,7 +1033,7 @@ i32 Fat32Filesystem::read(u32 handle, u32 offset, u8* buf, u32 len) {
         bytesRead += chunk;
     }
 
-    heap::Heap::free(clusterBuf);
+    heap::free(clusterBuf);
     return static_cast<i32>(bytesRead);
 }
 
@@ -1042,7 +1042,7 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
     FileHandle& fh = handles[handle - 1];
     if (!fh.inUse) return false;
 
-    u8* clusterBuf = static_cast<u8*>(heap::Heap::alloc(bytesPerCluster));
+    u8* clusterBuf = static_cast<u8*>(heap::alloc(bytesPerCluster));
     if (!clusterBuf) return false;
 
     // Truncate to zero: free all clusters.
@@ -1052,7 +1052,7 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
         fh.size = 0;
 
         if (!readCluster(fh.dirCluster, clusterBuf)) {
-            heap::Heap::free(clusterBuf);
+            heap::free(clusterBuf);
             return false;
         }
         DirEntry* entries = reinterpret_cast<DirEntry*>(clusterBuf);
@@ -1062,7 +1062,7 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
         entries[idx].firstClusterLow = 0;
         writeCluster(fh.dirCluster, clusterBuf);
         flushFat();
-        heap::Heap::free(clusterBuf);
+        heap::free(clusterBuf);
         return true;
     }
 
@@ -1070,7 +1070,7 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
     if (fh.startCluster < 2 && len > 0) {
         u32 newCluster = allocateCluster();
         if (newCluster == 0) {
-            heap::Heap::free(clusterBuf);
+            heap::free(clusterBuf);
             return false;
         }
         fh.startCluster = newCluster;
@@ -1086,7 +1086,7 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
             // Need another cluster.
             u32 newCluster = allocateCluster();
             if (newCluster == 0) {
-                heap::Heap::free(clusterBuf);
+                heap::free(clusterBuf);
                 return false;
             }
             if (prevCluster >= 2) {
@@ -1128,7 +1128,7 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
     fh.size = len;
 
     if (!readCluster(fh.dirCluster, clusterBuf)) {
-        heap::Heap::free(clusterBuf);
+        heap::free(clusterBuf);
         return false;
     }
 
@@ -1141,7 +1141,7 @@ bool Fat32Filesystem::write(u32 handle, const u8* data, u32 len) {
     writeCluster(fh.dirCluster, clusterBuf);
     flushFat();
 
-    heap::Heap::free(clusterBuf);
+    heap::free(clusterBuf);
     return true;
 }
 

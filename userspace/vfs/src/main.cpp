@@ -37,7 +37,7 @@ extern "C" void _start() {
 
     // Data buffer for IPC messages -- large enough for file I/O.
     constexpr u32 BUF_SIZE = 4096;
-    u8* dataBuf = static_cast<u8*>(heap::Heap::alloc(BUF_SIZE));
+    u8* dataBuf = static_cast<u8*>(heap::alloc(BUF_SIZE));
 
     while (true) {
         ipc::Message msg;

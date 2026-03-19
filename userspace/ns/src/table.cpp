@@ -21,7 +21,7 @@ u32 NsTable::registerName(const char* name, u32 pid) {
         return 0;
     }
 
-    void* mem = heap::Heap::alloc(sizeof(Entry));
+    void* mem = heap::alloc(sizeof(Entry));
     if (!mem) {
         return 0;
     }

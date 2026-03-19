@@ -30,6 +30,51 @@ static void userspace_write(const char* buf, u32 len) {
     os::write(2, buf, len);
 }
 
+// --- Userspace heap tests ---
+
+TEST(userheap_alloc_returns_non_null) {
+    void* ptr = heap::alloc(64);
+    ASSERT(ptr != nullptr);
+    heap::free(ptr);
+}
+
+TEST(userheap_alloc_zero_returns_null) {
+    void* ptr = heap::alloc(0);
+    ASSERT(ptr == nullptr);
+}
+
+TEST(userheap_alloc_different_addresses) {
+    void* a = heap::alloc(32);
+    void* b = heap::alloc(32);
+    ASSERT(a != nullptr);
+    ASSERT(b != nullptr);
+    ASSERT(a != b);
+    heap::free(b);
+    heap::free(a);
+}
+
+TEST(userheap_free_and_realloc) {
+    void* a = heap::alloc(64);
+    ASSERT(a != nullptr);
+    heap::free(a);
+    void* b = heap::alloc(64);
+    ASSERT(b != nullptr);
+    ASSERT_EQ((u32)a, (u32)b);
+    heap::free(b);
+}
+
+TEST(userheap_write_and_read) {
+    u32* arr = (u32*)heap::alloc(10 * sizeof(u32));
+    ASSERT(arr != nullptr);
+    for (u32 i = 0; i < 10; i++) {
+        arr[i] = i * 7;
+    }
+    for (u32 i = 0; i < 10; i++) {
+        ASSERT_EQ(arr[i], i * 7);
+    }
+    heap::free(arr);
+}
+
 extern "C" void _start() {
     ctors();
 
