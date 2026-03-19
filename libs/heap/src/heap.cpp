@@ -12,13 +12,13 @@
 
 using namespace std;
 
-alloc::HeapAllocator* heap::Heap::allocator = nullptr;
+static alloc::HeapAllocator* allocator = nullptr;
 
 alignas(alloc::HeapAllocator) static u8 heap_storage[sizeof(alloc::HeapAllocator)];
 
 static constexpr u32 INITIAL_HEAP_SIZE = 4096;
 
-void* heap::Heap::alloc(usize size) {
+void* heap::alloc(usize size) {
     if (!allocator) {
         void* base = os::sbrk(INITIAL_HEAP_SIZE);
         if (!base) {
@@ -44,7 +44,7 @@ void* heap::Heap::alloc(usize size) {
     return allocator->allocate(size);
 }
 
-void heap::Heap::free(void* ptr) {
+void heap::free(void* ptr) {
     if (allocator) {
         allocator->free(ptr);
     }
@@ -53,25 +53,25 @@ void heap::Heap::free(void* ptr) {
 // Global operator new/delete for userspace programs.
 
 void* operator new(usize size) {
-    return heap::Heap::alloc(size);
+    return heap::alloc(size);
 }
 
 void* operator new[](usize size) {
-    return heap::Heap::alloc(size);
+    return heap::alloc(size);
 }
 
 void operator delete(void* ptr) {
-    heap::Heap::free(ptr);
+    heap::free(ptr);
 }
 
 void operator delete[](void* ptr) {
-    heap::Heap::free(ptr);
+    heap::free(ptr);
 }
 
 void operator delete(void* ptr, usize) {
-    heap::Heap::free(ptr);
+    heap::free(ptr);
 }
 
 void operator delete[](void* ptr, usize) {
-    heap::Heap::free(ptr);
+    heap::free(ptr);
 }

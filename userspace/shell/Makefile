@@ -2,13 +2,12 @@ SERVICE = shell
 SOURCES = main.cpp shell.cpp commands/system.cpp commands/navigation.cpp commands/file.cpp
 
 ROOT     := $(dir $(lastword $(MAKEFILE_LIST)))../..
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -I$(ROOT)/common/include/ -I$(ROOT)/userspace/libs/libcassio/include/ -Iinclude/ $(foreach dir,$(wildcard $(ROOT)/libs/*/include),-I$(dir)) -MMD -MP
+CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -Iinclude/ $(foreach dir,$(wildcard $(ROOT)/libs/*/include),-I$(dir)) -MMD -MP
 LDFLAGS  = -melf_i386
 
 OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
 BINDIR   = $(ROOT)/bin
 OUTPUT   = $(BINDIR)/$(SERVICE).elf
-LIBCOMMON   = $(ROOT)/lib/libcommon.a
 LIBSTD_MEM  = $(ROOT)/lib/libstd_mem.a
 LIBSTD_STR  = $(ROOT)/lib/libstd_str.a
 LIBSTD_ALLOC = $(ROOT)/lib/libstd_alloc.a
@@ -23,9 +22,9 @@ LIBSTD_FMT  = $(ROOT)/lib/libstd_fmt.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_FMT)
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_FMT)
 	@mkdir -p $(BINDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_FMT) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_FMT) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
