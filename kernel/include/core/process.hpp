@@ -13,6 +13,7 @@
 #include <std/types.hpp>
 #include <std/ipc.hpp>
 #include <std/collections/list.hpp>
+#include <std/ptr.hpp>
 
 namespace cassio {
 namespace kernel {
@@ -37,7 +38,7 @@ struct Process {
     struct NotifyNode {
         std::u32 senderPid;
         std::ipc::Message msg;
-        std::u8* data;      // Heap-allocated copy of sender's bulk data (nullptr if none).
+        std::ptr::Box<std::u8[]> data;  // Heap-allocated copy of sender's bulk data.
         std::u32 dataLen;   // Length of copied data.
         NotifyNode* next;
     };

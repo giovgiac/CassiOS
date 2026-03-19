@@ -876,16 +876,16 @@ bool Fat32Filesystem::removeEntry(u32 dirCluster, const char* name) {
 // ---------------------------------------------------------------------------
 
 bool Fat32Filesystem::mount() {
-    ata = new ata::Ata();
+    ata = ptr::Box<ata::Ata>(new ata::Ata());
 
     // Heap-allocate handles and cache.
-    handles = new FileHandle[MAX_HANDLES];
+    handles = ptr::Box<FileHandle[]>(new FileHandle[MAX_HANDLES]);
     if (!handles) return false;
     for (u32 i = 0; i < MAX_HANDLES; i++) {
         handles[i].inUse = false;
     }
 
-    cache = new CacheEntry[CACHE_SIZE];
+    cache = ptr::Box<CacheEntry[]>(new CacheEntry[CACHE_SIZE]);
     if (!cache) return false;
     cacheAge = 0;
     for (u32 i = 0; i < CACHE_SIZE; i++) {

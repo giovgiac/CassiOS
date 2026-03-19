@@ -85,15 +85,15 @@ bool Process::notifyPush(u32 senderPid, const ipc::Message& m,
     }
     node->senderPid = senderPid;
     copyMsg(m, node->msg);
-    node->data = nullptr;
     node->dataLen = 0;
     if (data != nullptr && dataLen > 0) {
-        node->data = static_cast<u8*>(operator new(dataLen));
-        if (!node->data) {
+        u8* buf = static_cast<u8*>(operator new(dataLen));
+        if (!buf) {
             delete node;
             return false;
         }
-        mem::copy(node->data, data, dataLen);
+        mem::copy(buf, data, dataLen);
+        node->data = ptr::Box<u8[]>(buf);
         node->dataLen = dataLen;
     }
     notifyQueue.pushBack(node);
@@ -108,13 +108,12 @@ bool Process::notifyPop(u32& senderPid, ipc::Message& m,
     }
     senderPid = node->senderPid;
     copyMsg(node->msg, m);
-    if (node->data != nullptr && node->dataLen > 0 &&
+    if (node->data && node->dataLen > 0 &&
         dataDst != nullptr && dataCapacity > 0) {
         u32 copyLen = node->dataLen < dataCapacity ? node->dataLen : dataCapacity;
-        mem::copy(dataDst, node->data, copyLen);
+        mem::copy(dataDst, node->data.get(), copyLen);
     }
-    operator delete(node->data);
-    delete node;
+    delete node;  // Box<u8[]> data freed automatically.
     return true;
 }
 
@@ -261,8 +260,7 @@ void ProcessManager::destroy(u32 pid) {
     // Drain notify queue.
     while (!p->notifyQueue.isEmpty()) {
         Process::NotifyNode* node = p->notifyQueue.popFront();
-        operator delete(node->data);
-        delete node;
+        delete node;  // Box<u8[]> data freed automatically.
     }
 
     // Free the user address space (page directory, page tables, user frames).

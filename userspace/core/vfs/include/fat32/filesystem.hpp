@@ -12,6 +12,7 @@
 
 #include <std/types.hpp>
 #include <std/ata.hpp>
+#include <std/ptr.hpp>
 #include <fat32/types.hpp>
 
 namespace cassio {
@@ -33,7 +34,7 @@ struct FileHandle {
 
 class Fat32Filesystem {
 private:
-    std::ata::Ata* ata;
+    std::ptr::Box<std::ata::Ata> ata;
 
     // BPB-derived layout.
     std::u32 bytesPerSector;
@@ -51,7 +52,7 @@ private:
     std::u32 fatEntryCount;
 
     // Handle table (heap-allocated).
-    FileHandle* handles;
+    std::ptr::Box<FileHandle[]> handles;
 
     // Sector cache (LRU, heap-allocated).
     struct CacheEntry {
@@ -61,7 +62,7 @@ private:
         bool valid;
         bool dirty;
     };
-    CacheEntry* cache;
+    std::ptr::Box<CacheEntry[]> cache;
     std::u32 cacheAge;
 
     // Sector I/O (cached).
