@@ -10,7 +10,7 @@
 #include <test.hpp>
 #include <ns.hpp>
 #include <vfs.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -29,7 +29,7 @@ TEST(vfs_ipc_mkdir_and_list) {
         if (!Vfs::list(pid, "/", i, name, sizeof(name))) {
             break;
         }
-        if (streq(name, "testdir")) {
+        if (str::eq(name, "testdir")) {
             found = true;
             break;
         }
@@ -72,7 +72,7 @@ TEST(vfs_ipc_delete_file) {
         if (!Vfs::list(pid, "/", i, name, sizeof(name))) {
             break;
         }
-        ASSERT(!streq(name, "delme"));
+        ASSERT(!str::eq(name, "delme"));
     }
 }
 
@@ -90,7 +90,7 @@ TEST(vfs_ipc_remove_directory) {
         if (!Vfs::list(pid, "/", i, name, sizeof(name))) {
             break;
         }
-        ASSERT(!streq(name, "rmdir"));
+        ASSERT(!str::eq(name, "rmdir"));
     }
 }
 
@@ -116,7 +116,7 @@ TEST(vfs_ipc_long_path) {
         if (!Vfs::list(pid, "/longdir/subdir", i, name, sizeof(name))) {
             break;
         }
-        if (streq(name, "file")) {
+        if (str::eq(name, "file")) {
             found = true;
             break;
         }
@@ -223,7 +223,7 @@ TEST(vfs_ipc_empty_file_in_subdir) {
     u32 count = 0;
     for (u32 i = 0; i < 32; i++) {
         if (!Vfs::list(pid, "/subtest", i, name, sizeof(name))) break;
-        if (streq(name, "file.txt")) count++;
+        if (str::eq(name, "file.txt")) count++;
     }
     ASSERT_EQ(count, 1u);
 }

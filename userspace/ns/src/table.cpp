@@ -8,7 +8,7 @@
  */
 
 #include <table.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 #include <userheap.hpp>
 
 using namespace cassio;
@@ -27,7 +27,7 @@ u32 NsTable::registerName(const char* name, u32 pid) {
     }
 
     Entry* entry = (Entry*)mem;
-    strcpy(entry->name, name, MAX_NAME_LEN + 1);
+    str::copy(entry->name, name, MAX_NAME_LEN + 1);
     entry->pid = pid;
     entries.pushFront(entry);
     return 1;
@@ -35,7 +35,7 @@ u32 NsTable::registerName(const char* name, u32 pid) {
 
 u32 NsTable::lookup(const char* name) {
     for (Entry* e = entries.getHead(); e; e = e->next) {
-        if (streq(e->name, name)) {
+        if (str::eq(e->name, name)) {
             return e->pid;
         }
     }
@@ -45,7 +45,7 @@ u32 NsTable::lookup(const char* name) {
 u32 NsTable::listAll(NsEntry* buf, u32 maxEntries) const {
     u32 count = 0;
     for (Entry* e = entries.getHead(); e && count < maxEntries; e = e->next) {
-        strcpy(buf[count].name, e->name, 20);
+        str::copy(buf[count].name, e->name, 20);
         buf[count].pid = e->pid;
         ++count;
     }

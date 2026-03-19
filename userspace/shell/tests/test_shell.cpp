@@ -8,7 +8,7 @@
  */
 
 #include <shell.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 #include <test.hpp>
 
 using namespace cassio;
@@ -21,7 +21,7 @@ TEST(shell_parse_args_single_word) {
     const char* args[16];
     u8 argc = Shell::parseArgs(buf, 4, args, 16);
     ASSERT_EQ(static_cast<u32>(argc), 1u);
-    ASSERT(streq(args[0], "help"));
+    ASSERT(str::eq(args[0], "help"));
 }
 
 TEST(shell_parse_args_multiple) {
@@ -29,9 +29,9 @@ TEST(shell_parse_args_multiple) {
     const char* args[16];
     u8 argc = Shell::parseArgs(buf, 15, args, 16);
     ASSERT_EQ(static_cast<u32>(argc), 3u);
-    ASSERT(streq(args[0], "write"));
-    ASSERT(streq(args[1], "foo"));
-    ASSERT(streq(args[2], "hello"));
+    ASSERT(str::eq(args[0], "write"));
+    ASSERT(str::eq(args[1], "foo"));
+    ASSERT(str::eq(args[2], "hello"));
 }
 
 TEST(shell_parse_args_leading_spaces) {
@@ -39,7 +39,7 @@ TEST(shell_parse_args_leading_spaces) {
     const char* args[16];
     u8 argc = Shell::parseArgs(buf, 4, args, 16);
     ASSERT_EQ(static_cast<u32>(argc), 1u);
-    ASSERT(streq(args[0], "ls"));
+    ASSERT(str::eq(args[0], "ls"));
 }
 
 TEST(shell_parse_args_trailing_spaces) {
@@ -47,7 +47,7 @@ TEST(shell_parse_args_trailing_spaces) {
     const char* args[16];
     u8 argc = Shell::parseArgs(buf, 4, args, 16);
     ASSERT_EQ(static_cast<u32>(argc), 1u);
-    ASSERT(streq(args[0], "ls"));
+    ASSERT(str::eq(args[0], "ls"));
 }
 
 TEST(shell_parse_args_empty) {
@@ -62,8 +62,8 @@ TEST(shell_parse_args_max_limit) {
     const char* args[2];
     u8 argc = Shell::parseArgs(buf, 5, args, 2);
     ASSERT_EQ(static_cast<u32>(argc), 2u);
-    ASSERT(streq(args[0], "a"));
-    ASSERT(streq(args[1], "b"));
+    ASSERT(str::eq(args[0], "a"));
+    ASSERT(str::eq(args[1], "b"));
 }
 
 // --- resolvePath tests ---
@@ -71,25 +71,25 @@ TEST(shell_parse_args_max_limit) {
 TEST(shell_resolve_path_absolute) {
     char out[20];
     Shell::resolvePath("/", "/foo", out, 20);
-    ASSERT(streq(out, "/foo"));
+    ASSERT(str::eq(out, "/foo"));
 }
 
 TEST(shell_resolve_path_relative_from_root) {
     char out[20];
     Shell::resolvePath("/", "foo", out, 20);
-    ASSERT(streq(out, "/foo"));
+    ASSERT(str::eq(out, "/foo"));
 }
 
 TEST(shell_resolve_path_relative_from_subdir) {
     char out[20];
     Shell::resolvePath("/bar", "foo", out, 20);
-    ASSERT(streq(out, "/bar/foo"));
+    ASSERT(str::eq(out, "/bar/foo"));
 }
 
 TEST(shell_resolve_path_absolute_ignores_cwd) {
     char out[20];
     Shell::resolvePath("/bar", "/foo", out, 20);
-    ASSERT(streq(out, "/foo"));
+    ASSERT(str::eq(out, "/foo"));
 }
 
 // --- parentDir tests ---
@@ -97,17 +97,17 @@ TEST(shell_resolve_path_absolute_ignores_cwd) {
 TEST(shell_parent_dir_root) {
     char path[20] = "/";
     Shell::parentDir(path);
-    ASSERT(streq(path, "/"));
+    ASSERT(str::eq(path, "/"));
 }
 
 TEST(shell_parent_dir_one_level) {
     char path[20] = "/foo";
     Shell::parentDir(path);
-    ASSERT(streq(path, "/"));
+    ASSERT(str::eq(path, "/"));
 }
 
 TEST(shell_parent_dir_two_levels) {
     char path[20] = "/foo/bar";
     Shell::parentDir(path);
-    ASSERT(streq(path, "/foo"));
+    ASSERT(str::eq(path, "/foo"));
 }

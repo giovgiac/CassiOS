@@ -12,7 +12,7 @@
 #include <vga.hpp>
 #include <system.hpp>
 #include <ns.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -109,7 +109,7 @@ void Shell::cmdPs() {
 
         // NAME (left-aligned, 9 chars).
         print(name);
-        u32 nameLen = strlen(name);
+        u32 nameLen = str::len(name);
         for (u32 pad = nameLen; pad < 9; ++pad) {
             putchar(' ');
         }
@@ -118,7 +118,7 @@ void Shell::cmdPs() {
         // STATE (left-aligned, 14 chars).
         const char* state = stateStr(procs[i].state);
         print(state);
-        u32 stateLen = strlen(state);
+        u32 stateLen = str::len(state);
         for (u32 pad = stateLen; pad < 14; ++pad) {
             putchar(' ');
         }

@@ -25,6 +25,7 @@ DISK = bin/disk.img
 LIBCOMMON = lib/libcommon.a
 LIBCASSIO = lib/libcassio.a
 LIBSTD_MEM = lib/libstd_mem.a
+LIBSTD_STR = lib/libstd_str.a
 
 
 # Discover all source files automatically.
@@ -89,29 +90,32 @@ $(LIBCASSIO): $(cassio_lib_objects)
 $(LIBSTD_MEM):
 	$(MAKE) -C libs/mem
 
-kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON) $(LIBSTD_MEM)
-	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_MEM) $(LIBCOMMON)
+$(LIBSTD_STR):
+	$(MAKE) -C libs/str
 
-$(NAMESERVER): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBCASSIO)
+kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR)
+	@mkdir -p bin
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+
+$(NAMESERVER): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBCASSIO)
 	$(MAKE) -C userspace/ns
 
-$(KBD): $(LIBCOMMON) $(LIBSTD_MEM)
+$(KBD): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR)
 	$(MAKE) -C userspace/drivers/kbd
 
-$(VGA): $(LIBCOMMON) $(LIBSTD_MEM)
+$(VGA): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR)
 	$(MAKE) -C userspace/drivers/vga
 
-$(VFS): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBCASSIO)
+$(VFS): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBCASSIO)
 	$(MAKE) -C userspace/vfs
 
-$(MOUSE): $(LIBCOMMON) $(LIBSTD_MEM)
+$(MOUSE): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR)
 	$(MAKE) -C userspace/drivers/mouse
 
-$(ATA): $(LIBCOMMON) $(LIBSTD_MEM)
+$(ATA): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR)
 	$(MAKE) -C userspace/drivers/ata
 
-$(USERSHELL): $(LIBCOMMON) $(LIBSTD_MEM)
+$(USERSHELL): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR)
 	$(MAKE) -C userspace/shell
 
 # Compile test files from the kernel/tests/ directory.
@@ -123,18 +127,18 @@ obj/libs/%.o: libs/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ -Icommon/include/ $(STD_INCLUDES)
 
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBCOMMON) $(LIBSTD_MEM)
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 # Compile userspace test files (runner + service tests + service impls).
 obj/userspace/usertest/%.o: userspace/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
 
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBCASSIO)
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBCASSIO)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
 $(DISK): $(disk_files)

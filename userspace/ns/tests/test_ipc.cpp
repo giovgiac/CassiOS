@@ -1,6 +1,6 @@
 #include <test.hpp>
 #include <ns.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -59,7 +59,7 @@ TEST(ns_ipc_list_all_contains_known_service) {
 
     bool found = false;
     for (u32 i = 0; i < count; ++i) {
-        if (streq(buf[i].name, "kbd")) {
+        if (str::eq(buf[i].name, "kbd")) {
             found = true;
             break;
         }

@@ -8,7 +8,7 @@
  */
 
 #include <shell.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 #include <vfs.hpp>
 
 using namespace cassio;
@@ -19,7 +19,7 @@ void Shell::cmdLs(const char** args, u8 argc) {
     if (argc > 1) {
         resolvePath(cwd, args[1], path, SHELL_MAX_PATH);
     } else {
-        strcpy(path, cwd, SHELL_MAX_PATH);
+        str::copy(path, cwd, SHELL_MAX_PATH);
     }
 
     if (Vfs::stat(vfsPid, path) != 2) {
@@ -46,7 +46,7 @@ void Shell::cmdCd(const char** args, u8 argc) {
         return;
     }
 
-    if (streq(args[1], "..")) {
+    if (str::eq(args[1], "..")) {
         parentDir(cwd);
         return;
     }
@@ -61,7 +61,7 @@ void Shell::cmdCd(const char** args, u8 argc) {
         return;
     }
 
-    strcpy(cwd, path, SHELL_MAX_PATH);
+    str::copy(cwd, path, SHELL_MAX_PATH);
 }
 
 void Shell::cmdPwd() {

@@ -8,7 +8,7 @@
  */
 
 #include <shell.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 #include <vfs.hpp>
 
 using namespace cassio;

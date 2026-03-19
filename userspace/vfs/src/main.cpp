@@ -16,7 +16,7 @@
 #include <ns.hpp>
 #include <system.hpp>
 #include <userheap.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 #include <fat32/filesystem.hpp>
 
 using namespace cassio;
@@ -102,7 +102,7 @@ extern "C" void _start() {
             if (fs.listEntry(reinterpret_cast<char*>(dataBuf), index,
                              name, sizeof(name))) {
                 reply.arg1 = 1;
-                u32 nameLen = strlen(name);
+                u32 nameLen = str::len(name);
                 if (sender > 0) {
                     IPC::reply(static_cast<u32>(sender), &reply,
                                name, nameLen + 1);

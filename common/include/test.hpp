@@ -14,11 +14,9 @@
 #define COMMON_TEST_HPP_
 
 #include <std/types.hpp>
-#include <string.hpp>
+#include <std/str.hpp>
 
 namespace test {
-
-using namespace cassio;
 
 using WriteFn = void(*)(const char* buf, std::u32 len);
 
@@ -36,7 +34,7 @@ inline void init(WriteFn fn) {
 }
 
 inline void serial_puts(const char* s) {
-    write_fn(s, strlen(s));
+    write_fn(s, std::str::len(s));
 }
 
 inline void serial_putchar(char c) {
