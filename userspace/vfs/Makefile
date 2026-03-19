@@ -11,13 +11,15 @@ OUTPUT   = $(BINDIR)/$(SERVICE).elf
 LIBCOMMON   = $(ROOT)/lib/libcommon.a
 LIBSTD_MEM  = $(ROOT)/lib/libstd_mem.a
 LIBSTD_STR  = $(ROOT)/lib/libstd_str.a
+LIBSTD_ALLOC = $(ROOT)/lib/libstd_alloc.a
+LIBSTD_HEAP = $(ROOT)/lib/libstd_heap.a
 LIBCASSIO   = $(ROOT)/lib/libcassio.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBCASSIO)
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBCASSIO)
 	@mkdir -p $(BINDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBCASSIO) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBCASSIO) $(LIBSTD_HEAP) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)

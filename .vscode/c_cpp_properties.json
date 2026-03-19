@@ -11,6 +11,8 @@
                 "${workspaceFolder}/libs/collections/include",
                 "${workspaceFolder}/libs/io/include",
                 "${workspaceFolder}/libs/msg/include",
+                "${workspaceFolder}/libs/alloc/include",
+                "${workspaceFolder}/libs/heap/include",
                 "${workspaceFolder}/userspace/**/include",
                 "${workspaceFolder}/kernel/tests"
             ],

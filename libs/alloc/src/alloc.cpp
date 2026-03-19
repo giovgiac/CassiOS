@@ -1,5 +1,5 @@
 /**
- * heap.cpp -- generic heap allocator
+ * alloc.cpp -- generic heap allocator
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,14 +7,13 @@
  *
  */
 
-#include <heap.hpp>
+#include <std/alloc.hpp>
 
-using namespace cassio;
 using namespace std;
 
-static constexpr u32 MIN_BLOCK_SIZE = sizeof(BlockHeader) + 4;
+static constexpr u32 MIN_BLOCK_SIZE = sizeof(alloc::BlockHeader) + 4;
 
-HeapAllocator::HeapAllocator(void* base, u32 size)
+alloc::HeapAllocator::HeapAllocator(void* base, u32 size)
     : head(nullptr), regionStart(nullptr), regionEnd(nullptr) {
     if (!base || size <= sizeof(BlockHeader)) {
         return;
@@ -29,7 +28,7 @@ HeapAllocator::HeapAllocator(void* base, u32 size)
     regionEnd = (u8*)base + size;
 }
 
-void* HeapAllocator::allocate(usize size) {
+void* alloc::HeapAllocator::allocate(usize size) {
     if (size == 0) {
         return nullptr;
     }
@@ -61,7 +60,7 @@ void* HeapAllocator::allocate(usize size) {
     return nullptr;
 }
 
-void HeapAllocator::free(void* ptr) {
+void alloc::HeapAllocator::free(void* ptr) {
     if (!ptr) {
         return;
     }
@@ -94,7 +93,7 @@ void HeapAllocator::free(void* ptr) {
     }
 }
 
-void HeapAllocator::extend(u32 additionalSize) {
+void alloc::HeapAllocator::extend(u32 additionalSize) {
     if (additionalSize <= sizeof(BlockHeader) || !head) {
         return;
     }

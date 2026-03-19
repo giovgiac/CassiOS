@@ -15,7 +15,7 @@
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
-#include <userheap.hpp>
+#include <std/heap.hpp>
 #include <std/str.hpp>
 #include <fat32/filesystem.hpp>
 
@@ -30,7 +30,7 @@ static void* sbrkGrow(u32 size) {
 static Fat32Filesystem fs;
 
 extern "C" void _start() {
-    UserHeap::init(sbrkGrow, 4096);
+    heap::Heap::init(sbrkGrow, 4096);
     Nameserver::registerName("vfs");
 
     u32 ataPid = Nameserver::lookup("ata");
@@ -44,7 +44,7 @@ extern "C" void _start() {
 
     // Data buffer for IPC messages -- large enough for file I/O.
     constexpr u32 BUF_SIZE = 4096;
-    u8* dataBuf = static_cast<u8*>(UserHeap::alloc(BUF_SIZE));
+    u8* dataBuf = static_cast<u8*>(heap::Heap::alloc(BUF_SIZE));
 
     while (true) {
         msg::Message msg;

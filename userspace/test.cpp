@@ -12,7 +12,7 @@
 
 #include <test.hpp>
 #include <system.hpp>
-#include <userheap.hpp>
+#include <std/heap.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -38,7 +38,7 @@ static void* sbrkGrow(u32 size) {
 extern "C" void _start() {
     ctors();
 
-    UserHeap::init(sbrkGrow, 4096);
+    heap::Heap::init(sbrkGrow, 4096);
 
     test::init(userspace_write);
     u32 failed = test::run();
