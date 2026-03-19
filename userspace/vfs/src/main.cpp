@@ -12,7 +12,7 @@
 
 #include <std/types.hpp>
 #include <std/ipc.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <std/os.hpp>
 #include <std/heap.hpp>
 #include <std/str.hpp>
@@ -25,9 +25,9 @@ using namespace cassio::vfs;
 static Fat32Filesystem fs;
 
 extern "C" void _start() {
-    Nameserver::registerName("vfs");
+    ns::registerName("vfs");
 
-    u32 ataPid = Nameserver::lookup("ata");
+    u32 ataPid = ns::lookup("ata");
     if (!fs.mount(ataPid)) {
         // Mount failed -- hang.
         while (true) {

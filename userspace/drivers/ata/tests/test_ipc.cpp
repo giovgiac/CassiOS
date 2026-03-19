@@ -8,7 +8,7 @@
  */
 
 #include <std/test.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <std/ipc.hpp>
 #include <ata_client.hpp>
 
@@ -16,12 +16,12 @@ using namespace cassio;
 using namespace std;
 
 TEST(ata_ipc_service_registered) {
-    u32 pid = Nameserver::lookup("ata");
+    u32 pid = ns::lookup("ata");
     ASSERT(pid != 0);
 }
 
 TEST(ata_ipc_read_sector_succeeds) {
-    u32 pid = Nameserver::lookup("ata");
+    u32 pid = ns::lookup("ata");
     ASSERT(pid != 0);
 
     u8 buf[512];
@@ -30,7 +30,7 @@ TEST(ata_ipc_read_sector_succeeds) {
 }
 
 TEST(ata_ipc_write_then_read_sector) {
-    u32 pid = Nameserver::lookup("ata");
+    u32 pid = ns::lookup("ata");
     ASSERT(pid != 0);
 
     // Use an LBA within the 1 MiB test disk (2048 sectors).

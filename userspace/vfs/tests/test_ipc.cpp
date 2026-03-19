@@ -8,7 +8,7 @@
  */
 
 #include <std/test.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <vfs.hpp>
 #include <std/str.hpp>
 
@@ -16,7 +16,7 @@ using namespace cassio;
 using namespace std;
 
 TEST(vfs_ipc_mkdir_and_list) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     u32 ret = Vfs::mkdir(pid, "/testdir");
@@ -38,7 +38,7 @@ TEST(vfs_ipc_mkdir_and_list) {
 }
 
 TEST(vfs_ipc_open_write_read) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     u32 handle = Vfs::open(pid, "/hello", true);
@@ -59,7 +59,7 @@ TEST(vfs_ipc_open_write_read) {
 }
 
 TEST(vfs_ipc_delete_file) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     Vfs::open(pid, "/delme", true);
@@ -77,7 +77,7 @@ TEST(vfs_ipc_delete_file) {
 }
 
 TEST(vfs_ipc_remove_directory) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     Vfs::mkdir(pid, "/rmdir");
@@ -95,7 +95,7 @@ TEST(vfs_ipc_remove_directory) {
 }
 
 TEST(vfs_ipc_long_path) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     // Create a nested directory structure with path > 20 chars.
@@ -125,7 +125,7 @@ TEST(vfs_ipc_long_path) {
 }
 
 TEST(vfs_ipc_large_write_read) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     u32 handle = Vfs::open(pid, "/bigfile", true);
@@ -148,7 +148,7 @@ TEST(vfs_ipc_large_write_read) {
 }
 
 TEST(vfs_ipc_remove_root_fails) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     u32 ret = Vfs::remove(pid, "/");
@@ -156,7 +156,7 @@ TEST(vfs_ipc_remove_root_fails) {
 }
 
 TEST(vfs_ipc_duplicate_name_fails) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     u32 ret = Vfs::mkdir(pid, "/dupdir");
@@ -167,7 +167,7 @@ TEST(vfs_ipc_duplicate_name_fails) {
 }
 
 TEST(vfs_ipc_remove_nonempty_dir_fails) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     Vfs::mkdir(pid, "/nonempty");
@@ -178,7 +178,7 @@ TEST(vfs_ipc_remove_nonempty_dir_fails) {
 }
 
 TEST(vfs_ipc_read_with_offset) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     u32 handle = Vfs::open(pid, "/offtest", true);
@@ -195,7 +195,7 @@ TEST(vfs_ipc_read_with_offset) {
 }
 
 TEST(vfs_ipc_empty_file_in_subdir) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     // Reproduce: mkdir, touch inside it, then open the empty file.
@@ -229,7 +229,7 @@ TEST(vfs_ipc_empty_file_in_subdir) {
 }
 
 TEST(vfs_ipc_open_nonexistent_fails) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     u32 handle = Vfs::open(pid, "/doesnotexist");
@@ -237,7 +237,7 @@ TEST(vfs_ipc_open_nonexistent_fails) {
 }
 
 TEST(vfs_ipc_dotdot_traversal) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     Vfs::mkdir(pid, "/dottest");
@@ -251,7 +251,7 @@ TEST(vfs_ipc_dotdot_traversal) {
 }
 
 TEST(vfs_ipc_dot_traversal) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     u32 handle = Vfs::open(pid, "/./README.TXT");
@@ -264,7 +264,7 @@ TEST(vfs_ipc_dot_traversal) {
 }
 
 TEST(vfs_ipc_seed_file_readable) {
-    u32 pid = Nameserver::lookup("vfs");
+    u32 pid = ns::lookup("vfs");
     ASSERT(pid != 0);
 
     // The build-time seed file README.TXT should exist.

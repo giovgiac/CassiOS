@@ -13,7 +13,7 @@
 
 #include <std/types.hpp>
 #include <std/ipc.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <std/os.hpp>
 #include <terminal.hpp>
 
@@ -23,7 +23,7 @@ using namespace std;
 static constexpr u32 VGA_PHYSICAL = 0xB8000;
 
 extern "C" void _start() {
-    Nameserver::registerName("vga");
+    ns::registerName("vga");
 
     // Map VGA buffer into our address space.
     os::mapDevice(VGA_PHYSICAL, VGA_PHYSICAL, 1);

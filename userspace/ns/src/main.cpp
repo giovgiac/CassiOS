@@ -12,7 +12,7 @@
 
 #include <std/types.hpp>
 #include <std/ipc.hpp>
-#include <ns.hpp>
+#include <std/ns.hpp>
 #include <std/os.hpp>
 #include <std/heap.hpp>
 #include <table.hpp>
@@ -25,7 +25,7 @@ static NsTable table;
 extern "C" void _start() {
 
     // Self-register (can't use IPC to send to ourselves).
-    table.registerName("ns", Nameserver::PID);
+    table.registerName("ns", ns::PID);
 
     while (true) {
         ipc::Message msg;
@@ -39,21 +39,21 @@ extern "C" void _start() {
 
         switch (msg.type) {
         case ipc::MessageType::NsRegister:
-            Nameserver::unpackName(msg, name);
+            ns::unpackName(msg, name);
             reply.arg1 = table.registerName(name, static_cast<u32>(sender));
             ipc::reply(static_cast<u32>(sender), &reply);
             break;
         case ipc::MessageType::NsLookup:
-            Nameserver::unpackName(msg, name);
+            ns::unpackName(msg, name);
             reply.arg1 = table.lookup(name);
             ipc::reply(static_cast<u32>(sender), &reply);
             break;
         case ipc::MessageType::NsListAll: {
-            NsEntry buf[16];
+            ns::Entry buf[16];
             u32 count = table.listAll(buf, 16);
             reply.arg1 = count;
             ipc::reply(static_cast<u32>(sender), &reply,
-                       buf, count * sizeof(NsEntry));
+                       buf, count * sizeof(ns::Entry));
             break;
         }
         default:

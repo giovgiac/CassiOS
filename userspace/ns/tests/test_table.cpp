@@ -52,7 +52,7 @@ TEST(ns_table_list_all_returns_entries) {
     table.registerName("vga", 3);
     table.registerName("kbd", 2);
 
-    NsEntry buf[8];
+    ns::Entry buf[8];
     u32 count = table.listAll(buf, 8);
     ASSERT_EQ(count, 2u);
 
@@ -69,7 +69,7 @@ TEST(ns_table_list_all_returns_entries) {
 
 TEST(ns_table_list_all_empty) {
     NsTable table;
-    NsEntry buf[8];
+    ns::Entry buf[8];
     u32 count = table.listAll(buf, 8);
     ASSERT_EQ(count, 0u);
 }
@@ -80,7 +80,7 @@ TEST(ns_table_list_all_respects_max) {
     table.registerName("b", 2);
     table.registerName("c", 3);
 
-    NsEntry buf[2];
+    ns::Entry buf[2];
     u32 count = table.listAll(buf, 2);
     ASSERT_EQ(count, 2u);
 }

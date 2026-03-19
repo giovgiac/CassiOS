@@ -15,13 +15,13 @@ LIBSTD_ALLOC = $(ROOT)/lib/libstd_alloc.a
 LIBSTD_HEAP = $(ROOT)/lib/libstd_heap.a
 LIBSTD_OS = $(ROOT)/lib/libstd_os.a
 LIBSTD_IPC = $(ROOT)/lib/libstd_ipc.a
-LIBCASSIO   = $(ROOT)/lib/libcassio.a
+LIBSTD_NS = $(ROOT)/lib/libstd_ns.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBCASSIO)
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	@mkdir -p $(BINDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBCASSIO) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)

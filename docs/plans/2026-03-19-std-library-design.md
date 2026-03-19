@@ -58,7 +58,7 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 |--------|-----|-----------|----------|
 | os | libstd_os.a | types | os::syscall constants, ProcEntry, TICK_FREQUENCY, free functions |
 | ipc | libstd_ipc.a | types, os | ipc::Message, ipc::MessageType, send/receive/reply/notify |
-| ns | libstd_ns.a | types, ipc | Nameserver client (lookup, register) |
+| ns | libstd_ns.a | types, ipc | ns::Entry, ns::packName/unpackName, ns::registerName/lookup/listAll |
 | vga | libstd_vga.a | types, ipc, ns | Vga instance class, auto-resolves PID |
 | vfs | libstd_vfs.a | types, ipc, ns | Vfs instance class, auto-resolves PID |
 | ata | libstd_ata.a | types, ipc, ns | Ata instance class, auto-resolves PID |
@@ -102,7 +102,7 @@ private:
 
 All service clients (Vga, Vfs, Ata, Kbd, Mouse) follow this pattern. The constructor calls `Nameserver::lookup()`, which blocks until the service is registered -- this naturally handles the "wait for service" startup ordering.
 
-The Ns (nameserver) module stays static since it always targets PID 1 (hardcoded).
+The Ns (nameserver) module uses free functions (not an instance class) since it always targets PID 1 (hardcoded). API: `ns::registerName()`, `ns::lookup()`, `ns::listAll()`, `ns::packName()`, `ns::unpackName()`.
 
 ## Build Integration
 
@@ -124,18 +124,18 @@ $(SHELL_ELF): $(objects) lib/libstd_types.a lib/libstd_ipc.a lib/libstd_vga.a li
 
 Incremental module-by-module migration (Approach B). Each PR creates one module, moves the code, updates all consumers, and removes the old source. Migration follows dependency order:
 
-1. `types`
-2. `mem`
-3. `str`
-4. `collections`
-5. `io`
-6. `msg` *(merged into ipc)*
-7. `heap`
-8. `fmt`
-9. `test`
-10. `os`
-11. `ipc` *(includes msg)*
-12. `ns`
+1. ~~`types`~~
+2. ~~`mem`~~
+3. ~~`str`~~
+4. ~~`collections`~~
+5. ~~`io`~~
+6. ~~`msg`~~ *(merged into ipc)*
+7. ~~`heap`~~
+8. ~~`fmt`~~
+9. ~~`test`~~
+10. ~~`os`~~
+11. ~~`ipc`~~ *(includes msg)*
+12. ~~`ns`~~ *(free functions, ns::Entry replaces NsEntry)*
 13. `vga`
 14. `vfs`
 15. `ata`
