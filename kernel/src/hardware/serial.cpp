@@ -42,20 +42,3 @@ void Serial::puts(const char* str) {
     }
 }
 
-void Serial::put_dec(u32 value) {
-    if (value == 0) {
-        putchar('0');
-        return;
-    }
-
-    char buf[10];
-    i32 len = 0;
-    while (value > 0) {
-        buf[len++] = '0' + (value % 10);
-        value /= 10;
-    }
-
-    for (i32 i = len - 1; i >= 0; --i) {
-        putchar(buf[i]);
-    }
-}

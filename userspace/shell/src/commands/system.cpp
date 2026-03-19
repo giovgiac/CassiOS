@@ -12,7 +12,7 @@
 #include <vga.hpp>
 #include <system.hpp>
 #include <ns.hpp>
-#include <std/str.hpp>
+#include <std/fmt.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -54,22 +54,14 @@ void Shell::cmdMem() {
     u32 total, used, free;
     System::memInfo(total, used, free);
 
+    char buf[48];
     print("Physical memory:\n");
-    print("  Total: ");
-    printDec(total * 4);
-    print(" KiB (");
-    printDec(total);
-    print(" frames)\n");
-    print("  Used:  ");
-    printDec(used * 4);
-    print(" KiB (");
-    printDec(used);
-    print(" frames)\n");
-    print("  Free:  ");
-    printDec(free * 4);
-    print(" KiB (");
-    printDec(free);
-    print(" frames)\n");
+    fmt::format(buf, sizeof(buf), "  Total: %u KiB (%u frames)\n", total * 4, total);
+    print(buf);
+    fmt::format(buf, sizeof(buf), "  Used:  %u KiB (%u frames)\n", used * 4, used);
+    print(buf);
+    fmt::format(buf, sizeof(buf), "  Free:  %u KiB (%u frames)\n", free * 4, free);
+    print(buf);
 }
 
 static const char* stateStr(u32 state) {
@@ -101,32 +93,11 @@ void Shell::cmdPs() {
             }
         }
 
-        // PID (right-aligned, 3 chars).
-        if (procs[i].pid < 10) print("  ");
-        else if (procs[i].pid < 100) print(" ");
-        printDec(procs[i].pid);
-        print("  ");
-
-        // NAME (left-aligned, 9 chars).
-        print(name);
-        u32 nameLen = str::len(name);
-        for (u32 pad = nameLen; pad < 9; ++pad) {
-            putchar(' ');
-        }
-        print("  ");
-
-        // STATE (left-aligned, 14 chars).
-        const char* state = stateStr(procs[i].state);
-        print(state);
-        u32 stateLen = str::len(state);
-        for (u32 pad = stateLen; pad < 14; ++pad) {
-            putchar(' ');
-        }
-        print("  ");
-
-        // HEAP (in KB).
-        printDec(procs[i].heapSize / 1024);
-        print(" KB\n");
+        char line[64];
+        fmt::format(line, sizeof(line), "%3u  %-9s  %-14s  %u KB\n",
+                    procs[i].pid, name, stateStr(procs[i].state),
+                    procs[i].heapSize / 1024);
+        print(line);
     }
 }
 
@@ -136,13 +107,9 @@ void Shell::cmdUptime() {
     u32 seconds = total_ms / 1000;
     u32 ms = total_ms % 1000;
 
-    print("Up ");
-    printDec(seconds);
-    putchar('.');
-    if (ms < 100) putchar('0');
-    if (ms < 10) putchar('0');
-    printDec(ms);
-    print("s\n");
+    char buf[32];
+    fmt::format(buf, sizeof(buf), "Up %u.%03us\n", seconds, ms);
+    print(buf);
 }
 
 void Shell::cmdReboot() {

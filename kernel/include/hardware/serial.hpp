@@ -26,7 +26,6 @@ public:
 
     void putchar(char ch);
     void puts(const char* str);
-    void put_dec(std::u32 value);
 
     Serial(const Serial&) = delete;
     Serial(Serial&&) = delete;
