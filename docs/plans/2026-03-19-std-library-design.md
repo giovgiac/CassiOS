@@ -63,7 +63,7 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 | vfs | libstd_vfs.a | types, ipc, ns | vfs::Vfs instance class (mkdir, remove, open, read, write, stat, list) |
 | ata | libstd_ata.a | types, ipc, ns | ata::Ata instance class (readSector, writeSector), ata::SECTOR_SIZE |
 | kbd | libstd_kbd.a | types, ipc, ns | kbd::Kbd instance class (read), kbd::KeyCode enum |
-| mouse | libstd_mouse.a | types, ipc, ns | Mouse instance class, auto-resolves PID (new) |
+| mouse | libstd_mouse.a | types, ipc, ns | mouse::Mouse instance class (read) |
 
 ## Service Client Redesign
 
@@ -140,7 +140,7 @@ Incremental module-by-module migration (Approach B). Each PR creates one module,
 14. ~~`vfs`~~ *(instance class, auto-resolves PID)*
 15. ~~`ata`~~ *(instance class, auto-resolves PID)*
 16. ~~`kbd`~~ *(instance class, auto-resolves PID, includes KeyCode enum)*
-17. `mouse`
+17. ~~`mouse`~~ *(instance class, auto-resolves PID)*
 18. Cleanup (delete empty `common/` and `userspace/libs/`)
 
 Each PR:
