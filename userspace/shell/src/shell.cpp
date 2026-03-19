@@ -10,6 +10,7 @@
 #include <shell.hpp>
 #include <std/str.hpp>
 #include <std/mem.hpp>
+#include <std/fmt.hpp>
 #include <keycode.hpp>
 #include <std/msg.hpp>
 #include <ipc.hpp>
@@ -39,29 +40,6 @@ void Shell::print(const char* str) {
 
 void Shell::putchar(char ch) {
     Vga::putchar(vgaPid, ch);
-}
-
-void Shell::printDec(u32 val) {
-    char tmp[12];
-    u32 pos = 0;
-
-    if (val == 0) {
-        print("0");
-        return;
-    }
-
-    while (val > 0 && pos < 11) {
-        tmp[pos++] = '0' + (val % 10);
-        val /= 10;
-    }
-
-    char buf[12];
-    u32 i = 0;
-    while (pos > 0) {
-        buf[i++] = tmp[--pos];
-    }
-    buf[i] = '\0';
-    print(buf);
 }
 
 // --- Prompt and line editing ---

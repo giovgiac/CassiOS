@@ -105,9 +105,9 @@ $(LIBSTD_HEAP):
 $(LIBSTD_FMT):
 	$(MAKE) -C libs/fmt
 
-kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC)
+kernel: kernel/src/linker.ld $(objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 $(NAMESERVER): $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBCASSIO)
 	$(MAKE) -C userspace/ns
@@ -148,9 +148,9 @@ obj/userspace/usertest/%.o: userspace/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
 
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBCASSIO)
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBCOMMON) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_FMT) $(LIBCASSIO)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBSTD_HEAP) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBCASSIO) $(LIBSTD_FMT) $(LIBSTD_HEAP) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM) $(LIBCOMMON)
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
 $(DISK): $(disk_files)

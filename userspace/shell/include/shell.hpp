@@ -35,7 +35,6 @@ private:
     // VGA helpers (use blocking send for ordering).
     void print(const char* str);
     void putchar(char ch);
-    void printDec(std::u32 val);
 
     void printPrompt();
     void redrawLine();

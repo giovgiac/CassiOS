@@ -15,6 +15,7 @@
 
 #include <std/types.hpp>
 #include <std/str.hpp>
+#include <std/fmt.hpp>
 
 namespace test {
 
@@ -42,30 +43,15 @@ inline void serial_putchar(char c) {
 }
 
 inline void serial_put_hex(std::u32 value) {
-    const char* hex = "0123456789ABCDEF";
-    serial_puts("0x");
-    for (std::i32 i = 28; i >= 0; i -= 4) {
-        serial_putchar(hex[(value >> i) & 0xF]);
-    }
+    char buf[12];
+    std::usize n = std::fmt::format(buf, sizeof(buf), "0x%X", value);
+    write_fn(buf, n);
 }
 
 inline void serial_put_dec(std::u32 value) {
-    if (value == 0) {
-        serial_putchar('0');
-        return;
-    }
     char buf[12];
-    std::i32 i = 0;
-    while (value > 0) {
-        buf[i++] = '0' + (value % 10);
-        value /= 10;
-    }
-    for (std::i32 j = 0; j < i / 2; j++) {
-        char tmp = buf[j];
-        buf[j] = buf[i - 1 - j];
-        buf[i - 1 - j] = tmp;
-    }
-    write_fn(buf, i);
+    std::usize n = std::fmt::format(buf, sizeof(buf), "%u", value);
+    write_fn(buf, n);
 }
 
 inline void serial_put_location(const char* file, int line) {
