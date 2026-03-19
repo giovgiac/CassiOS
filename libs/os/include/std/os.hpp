@@ -38,6 +38,9 @@ namespace syscall {
     constexpr u32 Count       = 15;
 }
 
+/** System tick frequency in Hz. Used to convert uptime() ticks to time. */
+constexpr u32 TICK_FREQUENCY = 1000;
+
 /** Process information returned by procList(). */
 struct ProcEntry {
     u32 pid;       ///< Process ID.
@@ -60,7 +63,7 @@ i32 sleep(u32 ms);
 
 /**
  * Return the number of PIT ticks since boot.
- * Divide by TICK_FREQUENCY (defined in timer.hpp) to get seconds.
+ * Divide by os::TICK_FREQUENCY to get seconds.
  */
 i32 uptime();
 

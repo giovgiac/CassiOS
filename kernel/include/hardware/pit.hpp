@@ -11,7 +11,7 @@
 #define HARDWARE_PIT_HPP_
 
 #include <std/types.hpp>
-#include <timer.hpp>
+#include <std/os.hpp>
 #include <hardware/irq.hpp>
 #include <std/io.hpp>
 
@@ -22,7 +22,7 @@ namespace hardware {
 constexpr std::u32 PIT_BASE_FREQUENCY = 1193182;
 
 // Target tick frequency derived from the shared system constant.
-constexpr std::u32 PIT_FREQUENCY = TICK_FREQUENCY;
+constexpr std::u32 PIT_FREQUENCY = std::os::TICK_FREQUENCY;
 
 // Divisor to achieve the target frequency.
 constexpr std::u16 PIT_DIVISOR = PIT_BASE_FREQUENCY / PIT_FREQUENCY;
