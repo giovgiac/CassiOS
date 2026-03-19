@@ -55,11 +55,6 @@ private:
     usize len;
 };
 
-// Legacy free functions -- retained for incremental migration.
-bool eq(const char* a, const char* b);
-void copy(char* dst, const char* src, usize max);
-usize len(const char* s);
-u32 to_u32(const char* s);
 
 }
 }
