@@ -4,6 +4,7 @@
 
 using namespace cassio;
 using namespace std;
+using str::StringView;
 
 TEST(ns_table_register_and_lookup) {
     NsTable table;
@@ -60,8 +61,8 @@ TEST(ns_table_list_all_returns_entries) {
     bool foundVga = false;
     bool foundKbd = false;
     for (u32 i = 0; i < count; ++i) {
-        if (str::eq(buf[i].name, "vga") && buf[i].pid == 3) foundVga = true;
-        if (str::eq(buf[i].name, "kbd") && buf[i].pid == 2) foundKbd = true;
+        if (StringView(buf[i].name) == "vga" && buf[i].pid == 3) foundVga = true;
+        if (StringView(buf[i].name) == "kbd" && buf[i].pid == 2) foundKbd = true;
     }
     ASSERT(foundVga);
     ASSERT(foundKbd);

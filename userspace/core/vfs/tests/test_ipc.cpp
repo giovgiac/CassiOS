@@ -12,6 +12,7 @@
 #include <std/str.hpp>
 
 using namespace std;
+using str::StringView;
 
 TEST(vfs_ipc_mkdir_and_list) {
     vfs::Vfs fs;
@@ -26,7 +27,7 @@ TEST(vfs_ipc_mkdir_and_list) {
         if (!fs.list("/", i, name, sizeof(name))) {
             break;
         }
-        if (str::eq(name, "testdir")) {
+        if (StringView(name) == "testdir") {
             found = true;
             break;
         }
@@ -67,7 +68,7 @@ TEST(vfs_ipc_delete_file) {
         if (!fs.list("/", i, name, sizeof(name))) {
             break;
         }
-        ASSERT(!str::eq(name, "delme"));
+        ASSERT(!(StringView(name) == "delme"));
     }
 }
 
@@ -84,7 +85,7 @@ TEST(vfs_ipc_remove_directory) {
         if (!fs.list("/", i, name, sizeof(name))) {
             break;
         }
-        ASSERT(!str::eq(name, "rmdir"));
+        ASSERT(!(StringView(name) == "rmdir"));
     }
 }
 
@@ -109,7 +110,7 @@ TEST(vfs_ipc_long_path) {
         if (!fs.list("/longdir/subdir", i, name, sizeof(name))) {
             break;
         }
-        if (str::eq(name, "file")) {
+        if (StringView(name) == "file") {
             found = true;
             break;
         }
@@ -210,7 +211,7 @@ TEST(vfs_ipc_empty_file_in_subdir) {
     u32 count = 0;
     for (u32 i = 0; i < 32; i++) {
         if (!fs.list("/subtest", i, name, sizeof(name))) break;
-        if (str::eq(name, "file.txt")) count++;
+        if (StringView(name) == "file.txt") count++;
     }
     ASSERT_EQ(count, 1u);
 }

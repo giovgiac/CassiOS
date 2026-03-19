@@ -95,7 +95,7 @@ extern "C" void _start() {
             if (fs.listEntry(reinterpret_cast<char*>(dataBuf), index,
                              name, sizeof(name))) {
                 reply.arg1 = 1;
-                u32 nameLen = str::len(name);
+                u32 nameLen = str::StringView(name).length();
                 if (sender > 0) {
                     ipc::reply(static_cast<u32>(sender), &reply,
                                name, nameLen + 1);

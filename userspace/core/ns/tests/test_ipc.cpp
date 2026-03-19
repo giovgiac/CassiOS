@@ -3,6 +3,7 @@
 #include <std/str.hpp>
 
 using namespace std;
+using str::StringView;
 
 TEST(ns_ipc_register_and_lookup) {
     u32 ok = ns::registerName("test_svc");
@@ -92,7 +93,7 @@ TEST(ns_ipc_list_all_contains_known_service) {
 
     bool found = false;
     for (u32 i = 0; i < count; ++i) {
-        if (str::eq(buf[i].name, "kbd")) {
+        if (StringView(buf[i].name) == "kbd") {
             found = true;
             break;
         }

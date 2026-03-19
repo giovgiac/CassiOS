@@ -13,6 +13,7 @@
 
 using namespace cassio;
 using namespace std;
+using str::StringView;
 
 // --- parseArgs tests ---
 
@@ -21,7 +22,7 @@ TEST(shell_parse_args_single_word) {
     const char* args[16];
     u8 argc = Shell::parseArgs(buf, 4, args, 16);
     ASSERT_EQ(static_cast<u32>(argc), 1u);
-    ASSERT(str::eq(args[0], "help"));
+    ASSERT(StringView(args[0]) == "help");
 }
 
 TEST(shell_parse_args_multiple) {
@@ -29,9 +30,9 @@ TEST(shell_parse_args_multiple) {
     const char* args[16];
     u8 argc = Shell::parseArgs(buf, 15, args, 16);
     ASSERT_EQ(static_cast<u32>(argc), 3u);
-    ASSERT(str::eq(args[0], "write"));
-    ASSERT(str::eq(args[1], "foo"));
-    ASSERT(str::eq(args[2], "hello"));
+    ASSERT(StringView(args[0]) == "write");
+    ASSERT(StringView(args[1]) == "foo");
+    ASSERT(StringView(args[2]) == "hello");
 }
 
 TEST(shell_parse_args_leading_spaces) {
@@ -39,7 +40,7 @@ TEST(shell_parse_args_leading_spaces) {
     const char* args[16];
     u8 argc = Shell::parseArgs(buf, 4, args, 16);
     ASSERT_EQ(static_cast<u32>(argc), 1u);
-    ASSERT(str::eq(args[0], "ls"));
+    ASSERT(StringView(args[0]) == "ls");
 }
 
 TEST(shell_parse_args_trailing_spaces) {
@@ -47,7 +48,7 @@ TEST(shell_parse_args_trailing_spaces) {
     const char* args[16];
     u8 argc = Shell::parseArgs(buf, 4, args, 16);
     ASSERT_EQ(static_cast<u32>(argc), 1u);
-    ASSERT(str::eq(args[0], "ls"));
+    ASSERT(StringView(args[0]) == "ls");
 }
 
 TEST(shell_parse_args_empty) {
@@ -62,8 +63,8 @@ TEST(shell_parse_args_max_limit) {
     const char* args[2];
     u8 argc = Shell::parseArgs(buf, 5, args, 2);
     ASSERT_EQ(static_cast<u32>(argc), 2u);
-    ASSERT(str::eq(args[0], "a"));
-    ASSERT(str::eq(args[1], "b"));
+    ASSERT(StringView(args[0]) == "a");
+    ASSERT(StringView(args[1]) == "b");
 }
 
 // --- resolvePath tests ---
@@ -71,25 +72,25 @@ TEST(shell_parse_args_max_limit) {
 TEST(shell_resolve_path_absolute) {
     char out[20];
     Shell::resolvePath("/", "/foo", out, 20);
-    ASSERT(str::eq(out, "/foo"));
+    ASSERT(StringView(out) == "/foo");
 }
 
 TEST(shell_resolve_path_relative_from_root) {
     char out[20];
     Shell::resolvePath("/", "foo", out, 20);
-    ASSERT(str::eq(out, "/foo"));
+    ASSERT(StringView(out) == "/foo");
 }
 
 TEST(shell_resolve_path_relative_from_subdir) {
     char out[20];
     Shell::resolvePath("/bar", "foo", out, 20);
-    ASSERT(str::eq(out, "/bar/foo"));
+    ASSERT(StringView(out) == "/bar/foo");
 }
 
 TEST(shell_resolve_path_absolute_ignores_cwd) {
     char out[20];
     Shell::resolvePath("/bar", "/foo", out, 20);
-    ASSERT(str::eq(out, "/foo"));
+    ASSERT(StringView(out) == "/foo");
 }
 
 // --- parentDir tests ---
@@ -97,17 +98,17 @@ TEST(shell_resolve_path_absolute_ignores_cwd) {
 TEST(shell_parent_dir_root) {
     char path[20] = "/";
     Shell::parentDir(path);
-    ASSERT(str::eq(path, "/"));
+    ASSERT(StringView(path) == "/");
 }
 
 TEST(shell_parent_dir_one_level) {
     char path[20] = "/foo";
     Shell::parentDir(path);
-    ASSERT(str::eq(path, "/"));
+    ASSERT(StringView(path) == "/");
 }
 
 TEST(shell_parent_dir_two_levels) {
     char path[20] = "/foo/bar";
     Shell::parentDir(path);
-    ASSERT(str::eq(path, "/foo"));
+    ASSERT(StringView(path) == "/foo");
 }
