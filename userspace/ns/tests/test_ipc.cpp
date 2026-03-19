@@ -51,6 +51,40 @@ TEST(ns_ipc_list_all_returns_registered_services) {
     }
 }
 
+TEST(ns_pack_unpack_roundtrip) {
+    ipc::Message msg = {};
+    ns::packName("hello", msg);
+
+    char out[17];
+    ns::unpackName(msg, out);
+    ASSERT(out[0] == 'h');
+    ASSERT(out[1] == 'e');
+    ASSERT(out[2] == 'l');
+    ASSERT(out[3] == 'l');
+    ASSERT(out[4] == 'o');
+    ASSERT(out[5] == '\0');
+}
+
+TEST(ns_pack_unpack_max_length) {
+    ipc::Message msg = {};
+    ns::packName("0123456789abcdef", msg);
+
+    char out[17];
+    ns::unpackName(msg, out);
+    ASSERT(out[0] == '0');
+    ASSERT(out[15] == 'f');
+    ASSERT(out[16] == '\0');
+}
+
+TEST(ns_pack_empty_string) {
+    ipc::Message msg = {};
+    ns::packName("", msg);
+
+    char out[17];
+    ns::unpackName(msg, out);
+    ASSERT(out[0] == '\0');
+}
+
 TEST(ns_ipc_list_all_contains_known_service) {
     // The "kbd" service is always running in the test environment.
     ns::Entry buf[16];
