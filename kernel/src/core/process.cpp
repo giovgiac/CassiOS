@@ -41,6 +41,7 @@ ProcessManager::ProcessManager()
     kernelTask.kernelEsp = 0;
     kernelTask.heapBase = 0;
     kernelTask.heapBreak = 0;
+    kernelTask.waitPid = 0;
     kernelTask.msg = {};
     kernelTask.msgPtr = 0;
     kernelTask.dataPtr = 0;
@@ -144,6 +145,7 @@ Process* ProcessManager::create(u32 eip, u32 esp, u32 cs, u32 ds, u32 pageDirect
     p->kernelEsp = 0;
     p->heapBase = 0;
     p->heapBreak = 0;
+    p->waitPid = 0;
     p->msg = {};
     p->msgPtr = 0;
     p->dataPtr = 0;
@@ -184,6 +186,19 @@ void ProcessManager::destroy(u32 pid) {
             sender->state = ProcessState::Ready;
         }
         delete node;
+    }
+
+    // Wake any process waiting for this one to exit.
+    Process* waiter = processes.getHead();
+    while (waiter) {
+        if (waiter->state == ProcessState::WaitBlocked && waiter->waitPid == pid) {
+            if (waiter->esp >= 0xC0000000) {
+                SyscallFrame* frame = (SyscallFrame*)waiter->esp;
+                frame->eax = 0;  // Success.
+            }
+            waiter->state = ProcessState::Ready;
+        }
+        waiter = waiter->next;
     }
 
     // Drain notify queue.

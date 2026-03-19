@@ -46,7 +46,7 @@ constexpr u32 TICK_FREQUENCY = 1000;
 /** Process information returned by procList(). */
 struct ProcEntry {
     u32 pid;       ///< Process ID.
-    u32 state;     ///< 1=Ready, 2=Running, 3=SendBlocked, 4=ReceiveBlocked.
+    u32 state;     ///< 1=Ready, 2=Running, 3=SendBlocked, 4=ReceiveBlocked, 5=WaitBlocked.
     u32 heapSize;  ///< Heap size in bytes (0 if no heap).
 };
 

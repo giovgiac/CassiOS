@@ -453,6 +453,20 @@ u32 SyscallHandler::exec(u32 elfPtr, u32 elfSize) {
     return child->pid;
 }
 
+i32 SyscallHandler::waitpid(u32 pid) {
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* caller = pm.current();
+    Process* target = pm.get(pid);
+
+    if (!target || target == caller) {
+        return -1;
+    }
+
+    caller->waitPid = pid;
+    caller->state = ProcessState::WaitBlocked;
+    return 0;  // Caller should block.
+}
+
 u32 SyscallHandler::procList(os::ProcEntry* buf, u32 maxEntries) {
     ProcessManager& pm = ProcessManager::getManager();
     u32 count = 0;
@@ -615,6 +629,15 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
     case os::syscall::Exec:
         frame->eax = exec(frame->ebx, frame->ecx);
         return esp;
+    case os::syscall::WaitPid: {
+        i32 result = waitpid(frame->ebx);
+        if (result == 0) {
+            Scheduler& sched = Scheduler::getScheduler();
+            return sched.reschedule(esp);
+        }
+        frame->eax = static_cast<u32>(result);
+        return esp;
+    }
     default:
         frame->eax = static_cast<u32>(-1);
         return esp;

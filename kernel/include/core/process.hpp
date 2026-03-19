@@ -23,6 +23,7 @@ enum class ProcessState : std::u8 {
     Running,
     SendBlocked,
     ReceiveBlocked,
+    WaitBlocked,
 };
 
 struct Process {
@@ -55,6 +56,8 @@ struct Process {
     std::u32 kernelEsp;
     std::u32 heapBase;   // Initial heap address (set once at ELF load, for heap size).
     std::u32 heapBreak;  // Current top of process heap (page-aligned, for sbrk).
+
+    std::u32 waitPid;        // PID being waited on (valid when state == WaitBlocked).
 
     // IPC state.
     std::ipc::Message msg;        // Outgoing message (sender) or staging buffer.
