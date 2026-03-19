@@ -43,12 +43,12 @@ Include guards follow the pattern `STD_<MODULE>_HPP` (or `STD_<MODULE>_<FILE>_HP
 | Module | Lib | Depends on | Contents |
 |--------|-----|-----------|----------|
 | types | libstd_types.a | *(none)* | u8, u16, u32, u64, i8-i64, f32, f64, usize, isize |
-| mem | libstd_mem.a | types | memcpy, memmove, memset, memcmp |
-| str | libstd_str.a | types | streq, strcpy, strlen, strtou32 |
+| mem | libstd_mem.a | types | mem::copy, mem::move, mem::set, mem::compare |
+| str | libstd_str.a | types | str::eq, str::copy, str::len, str::to_u32 |
 | fmt | libstd_fmt.a | types, str | sprintf-like string formatting (new) |
 | heap | libstd_heap.a | types, mem | HeapAllocator, operator new/delete, userspace sbrk grow |
-| list | libstd_list.a | types | LinkedList\<T\> (header-only) |
-| port | libstd_port.a | types | Port\<T\>, PortType enum |
+| collections | *(header-only)* | types | collections::LinkedList\<T\> (at `std/collections/list.hpp`) |
+| io | *(header-only)* | types | io::Port\<T\>, io::PortType enum (at `std/io.hpp`) |
 | msg | libstd_msg.a | types | Message struct, MessageType constants |
 | test | libstd_test.a | types, str | TEST/ASSERT macros, test runner (uses `test::` namespace) |
 
@@ -127,8 +127,8 @@ Incremental module-by-module migration (Approach B). Each PR creates one module,
 1. `types`
 2. `mem`
 3. `str`
-4. `list`
-5. `port`
+4. `collections`
+5. `io`
 6. `msg`
 7. `heap`
 8. `fmt`

@@ -16,18 +16,18 @@
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
-#include <port.hpp>
+#include <std/io.hpp>
 #include <mouse.hpp>
 
 using namespace cassio;
 using namespace std;
-using namespace cassio::hardware;
+using namespace std::io;
 
 static Mouse mouse;
 
 static void activate() {
-    Port<u8> cmd(PortType::KeyboardControllerCommand);
-    Port<u8> data(PortType::KeyboardControllerData);
+    Port<u8> cmd(PortType::KbdCommand);
+    Port<u8> data(PortType::KbdData);
 
     // Enable mouse on PS/2 controller.
     cmd.write(0xA8);
@@ -50,8 +50,8 @@ extern "C" void _start() {
     mouse.init();
     activate();
 
-    Port<u8> cmd(PortType::KeyboardControllerCommand);
-    Port<u8> data(PortType::KeyboardControllerData);
+    Port<u8> cmd(PortType::KbdCommand);
+    Port<u8> data(PortType::KbdData);
 
     while (true) {
         Message msg;

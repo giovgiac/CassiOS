@@ -16,18 +16,18 @@
 #include <ipc.hpp>
 #include <ns.hpp>
 #include <system.hpp>
-#include <port.hpp>
+#include <std/io.hpp>
 #include <keyboard.hpp>
 
 using namespace cassio;
 using namespace std;
-using namespace cassio::hardware;
+using namespace std::io;
 
 static Keyboard keyboard;
 
 static void activate() {
-    Port<u8> cmd(PortType::KeyboardControllerCommand);
-    Port<u8> data(PortType::KeyboardControllerData);
+    Port<u8> cmd(PortType::KbdCommand);
+    Port<u8> data(PortType::KbdData);
 
     // Drain any pending scancodes.
     while (cmd.read() & 0x01) {
@@ -55,8 +55,8 @@ extern "C" void _start() {
     System::irqRegister(1);
     activate();
 
-    Port<u8> data(PortType::KeyboardControllerData);
-    Port<u8> cmd(PortType::KeyboardControllerCommand);
+    Port<u8> data(PortType::KbdData);
+    Port<u8> cmd(PortType::KbdCommand);
 
     // Pending reader: if a KbdRead arrives when the buffer is empty,
     // we hold the sender and reply only when a character becomes available.

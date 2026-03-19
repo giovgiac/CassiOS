@@ -12,7 +12,7 @@
 using namespace cassio;
 using namespace std;
 using namespace cassio::ata;
-using namespace cassio::hardware;
+using namespace std::io;
 
 void Ata::delay400ns() {
     deviceControl.read();

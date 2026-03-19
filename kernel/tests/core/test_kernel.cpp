@@ -2,7 +2,7 @@
 #include <core/kernel.hpp>
 #include <hardware/interrupt.hpp>
 #include <hardware/serial.hpp>
-#include <hardware/port.hpp>
+#include <std/io.hpp>
 #include <memory/heap.hpp>
 #include <memory/paging.hpp>
 #include <memory/physical.hpp>

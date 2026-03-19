@@ -2,10 +2,13 @@
 #define HARDWARE_SERIAL_HPP_
 
 #include <std/types.hpp>
-#include <hardware/port.hpp>
+#include <std/io.hpp>
 
 namespace cassio {
 namespace hardware {
+
+using std::io::Port;
+using std::io::PortType;
 
 class Serial {
 private:

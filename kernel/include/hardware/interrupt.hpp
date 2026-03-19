@@ -12,7 +12,7 @@
 
 #include <std/types.hpp>
 #include <core/gdt.hpp>
-#include <hardware/port.hpp>
+#include <std/io.hpp>
 
 namespace cassio {
 namespace hardware {

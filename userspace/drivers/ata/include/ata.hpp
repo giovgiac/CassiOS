@@ -11,7 +11,7 @@
 #define USERSPACE_ATA_ATA_HPP_
 
 #include <std/types.hpp>
-#include <port.hpp>
+#include <std/io.hpp>
 
 namespace cassio {
 namespace ata {
@@ -36,15 +36,15 @@ constexpr std::u8 MASTER_LBA = 0xE0;
 
 class Ata {
 private:
-    hardware::Port<std::u16> data{hardware::PortType::PrimaryAtaData};
-    hardware::Port<std::u8> error{hardware::PortType::PrimaryAtaError};
-    hardware::Port<std::u8> sectorCount{hardware::PortType::PrimaryAtaSectorCount};
-    hardware::Port<std::u8> lbaLow{hardware::PortType::PrimaryAtaLbaLow};
-    hardware::Port<std::u8> lbaMid{hardware::PortType::PrimaryAtaLbaMid};
-    hardware::Port<std::u8> lbaHigh{hardware::PortType::PrimaryAtaLbaHigh};
-    hardware::Port<std::u8> driveSelect{hardware::PortType::PrimaryAtaDriveSelect};
-    hardware::Port<std::u8> commandStatus{hardware::PortType::PrimaryAtaCommandStatus};
-    hardware::Port<std::u8> deviceControl{hardware::PortType::PrimaryAtaDeviceControl};
+    std::io::Port<std::u16> data{std::io::PortType::PrimaryAtaData};
+    std::io::Port<std::u8> error{std::io::PortType::PrimaryAtaError};
+    std::io::Port<std::u8> sectorCount{std::io::PortType::PrimaryAtaSectorCount};
+    std::io::Port<std::u8> lbaLow{std::io::PortType::PrimaryAtaLbaLow};
+    std::io::Port<std::u8> lbaMid{std::io::PortType::PrimaryAtaLbaMid};
+    std::io::Port<std::u8> lbaHigh{std::io::PortType::PrimaryAtaLbaHigh};
+    std::io::Port<std::u8> driveSelect{std::io::PortType::PrimaryAtaDriveSelect};
+    std::io::Port<std::u8> commandStatus{std::io::PortType::PrimaryAtaCommandStatus};
+    std::io::Port<std::u8> deviceControl{std::io::PortType::PrimaryAtaDeviceControl};
 
     bool present;
     std::u32 sectors;

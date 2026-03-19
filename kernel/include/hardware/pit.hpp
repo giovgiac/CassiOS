@@ -13,7 +13,7 @@
 #include <std/types.hpp>
 #include <timer.hpp>
 #include <hardware/irq.hpp>
-#include <hardware/port.hpp>
+#include <std/io.hpp>
 
 namespace cassio {
 namespace hardware {
@@ -39,8 +39,8 @@ constexpr std::u8 PIT_CMD_CHANNEL0_MODE2 = 0x34;
  */
 class PitTimer {
 private:
-    hardware::Port<std::u8> channel0;
-    hardware::Port<std::u8> command;
+    std::io::Port<std::u8> channel0;
+    std::io::Port<std::u8> command;
     volatile std::u32 ticks;
 
     static PitTimer instance;
