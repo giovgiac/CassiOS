@@ -120,7 +120,7 @@ kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALL
 	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(NAMESERVER): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
-	$(MAKE) -C userspace/ns
+	$(MAKE) -C userspace/core/ns
 
 $(KBD): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/drivers/kbd
@@ -129,7 +129,7 @@ $(VGA): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) 
 	$(MAKE) -C userspace/drivers/vga
 
 $(VFS): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_ATA)
-	$(MAKE) -C userspace/vfs
+	$(MAKE) -C userspace/core/vfs
 
 $(MOUSE): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/drivers/mouse
@@ -138,7 +138,7 @@ $(ATA): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) 
 	$(MAKE) -C userspace/drivers/ata
 
 $(USERSHELL): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_VGA) $(LIBSTD_VFS)
-	$(MAKE) -C userspace/shell
+	$(MAKE) -C userspace/core/shell
 
 # Compile test files from the kernel/tests/ directory.
 obj/tests/%.o: kernel/tests/%.cpp
