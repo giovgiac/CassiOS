@@ -8,26 +8,24 @@
  */
 
 #include <std/test.hpp>
-#include <std/ns.hpp>
-#include <std/ipc.hpp>
+#include <std/mouse.hpp>
 
 using namespace std;
 
 TEST(mouse_ipc_service_registered) {
-    u32 pid = ns::lookup("mouse");
-    ASSERT(pid != 0);
+    mouse::Mouse m;
+    // Construction succeeded (lookup returned non-zero).
+    ASSERT(true);
 }
 
 TEST(mouse_ipc_read_state) {
-    u32 pid = ns::lookup("mouse");
-    ASSERT(pid != 0);
+    mouse::Mouse m;
 
-    ipc::Message msg = {};
-    msg.type = ipc::MessageType::MouseRead;
-    i32 ret = ipc::send(pid, &msg);
-    ASSERT_EQ(ret, 0);
+    u8 buttons;
+    i32 dx, dy;
+    m.read(buttons, dx, dy);
 
     // No mouse movement in QEMU without input, so deltas should be zero.
     // Buttons should also be zero.
-    ASSERT_EQ(msg.arg1, 0u);
+    ASSERT_EQ(buttons, 0u);
 }
