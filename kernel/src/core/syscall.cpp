@@ -8,6 +8,8 @@
  */
 
 #include "core/syscall.hpp"
+#include "core/elf.hpp"
+#include "core/gdt.hpp"
 #include "core/process.hpp"
 #include <std/mem.hpp>
 #include "core/scheduler.hpp"
@@ -18,6 +20,7 @@
 #include "hardware/serial.hpp"
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
+#include "memory/virtual.hpp"
 
 using namespace cassio;
 using namespace std;
@@ -355,6 +358,101 @@ void SyscallHandler::memInfo(u32& total, u32& used, u32& free) {
     free = pmm.getFreeFrames();
 }
 
+u32 SyscallHandler::exec(u32 elfPtr, u32 elfSize) {
+    if (elfPtr == 0 || elfSize == 0) {
+        return 0;
+    }
+
+    ProcessManager& pm = ProcessManager::getManager();
+    Process* caller = pm.current();
+    if (!caller) {
+        return 0;
+    }
+
+    // Allocate a kernel-heap buffer and copy the ELF data from the caller's
+    // address space. The caller is the current process so its pages are mapped.
+    u8* elfBuf = static_cast<u8*>(operator new(elfSize));
+    if (!elfBuf) {
+        return 0;
+    }
+    mem::copy(elfBuf, (const void*)elfPtr, elfSize);
+
+    // Create a new address space.
+    memory::PagingManager& paging = memory::PagingManager::getManager();
+    memory::PhysicalMemoryManager& pmm = memory::PhysicalMemoryManager::getManager();
+
+    u32 pdPhysical = paging.createAddressSpace();
+    if (!pdPhysical) {
+        operator delete(elfBuf);
+        return 0;
+    }
+
+    // Load the ELF into the new address space.
+    ElfLoadResult elf = ElfLoader::load(pdPhysical, elfBuf, elfSize);
+    operator delete(elfBuf);
+    if (!elf.success) {
+        paging.destroyAddressSpace(pdPhysical);
+        return 0;
+    }
+
+    // Allocate user stack page.
+    void* userStackFrame = pmm.allocFrame();
+    if (!userStackFrame) {
+        paging.destroyAddressSpace(pdPhysical);
+        return 0;
+    }
+    paging.mapUserPage(pdPhysical, 0xBFFFF000, (u32)userStackFrame,
+                       memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER);
+
+    // Allocate kernel stack for the new process.
+    void* kernelStackFrame = pmm.allocFrame();
+    if (!kernelStackFrame) {
+        paging.destroyAddressSpace(pdPhysical);
+        return 0;
+    }
+    u32 kernelStackTop = (u32)kernelStackFrame + KERNEL_VBASE + memory::FRAME_SIZE;
+
+    // Reuse the caller's user segment selectors (all userspace processes share them).
+    u32 userCS = caller->cs;
+    u32 userDS = caller->ds;
+
+    // Build fake interrupt frame on kernel stack for initial iret to ring 3.
+    u32* frame = (u32*)kernelStackTop;
+    *(--frame) = userDS;            // SS
+    *(--frame) = 0xC0000000;        // ESP (top of user stack page)
+    *(--frame) = 0x3202;            // EFLAGS (IF=1, IOPL=3)
+    *(--frame) = userCS;            // CS
+    *(--frame) = elf.entryPoint;    // EIP
+    *(--frame) = 0;                 // error_code
+    *(--frame) = 0;                 // number
+    *(--frame) = 0;                 // EAX
+    *(--frame) = 0;                 // ECX
+    *(--frame) = 0;                 // EDX
+    *(--frame) = 0;                 // EBX
+    *(--frame) = 0;                 // ESP (ignored by popa)
+    *(--frame) = 0;                 // EBP
+    *(--frame) = 0;                 // ESI
+    *(--frame) = 0;                 // EDI
+    *(--frame) = userDS;            // DS
+    *(--frame) = userDS;            // ES
+    *(--frame) = userDS;            // FS
+    *(--frame) = userDS;            // GS
+
+    Process* child = pm.create(
+        elf.entryPoint, (u32)frame, userCS, userDS, pdPhysical);
+    if (!child) {
+        pmm.freeFrame(kernelStackFrame);
+        paging.destroyAddressSpace(pdPhysical);
+        return 0;
+    }
+
+    child->kernelEsp = kernelStackTop;
+    child->heapBase = elf.heapStart;
+    child->heapBreak = elf.heapStart;
+
+    return child->pid;
+}
+
 u32 SyscallHandler::procList(os::ProcEntry* buf, u32 maxEntries) {
     ProcessManager& pm = ProcessManager::getManager();
     u32 count = 0;
@@ -513,6 +611,9 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     case os::syscall::ProcList:
         frame->eax = procList((os::ProcEntry*)frame->ebx, frame->ecx);
+        return esp;
+    case os::syscall::Exec:
+        frame->eax = exec(frame->ebx, frame->ecx);
         return esp;
     default:
         frame->eax = static_cast<u32>(-1);
