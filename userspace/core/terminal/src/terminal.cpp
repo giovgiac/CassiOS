@@ -89,9 +89,24 @@ void Terminal::clear() {
     y = 0;
 }
 
+void Terminal::drawCursor() {
+    // Underline cursor: 8x2 bar at the bottom of the character cell.
+    u32 px = x * FONT_WIDTH;
+    u32 py = y * FONT_HEIGHT + FONT_HEIGHT - 2;
+    display.fillRect(px, py, FONT_WIDTH, 2, fg);
+}
+
+void Terminal::eraseCursor() {
+    u32 px = x * FONT_WIDTH;
+    u32 py = y * FONT_HEIGHT + FONT_HEIGHT - 2;
+    display.fillRect(px, py, FONT_WIDTH, 2, bg);
+}
+
 void Terminal::setCursor(u8 col, u8 row) {
+    eraseCursor();
     x = col;
     y = row;
+    drawCursor();
 }
 
 u8 Terminal::getCursorX() const { return x; }

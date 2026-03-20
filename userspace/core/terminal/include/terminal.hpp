@@ -28,6 +28,8 @@ public:
     void setCursor(std::u8 col, std::u8 row);
     std::u8 getCursorX() const;
     std::u8 getCursorY() const;
+    void drawCursor();
+    void eraseCursor();
 
     std::u32 getCols() const;
     std::u32 getRows() const;

@@ -33,6 +33,7 @@ extern "C" void _start() {
     for (u32 i = 0; welcome[i] != '\0'; ++i) {
         terminal.putchar(welcome[i]);
     }
+    terminal.drawCursor();
     display.flush();
 
     while (true) {
@@ -40,10 +41,11 @@ extern "C" void _start() {
         char dataBuf[256];
         i32 sender = ipc::receive(&msg, dataBuf, sizeof(dataBuf));
 
+        terminal.eraseCursor();
+
         switch (msg.type) {
         case ipc::MessageType::TerminalPutchar:
             terminal.putchar(static_cast<char>(msg.arg1));
-            display.flush();
             break;
 
         case ipc::MessageType::TerminalWrite: {
@@ -53,13 +55,11 @@ extern "C" void _start() {
             for (u32 i = 0; i < len; ++i) {
                 terminal.putchar(dataBuf[i]);
             }
-            display.flush();
             break;
         }
 
         case ipc::MessageType::TerminalClear:
             terminal.clear();
-            display.flush();
             break;
 
         case ipc::MessageType::TerminalSetCursor:
@@ -72,6 +72,9 @@ extern "C" void _start() {
         default:
             break;
         }
+
+        terminal.drawCursor();
+        display.flush();
 
         if (sender > 0) {
             ipc::Message reply = {};

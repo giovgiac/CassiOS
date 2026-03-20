@@ -42,6 +42,10 @@ private:
     std::u32* framebuffer;
     std::gfx::PixelBuffer backBuf;
     std::u32 fbSize; ///< Total framebuffer size in bytes (pitch * height).
+    std::u32 dirtyTop;    ///< First dirty scanline (inclusive).
+    std::u32 dirtyBottom; ///< Last dirty scanline (exclusive).
+
+    void markDirty(std::u32 y, std::u32 h);
 };
 
 } // namespace cassio

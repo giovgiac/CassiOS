@@ -15,28 +15,59 @@ using namespace cassio;
 using namespace std;
 
 Display::Display(u32* framebuffer, u32* backBuffer, u32 width, u32 height, u32 pitch)
-    : framebuffer(framebuffer), backBuf(backBuffer, width, height, pitch),
-      fbSize(pitch * height) {}
+    : framebuffer(framebuffer), backBuf(backBuffer, width, height, pitch), fbSize(pitch * height),
+      dirtyTop(height), dirtyBottom(0) {}
+
+void Display::markDirty(u32 y, u32 h) {
+    if (y < dirtyTop) {
+        dirtyTop = y;
+    }
+    u32 bottom = y + h;
+    if (bottom > backBuf.getHeight()) {
+        bottom = backBuf.getHeight();
+    }
+    if (bottom > dirtyBottom) {
+        dirtyBottom = bottom;
+    }
+}
 
 void Display::fillRect(u32 x, u32 y, u32 w, u32 h, gfx::Color color) {
     backBuf.fillRect(x, y, w, h, color);
+    markDirty(y, h);
 }
 
 void Display::drawRect(u32 x, u32 y, u32 w, u32 h, gfx::Color color) {
     backBuf.drawRect(x, y, w, h, color);
+    markDirty(y, h);
 }
 
 void Display::blit(u32 x, u32 y, u32 w, u32 h, const u32* pixels) {
     gfx::PixelBuffer src(const_cast<u32*>(pixels), w, h, w * sizeof(u32));
     backBuf.blit(x, y, src, 0, 0, w, h);
+    markDirty(y, h);
 }
 
 void Display::scroll(u32 pixels, gfx::Color color) {
     backBuf.scroll(pixels, color);
+    // Scroll affects the entire buffer.
+    dirtyTop = 0;
+    dirtyBottom = backBuf.getHeight();
 }
 
 void Display::flush() {
-    mem::copy(framebuffer, backBuf.getData(), fbSize);
+    if (dirtyTop >= dirtyBottom) {
+        return; // Nothing dirty.
+    }
+
+    u32 pitch = backBuf.getPitch();
+    u8* dst = reinterpret_cast<u8*>(framebuffer) + dirtyTop * pitch;
+    const u8* src = reinterpret_cast<const u8*>(backBuf.getData()) + dirtyTop * pitch;
+    u32 bytes = (dirtyBottom - dirtyTop) * pitch;
+    mem::copy(dst, src, bytes);
+
+    // Reset dirty region.
+    dirtyTop = backBuf.getHeight();
+    dirtyBottom = 0;
 }
 
 u32 Display::getWidth() const { return backBuf.getWidth(); }
