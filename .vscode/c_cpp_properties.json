@@ -21,6 +21,7 @@
                 "${workspaceFolder}/libs/fmt/include",
                 "${workspaceFolder}/libs/test/include",
                 "${workspaceFolder}/libs/os/include",
+                "${workspaceFolder}/libs/gfx/include",
                 "${workspaceFolder}/userspace/**/include",
                 "${workspaceFolder}/kernel/tests"
             ],

@@ -14,10 +14,6 @@
 using namespace std;
 using namespace std::gfx;
 
-static PixelBuffer makeBuf(u32* data, u32 w, u32 h) {
-    return {data, w, h, w * sizeof(u32)};
-}
-
 TEST(gfx_pixel_buffer_size) {
     ASSERT_EQ(sizeof(PixelBuffer), (usize)16);
 }
@@ -25,9 +21,9 @@ TEST(gfx_pixel_buffer_size) {
 TEST(gfx_draw_pixel) {
     u32 data[4 * 4];
     mem::set(data, 0, sizeof(data));
-    auto buf = makeBuf(data, 4, 4);
+    PixelBuffer buf(data, 4, 4, 4 * sizeof(u32));
 
-    drawPixel(buf, 2, 1, 0x00FF0000);
+    buf.drawPixel(2, 1, 0x00FF0000);
     ASSERT_EQ(data[1 * 4 + 2], 0x00FF0000u);
 
     // Unchanged neighbors.
@@ -38,13 +34,12 @@ TEST(gfx_draw_pixel) {
 TEST(gfx_draw_pixel_out_of_bounds) {
     u32 data[4 * 4];
     mem::set(data, 0, sizeof(data));
-    auto buf = makeBuf(data, 4, 4);
+    PixelBuffer buf(data, 4, 4, 4 * sizeof(u32));
 
-    drawPixel(buf, 4, 0, 0xFF);
-    drawPixel(buf, 0, 4, 0xFF);
-    drawPixel(buf, 100, 100, 0xFF);
+    buf.drawPixel(4, 0, 0xFF);
+    buf.drawPixel(0, 4, 0xFF);
+    buf.drawPixel(100, 100, 0xFF);
 
-    // Nothing should have been written.
     for (u32 i = 0; i < 16; ++i) {
         ASSERT_EQ(data[i], 0u);
     }
@@ -53,9 +48,9 @@ TEST(gfx_draw_pixel_out_of_bounds) {
 TEST(gfx_fill_rect) {
     u32 data[8 * 8];
     mem::set(data, 0, sizeof(data));
-    auto buf = makeBuf(data, 8, 8);
+    PixelBuffer buf(data, 8, 8, 8 * sizeof(u32));
 
-    fillRect(buf, 1, 2, 3, 2, 0xAA);
+    buf.fillRect(1, 2, 3, 2, 0xAA);
 
     // Inside the rect.
     ASSERT_EQ(data[2 * 8 + 1], 0xAAu);
@@ -72,10 +67,9 @@ TEST(gfx_fill_rect) {
 TEST(gfx_fill_rect_clips) {
     u32 data[4 * 4];
     mem::set(data, 0, sizeof(data));
-    auto buf = makeBuf(data, 4, 4);
+    PixelBuffer buf(data, 4, 4, 4 * sizeof(u32));
 
-    // Rect extends past buffer bounds -- should clip, not crash.
-    fillRect(buf, 2, 2, 10, 10, 0xBB);
+    buf.fillRect(2, 2, 10, 10, 0xBB);
 
     ASSERT_EQ(data[2 * 4 + 2], 0xBBu);
     ASSERT_EQ(data[3 * 4 + 3], 0xBBu);
@@ -84,9 +78,9 @@ TEST(gfx_fill_rect_clips) {
 TEST(gfx_draw_rect) {
     u32 data[8 * 8];
     mem::set(data, 0, sizeof(data));
-    auto buf = makeBuf(data, 8, 8);
+    PixelBuffer buf(data, 8, 8, 8 * sizeof(u32));
 
-    drawRect(buf, 1, 1, 4, 3, 0xCC);
+    buf.drawRect(1, 1, 4, 3, 0xCC);
 
     // Top edge.
     ASSERT_EQ(data[1 * 8 + 1], 0xCCu);
@@ -108,11 +102,10 @@ TEST(gfx_draw_rect) {
 TEST(gfx_draw_char_space_is_bg) {
     u32 data[8 * 16];
     mem::set(data, 0, sizeof(data));
-    auto buf = makeBuf(data, 8, 16);
+    PixelBuffer buf(data, 8, 16, 8 * sizeof(u32));
 
-    drawChar(buf, 0, 0, ' ', 0xFFFFFF, 0x000080);
+    buf.drawChar(0, 0, ' ', 0xFFFFFF, 0x000080);
 
-    // Space glyph is all zeros, so every pixel should be bg.
     for (u32 i = 0; i < 8 * 16; ++i) {
         ASSERT_EQ(data[i], 0x000080u);
     }
@@ -121,11 +114,10 @@ TEST(gfx_draw_char_space_is_bg) {
 TEST(gfx_draw_char_A_has_fg_pixels) {
     u32 data[8 * 16];
     mem::set(data, 0, sizeof(data));
-    auto buf = makeBuf(data, 8, 16);
+    PixelBuffer buf(data, 8, 16, 8 * sizeof(u32));
 
-    drawChar(buf, 0, 0, 'A', 0xFFFFFF, 0x000000);
+    buf.drawChar(0, 0, 'A', 0xFFFFFF, 0x000000);
 
-    // 'A' glyph has nonzero rows -- at least some pixels should be fg.
     u32 fgCount = 0;
     for (u32 i = 0; i < 8 * 16; ++i) {
         if (data[i] == 0xFFFFFF) {
@@ -138,12 +130,10 @@ TEST(gfx_draw_char_A_has_fg_pixels) {
 TEST(gfx_draw_text) {
     u32 data[24 * 16];
     mem::set(data, 0, sizeof(data));
-    auto buf = makeBuf(data, 24, 16);
+    PixelBuffer buf(data, 24, 16, 24 * sizeof(u32));
 
-    drawText(buf, 0, 0, "Hi", 2, 0xFFFFFF, 0x000000);
+    buf.drawText(0, 0, "Hi", 2, 0xFFFFFF, 0x000000);
 
-    // First char occupies columns 0-7, second occupies 8-15.
-    // Columns 16-23 should be untouched.
     bool firstCharDrawn = false;
     for (u32 y = 0; y < 16; ++y) {
         for (u32 x = 0; x < 8; ++x) {
@@ -154,7 +144,7 @@ TEST(gfx_draw_text) {
     }
     ASSERT(firstCharDrawn);
 
-    // Third character region should be untouched (still 0).
+    // Third character region should be untouched.
     for (u32 y = 0; y < 16; ++y) {
         for (u32 x = 16; x < 24; ++x) {
             ASSERT_EQ(data[y * 24 + x], 0u);
@@ -165,21 +155,18 @@ TEST(gfx_draw_text) {
 TEST(gfx_scroll_shifts_up) {
     u32 data[4 * 4];
     mem::set(data, 0, sizeof(data));
-    auto buf = makeBuf(data, 4, 4);
+    PixelBuffer buf(data, 4, 4, 4 * sizeof(u32));
 
-    // Fill row 2 with a marker.
     for (u32 x = 0; x < 4; ++x) {
         data[2 * 4 + x] = 0xDD;
     }
 
-    scroll(buf, 1, 0x00);
+    buf.scroll(1, 0x00);
 
-    // Row 2 should now be in row 1.
     for (u32 x = 0; x < 4; ++x) {
         ASSERT_EQ(data[1 * 4 + x], 0xDDu);
     }
 
-    // Bottom row should be fill color.
     for (u32 x = 0; x < 4; ++x) {
         ASSERT_EQ(data[3 * 4 + x], 0u);
     }
@@ -187,13 +174,13 @@ TEST(gfx_scroll_shifts_up) {
 
 TEST(gfx_scroll_full_height_clears) {
     u32 data[4 * 4];
-    auto buf = makeBuf(data, 4, 4);
+    PixelBuffer buf(data, 4, 4, 4 * sizeof(u32));
 
     for (u32 i = 0; i < 16; ++i) {
         data[i] = 0xFF;
     }
 
-    scroll(buf, 4, 0xAA);
+    buf.scroll(4, 0xAA);
 
     for (u32 i = 0; i < 16; ++i) {
         ASSERT_EQ(data[i], 0xAAu);
@@ -205,23 +192,21 @@ TEST(gfx_blit_copies_region) {
     u32 dstData[4 * 4];
     mem::set(srcData, 0, sizeof(srcData));
     mem::set(dstData, 0, sizeof(dstData));
-    auto src = makeBuf(srcData, 4, 4);
-    auto dst = makeBuf(dstData, 4, 4);
+    PixelBuffer src(srcData, 4, 4, 4 * sizeof(u32));
+    PixelBuffer dst(dstData, 4, 4, 4 * sizeof(u32));
 
-    // Set a 2x2 region in src at (1,1).
     srcData[1 * 4 + 1] = 0x11;
     srcData[1 * 4 + 2] = 0x22;
     srcData[2 * 4 + 1] = 0x33;
     srcData[2 * 4 + 2] = 0x44;
 
-    blit(dst, 0, 0, src, 1, 1, 2, 2);
+    dst.blit(0, 0, src, 1, 1, 2, 2);
 
     ASSERT_EQ(dstData[0 * 4 + 0], 0x11u);
     ASSERT_EQ(dstData[0 * 4 + 1], 0x22u);
     ASSERT_EQ(dstData[1 * 4 + 0], 0x33u);
     ASSERT_EQ(dstData[1 * 4 + 1], 0x44u);
 
-    // Rest should be untouched.
     ASSERT_EQ(dstData[0 * 4 + 2], 0u);
 }
 
@@ -244,4 +229,14 @@ TEST(gfx_font_A_is_nonzero) {
         }
     }
     ASSERT(nonzero > 0);
+}
+
+TEST(gfx_getters) {
+    u32 data[8 * 4];
+    PixelBuffer buf(data, 8, 4, 8 * sizeof(u32));
+
+    ASSERT_EQ(buf.getWidth(), 8u);
+    ASSERT_EQ(buf.getHeight(), 4u);
+    ASSERT_EQ(buf.getPitch(), 32u);
+    ASSERT(buf.getData() == data);
 }
