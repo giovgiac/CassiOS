@@ -26,6 +26,23 @@ struct __attribute__((packed)) MultibootInfo {
     std::u32 syms[4];
     std::u32 mmap_length;
     std::u32 mmap_addr;
+    std::u32 drives_length;
+    std::u32 drives_addr;
+    std::u32 config_table;
+    std::u32 boot_loader_name;
+    std::u32 apm_table;
+    std::u32 vbe_control_info;
+    std::u32 vbe_mode_info;
+    std::u16 vbe_mode;
+    std::u16 vbe_interface_seg;
+    std::u16 vbe_interface_off;
+    std::u16 vbe_interface_len;
+    std::u64 framebuffer_addr;
+    std::u32 framebuffer_pitch;
+    std::u32 framebuffer_width;
+    std::u32 framebuffer_height;
+    std::u8 framebuffer_bpp;
+    std::u8 framebuffer_type;
 };
 
 struct __attribute__((packed)) MultibootMmapEntry {
@@ -44,6 +61,7 @@ struct __attribute__((packed)) MultibootModule {
 
 static constexpr std::u32 MULTIBOOT_FLAG_MODS = (1 << 3);
 static constexpr std::u32 MULTIBOOT_FLAG_MMAP = (1 << 6);
+static constexpr std::u32 MULTIBOOT_FLAG_FRAMEBUFFER = (1 << 12);
 static constexpr std::u32 MULTIBOOT_MMAP_AVAILABLE = 1;
 
 } // namespace memory

@@ -12,6 +12,7 @@
 #include "core/elf.hpp"
 #include "core/process.hpp"
 #include "core/scheduler.hpp"
+#include "core/syscall.hpp"
 #include "hardware/pit.hpp"
 #include "memory/heap.hpp"
 #include "memory/paging.hpp"
@@ -64,8 +65,19 @@ void start(void* multiboot, u32 magic) {
     kernelTask->ds = 0x10;
     kernelTask->pageDirectory = 0;
 
-    // Load userspace processes from multiboot modules.
+    // Store framebuffer info from multiboot for the FramebufferInfo syscall.
     MultibootInfo* mb = (MultibootInfo*)multiboot;
+    if (mb->flags & MULTIBOOT_FLAG_FRAMEBUFFER) {
+        os::FramebufferInfo fbInfo;
+        fbInfo.address = static_cast<u32>(mb->framebuffer_addr);
+        fbInfo.width = mb->framebuffer_width;
+        fbInfo.height = mb->framebuffer_height;
+        fbInfo.pitch = mb->framebuffer_pitch;
+        fbInfo.bpp = mb->framebuffer_bpp;
+        SyscallHandler::getSyscallHandler().setFramebufferInfo(fbInfo);
+    }
+
+    // Load userspace processes from multiboot modules.
     if ((mb->flags & MULTIBOOT_FLAG_MODS) && mb->mods_count > 0) {
         MultibootModule* mods = (MultibootModule*)(mb->mods_addr + KERNEL_VBASE);
 

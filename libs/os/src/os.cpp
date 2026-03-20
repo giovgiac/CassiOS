@@ -96,3 +96,12 @@ i32 os::waitpid(u32 pid) {
     asm volatile("int $0x80" : "=a"(ret) : "a"(os::syscall::WaitPid), "b"(pid) : "memory");
     return ret;
 }
+
+os::FramebufferInfo os::framebufferInfo() {
+    u32 addr, w, h, pitch, bpp;
+    asm volatile("int $0x80"
+                 : "=a"(addr), "=b"(w), "=c"(h), "=d"(pitch), "=S"(bpp)
+                 : "a"(os::syscall::FramebufferInfo)
+                 : "memory");
+    return {addr, w, h, pitch, bpp};
+}

@@ -37,7 +37,8 @@ constexpr u32 Sbrk = 13;
 constexpr u32 ProcList = 14;
 constexpr u32 Exec = 15;
 constexpr u32 WaitPid = 16;
-constexpr u32 Count = 17;
+constexpr u32 FramebufferInfo = 17;
+constexpr u32 Count = 18;
 } // namespace syscall
 
 /** System tick frequency in Hz. Used to convert uptime() ticks to time. */
@@ -48,6 +49,15 @@ struct ProcEntry {
     u32 pid;      ///< Process ID.
     u32 state;    ///< 1=Ready, 2=Running, 3=SendBlocked, 4=ReceiveBlocked, 5=WaitBlocked.
     u32 heapSize; ///< Heap size in bytes (0 if no heap).
+};
+
+/** Framebuffer information returned by framebufferInfo(). */
+struct FramebufferInfo {
+    u32 address; ///< Physical address of the framebuffer.
+    u32 width;   ///< Width in pixels.
+    u32 height;  ///< Height in pixels.
+    u32 pitch;   ///< Bytes per scanline.
+    u32 bpp;     ///< Bits per pixel.
 };
 
 /**
@@ -124,6 +134,13 @@ u32 exec(const void* elfData, u32 size);
  * Returns 0 on success, -1 if the PID does not exist.
  */
 i32 waitpid(u32 pid);
+
+/**
+ * Return VESA framebuffer information from the multiboot info.
+ * The display driver uses this to discover the framebuffer address
+ * and resolution at startup.
+ */
+FramebufferInfo framebufferInfo();
 
 } // namespace os
 } // namespace std
