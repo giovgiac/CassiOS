@@ -24,7 +24,7 @@ void terminal::Terminal::putchar(char c) {
     ipc::Message msg = {};
     msg.type = ipc::MessageType::TerminalPutchar;
     msg.arg1 = static_cast<u8>(c);
-    ipc::notify(pid, &msg);
+    ipc::send(pid, &msg);
 }
 
 void terminal::Terminal::write(const char* str) {
