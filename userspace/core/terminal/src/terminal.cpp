@@ -99,10 +99,8 @@ void Terminal::eraseCursor() {
 }
 
 void Terminal::setCursor(u8 col, u8 row) {
-    eraseCursor();
     x = col;
     y = row;
-    drawCursor();
 }
 
 u8 Terminal::getCursorX() const { return x; }

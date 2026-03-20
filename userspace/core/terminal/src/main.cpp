@@ -36,17 +36,12 @@ extern "C" void _start() {
     terminal.drawCursor();
     display.flush();
 
-    bool dirty = false;
-
     while (true) {
         ipc::Message msg;
         char dataBuf[256];
         i32 sender = ipc::receive(&msg, dataBuf, sizeof(dataBuf));
 
-        if (!dirty) {
-            terminal.eraseCursor();
-            dirty = true;
-        }
+        terminal.eraseCursor();
 
         switch (msg.type) {
         case ipc::MessageType::TerminalPutchar:
@@ -78,14 +73,9 @@ extern "C" void _start() {
             break;
         }
 
-        // Only flush when a sender is blocked waiting for a reply.
-        // Notify messages (sender == 0) just accumulate in the back
-        // buffer -- the next blocking send triggers the flush, so all
-        // pending output appears at once.
         if (sender > 0) {
             terminal.drawCursor();
             display.flush();
-            dirty = false;
 
             ipc::Message reply = {};
             reply.arg1 = terminal.getCursorX();
