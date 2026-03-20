@@ -48,10 +48,10 @@ private:
     u32* data;
     u32 width;
     u32 height;
-    u32 pitch;        ///< Bytes per scanline.
-    u32 scrollOffset; ///< Ring buffer offset in rows.
+    u32 pitch;        // Bytes per scanline.
+    u32 scrollOffset; // Ring buffer offset in rows.
 
-    /// Translate a logical Y coordinate to the wrapped buffer Y.
+    // Translate a logical Y coordinate to the wrapped buffer Y.
     u32 wrap(u32 y) const;
 
     u32* pixelAt(u32 x, u32 y);

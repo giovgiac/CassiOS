@@ -60,8 +60,8 @@ void Shell::redrawLine() {
     putchar(' ');
 
     // Position cursor at the editing point.
-    terminal.flush();
     terminal.setCursor(promptCol + cursor, promptRow);
+    terminal.flush();
 }
 
 void Shell::execute() {

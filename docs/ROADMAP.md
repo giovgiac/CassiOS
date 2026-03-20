@@ -96,15 +96,15 @@ Design: `docs/plans/2026-03-18-fat32-filesystem-design.md`
 
 ## Phase 10: VESA Framebuffer and Graphics Terminal
 
-**Planning**: Brainstorm + design doc
+**Status**: Complete
 
 Switch from VGA text mode to a VESA/VBE framebuffer (32bpp, requested via multiboot header so GRUB handles mode setting and falls back to the closest available resolution). Replace the VGA text-mode terminal with a software-rendered graphical terminal built on a simple 2D graphics library. The VGA service is replaced by a new `display` service (`userspace/drivers/display/`, `std::display::Display` client).
 
-1. **VESA framebuffer** — multiboot video mode request, framebuffer discovery from multiboot info (actual resolution, pitch, bpp), MapDevice to map it into the display service's address space
-2. **Graphics library (`std::gfx`)** — stateless drawing primitives that operate on a pixel buffer: drawPixel, fillRect, drawRect, drawChar (bitmap font), drawText. SDL-like in spirit — no ownership of buffers, no display knowledge, just pixel manipulation
-3. **Display service** (`userspace/drivers/display/`) — replaces the VGA driver. Owns the framebuffer and back buffer, uses `std::gfx` internally to draw. Exposes IPC commands for drawing, blit, scroll, and flush (copy back buffer to framebuffer). Pure hardware abstraction — draws pixels, knows nothing about text or terminals
-4. **Terminal service** (`userspace/core/terminal/`) — connects to the display service, renders a character grid with bitmap font, cursor, and scrolling. The shell and apps talk to the terminal (same IPC protocol as the current VGA service), the terminal translates to draw calls. Existing VgaTerminal logic moves here largely intact
-5. **Migration** — replace `std::vga::Vga` client with `std::display::Display`, update all service and app references
+1. **VESA framebuffer** (#183) — multiboot video mode request, framebuffer discovery from multiboot info (actual resolution, pitch, bpp), MapDevice to map it into the display service's address space
+2. **Graphics library (`std::gfx`)** (#183) — PixelBuffer class with drawing primitives: drawPixel, fillRect, drawRect, drawChar (bitmap font), drawText, scroll (ring buffer), blit. Operates on caller-provided buffers
+3. **Display service** (#183, `userspace/drivers/display/`) — replaces the VGA driver. Owns the framebuffer and back buffer, uses `std::gfx` internally to draw. Exposes IPC commands for drawing, blit, scroll, and flush (copy back buffer to framebuffer). Pure hardware abstraction — draws pixels, knows nothing about text or terminals
+4. **Terminal service** (#183, `userspace/core/terminal/`) — connects to the display service, renders a character grid with bitmap font, cursor, and scrolling. The shell and apps talk to the terminal (same IPC protocol as the current VGA service), the terminal translates to draw calls
+5. **Migration** (#183) — replaced `std::vga::Vga` client with `std::terminal::Terminal`, removed old VGA driver, updated all service and app references
 
 Double buffering (draw to RAM, flush to framebuffer) prevents tearing. Separating display from terminal keeps the driver clean and avoids a refactor when non-terminal apps (editor, GUI) need direct screen access later.
 
