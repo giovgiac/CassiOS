@@ -249,7 +249,7 @@ $(ISO): kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL)
 	@rm -rf iso
 
 run: $(ISO) $(DISK)
-	qemu-system-i386 -machine pc -cdrom $(ISO) \
+	qemu-system-i386 -machine pc -cdrom $(ISO) -boot d \
 	    -drive file=$(DISK),format=raw,if=ide
 
 # Include auto-generated header dependencies (produced by -MMD -MP).

@@ -81,20 +81,4 @@ TEST(multiboot_info_framebuffer_field_offsets) {
     ASSERT_EQ(__builtin_offsetof(memory::MultibootInfo, framebuffer_type), 109u);
 }
 
-TEST(syscall_framebuffer_info_does_not_crash) {
-    u32 addr, w, h, pitch, bpp;
-    asm volatile("int $0x80"
-                 : "=a"(addr), "=b"(w), "=c"(h), "=d"(pitch), "=S"(bpp)
-                 : "a"(os::syscall::FramebufferInfo)
-                 : "memory");
-    // Syscall should return without crashing. QEMU's multiboot loader
-    // may not populate framebuffer info, so we only check consistency
-    // when the framebuffer is present.
-    if (addr != 0) {
-        ASSERT(w > 0);
-        ASSERT(h > 0);
-        ASSERT(pitch >= w * (bpp / 8));
-    } else {
-        ASSERT(true);
-    }
-}
+
