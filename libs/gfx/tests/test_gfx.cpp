@@ -132,7 +132,7 @@ TEST(gfx_draw_text) {
     mem::set(data, 0, sizeof(data));
     PixelBuffer buf(data, 24, 16, 24 * sizeof(u32));
 
-    buf.drawText(0, 0, "Hi", 2, 0xFFFFFF, 0x000000);
+    buf.drawText(0, 0, "Hi", 0xFFFFFF, 0x000000);
 
     bool firstCharDrawn = false;
     for (u32 y = 0; y < 16; ++y) {

@@ -87,8 +87,8 @@ void PixelBuffer::drawChar(u32 x, u32 y, char ch, Color fg, Color bg) {
     }
 }
 
-void PixelBuffer::drawText(u32 x, u32 y, const char* text, u32 len, Color fg, Color bg) {
-    for (u32 i = 0; i < len; ++i) {
+void PixelBuffer::drawText(u32 x, u32 y, str::StringView text, Color fg, Color bg) {
+    for (u32 i = 0; i < text.length(); ++i) {
         drawChar(x + i * FONT_WIDTH, y, text[i], fg, bg);
     }
 }

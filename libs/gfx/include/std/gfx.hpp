@@ -15,6 +15,7 @@
 #ifndef STD_GFX_HPP
 #define STD_GFX_HPP
 
+#include <std/str.hpp>
 #include <std/types.hpp>
 
 namespace std {
@@ -33,7 +34,7 @@ public:
     void fillRect(u32 x, u32 y, u32 w, u32 h, Color color);
     void drawRect(u32 x, u32 y, u32 w, u32 h, Color color);
     void drawChar(u32 x, u32 y, char ch, Color fg, Color bg);
-    void drawText(u32 x, u32 y, const char* text, u32 len, Color fg, Color bg);
+    void drawText(u32 x, u32 y, str::StringView text, Color fg, Color bg);
     void scroll(u32 pixels, Color color);
     void blit(u32 dx, u32 dy, const PixelBuffer& src, u32 sx, u32 sy, u32 w, u32 h);
 
