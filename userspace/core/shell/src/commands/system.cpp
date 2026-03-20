@@ -41,6 +41,7 @@ void Shell::cmdHelp() {
 
 void Shell::cmdClear() {
     terminal.clear();
+    terminal.flush();
 }
 
 void Shell::cmdEcho(const char** args, u8 argc) {

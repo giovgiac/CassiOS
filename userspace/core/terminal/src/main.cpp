@@ -41,8 +41,6 @@ extern "C" void _start() {
         char dataBuf[256];
         i32 sender = ipc::receive(&msg, dataBuf, sizeof(dataBuf));
 
-        terminal.eraseCursor();
-
         switch (msg.type) {
         case ipc::MessageType::TerminalPutchar:
             terminal.putchar(static_cast<char>(msg.arg1));
@@ -79,13 +77,7 @@ extern "C" void _start() {
             break;
         }
 
-        // Blocking senders get a flush (shows all batched output)
-        // and a reply with the current cursor position.
         if (sender > 0) {
-            terminal.drawCursor();
-            display.flush();
-            terminal.eraseCursor();
-
             ipc::Message reply = {};
             reply.arg1 = terminal.getCursorX();
             reply.arg2 = terminal.getCursorY();

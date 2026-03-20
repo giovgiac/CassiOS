@@ -37,7 +37,7 @@ void terminal::Terminal::write(str::StringView text) {
 void terminal::Terminal::clear() {
     ipc::Message msg = {};
     msg.type = ipc::MessageType::TerminalClear;
-    ipc::send(pid, &msg);
+    ipc::notify(pid, &msg);
 }
 
 void terminal::Terminal::flush() {

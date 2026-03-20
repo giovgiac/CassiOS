@@ -44,6 +44,7 @@ void Shell::putchar(char ch) {
 
 void Shell::printPrompt() {
     print("$ ");
+    terminal.flush();
     terminal.getCursor(promptCol, promptRow);
 }
 
@@ -59,6 +60,7 @@ void Shell::redrawLine() {
     putchar(' ');
 
     // Position cursor at the editing point.
+    terminal.flush();
     terminal.setCursor(promptCol + cursor, promptRow);
 }
 
