@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 
 .set MAGIC, 0x1BADB002
-.set FLAGS, (1 << 0 | 1 << 1)
+.set FLAGS, (1 << 0 | 1 << 1 | 1 << 2)
 .set CHECKSUM, -(MAGIC + FLAGS)
 
 .set KERNEL_VBASE, 0xC0000000
@@ -17,6 +17,20 @@
     .long   MAGIC
     .long   FLAGS
     .long   CHECKSUM
+
+    # Address fields (offsets 12-28). Not used (bit 16 not set),
+    # but must be present so video fields land at offset 32.
+    .long   0               # header_addr
+    .long   0               # load_addr
+    .long   0               # load_end_addr
+    .long   0               # bss_end_addr
+    .long   0               # entry_addr
+
+    # Video mode fields (offsets 32-44). Request linear framebuffer.
+    .long   0               # mode_type: 0 = linear framebuffer
+    .long   1024            # width
+    .long   768             # height
+    .long   32              # depth (bpp)
 
 
 .section .text

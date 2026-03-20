@@ -2,6 +2,7 @@
 
 #include <core/syscall.hpp>
 #include <hardware/pit.hpp>
+#include <memory/multiboot.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -67,3 +68,17 @@ TEST(syscall_invalid_number) {
     asm volatile("int $0x80" : "=a"(result) : "a"(999u));
     ASSERT_EQ(result, static_cast<i32>(-1));
 }
+
+TEST(multiboot_info_framebuffer_field_offsets) {
+    // Verify the MultibootInfo struct layout matches the multiboot spec.
+    // The framebuffer fields must be at the correct offsets or GRUB's data
+    // will be misread.
+    ASSERT_EQ(__builtin_offsetof(memory::MultibootInfo, framebuffer_addr), 88u);
+    ASSERT_EQ(__builtin_offsetof(memory::MultibootInfo, framebuffer_pitch), 96u);
+    ASSERT_EQ(__builtin_offsetof(memory::MultibootInfo, framebuffer_width), 100u);
+    ASSERT_EQ(__builtin_offsetof(memory::MultibootInfo, framebuffer_height), 104u);
+    ASSERT_EQ(__builtin_offsetof(memory::MultibootInfo, framebuffer_bpp), 108u);
+    ASSERT_EQ(__builtin_offsetof(memory::MultibootInfo, framebuffer_type), 109u);
+}
+
+

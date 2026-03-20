@@ -45,6 +45,8 @@ private:
     static SyscallHandler instance;
 
 private:
+    std::os::FramebufferInfo fbInfo;
+
     SyscallHandler();
     ~SyscallHandler() = default;
 
@@ -64,6 +66,12 @@ public:
      *
      */
     inline static SyscallHandler& getSyscallHandler() { return instance; }
+
+    /**
+     * @brief Store framebuffer info from multiboot for the FramebufferInfo syscall.
+     *
+     */
+    void setFramebufferInfo(const std::os::FramebufferInfo& info);
 
     /**
      * @brief Registers the syscall gate at vector 0x80 with DPL=3.

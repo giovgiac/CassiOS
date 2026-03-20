@@ -33,7 +33,11 @@ extern "C" void syscallEntry();
 
 SyscallHandler SyscallHandler::instance;
 
-SyscallHandler::SyscallHandler() {}
+SyscallHandler::SyscallHandler() : fbInfo{} {}
+
+void SyscallHandler::setFramebufferInfo(const os::FramebufferInfo& info) {
+    fbInfo = info;
+}
 
 void SyscallHandler::load() {
     InterruptManager& im = InterruptManager::getManager();
@@ -299,14 +303,22 @@ i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
         return -1;
     }
 
-    // Only allow mapping physical addresses below 1MB (device/MMIO region).
-    // The sub-1MB region is at most 256 pages; reject larger counts to
-    // prevent pages * 0x1000 from wrapping u32.
-    if (pages > 0x100) {
+    // Reject zero pages or counts large enough to overflow address arithmetic.
+    if (pages == 0 || pages > 0x10000) {
         return -1;
     }
-    u32 endPhysical = physical + pages * 0x1000;
-    if (endPhysical < physical || endPhysical > 0x100000) {
+
+    u32 size = pages * 0x1000;
+
+    // Check physical range doesn't wrap.
+    u32 endPhysical = physical + size;
+    if (endPhysical < physical) {
+        return -1;
+    }
+
+    // Check virtual range doesn't wrap or reach kernel space (>= 0xC0000000).
+    u32 endVirt = virt + size;
+    if (endVirt < virt || endVirt > KERNEL_VBASE) {
         return -1;
     }
 
@@ -572,6 +584,13 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         frame->eax = static_cast<u32>(result);
         return esp;
     }
+    case os::syscall::FramebufferInfo:
+        frame->eax = fbInfo.address;
+        frame->ebx = fbInfo.width;
+        frame->ecx = fbInfo.height;
+        frame->edx = fbInfo.pitch;
+        frame->esi = fbInfo.bpp;
+        return esp;
     default:
         frame->eax = static_cast<u32>(-1);
         return esp;

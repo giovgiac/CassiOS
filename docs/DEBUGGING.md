@@ -58,21 +58,24 @@ Do not consider a bug fixed until you have proven it through the verify step. A 
 Run the full system (kernel + all userspace services) with `make run`, or manually:
 
 ```
-qemu-system-i386 -machine pc -kernel bin/cassio.bin \
-    -initrd "bin/ns.elf,bin/kbd.elf,bin/vga.elf,bin/vfs.elf,bin/mouse.elf,bin/ata.elf,bin/shell.elf" \
+make bin/cassio.iso bin/disk.img
+qemu-system-i386 -machine pc -cdrom bin/cassio.iso -boot d \
     -drive file=bin/disk.img,format=raw,if=ide
 ```
 
+The OS boots via GRUB from the ISO. GRUB handles VESA framebuffer mode setting, which QEMU's built-in multiboot loader does not support.
+
 Key flags:
 - `-machine pc` -- required; without it QEMU may not load the multiboot kernel
-- `-initrd` -- loads userspace service ELFs as multiboot modules (order matters: nameserver first, shell last)
+- `-cdrom` -- boots from the GRUB ISO (contains kernel + all userspace service ELFs as GRUB modules)
+- `-boot d` -- tells QEMU to boot from CD-ROM instead of hard drive
 - `-drive file=...,if=ide` -- ATA disk image for the disk driver
 - `-no-reboot` -- halts on triple fault instead of rebooting (makes crashes visible)
 - `-display none` -- headless mode for automated testing
 
 ### Capturing VGA screenshots
 
-Since the kernel writes to the VGA text buffer at 0xB8000, use QEMU's monitor to take screenshots for automated/headless testing:
+Use QEMU's monitor to take screenshots for automated/headless testing:
 
 ```bash
 #!/bin/bash
@@ -85,12 +88,12 @@ mkdir -p /tmp/cassio-test
 pkill -f qemu-system-i386 2>/dev/null || true
 sleep 0.5; rm -f "$SOCK"
 
-qemu-system-i386 -machine pc -kernel bin/cassio.bin \
-    -initrd "bin/ns.elf,bin/kbd.elf,bin/vga.elf,bin/vfs.elf,bin/mouse.elf,bin/ata.elf,bin/shell.elf" \
+make bin/cassio.iso bin/disk.img 2>/dev/null
+qemu-system-i386 -machine pc -cdrom bin/cassio.iso -boot d \
     -drive file=bin/disk.img,format=raw,if=ide \
     -display none -monitor "unix:$SOCK,server,nowait" \
     -no-reboot -daemonize
-sleep 2
+sleep 3
 
 for key in "$@"; do
     printf 'sendkey %s\n' "$key" | socat - "UNIX-CONNECT:$SOCK" >/dev/null 2>&1
