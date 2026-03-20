@@ -5,9 +5,10 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
- * Owns the VESA framebuffer and a back buffer. All drawing
- * operates on the back buffer via std::gfx::PixelBuffer.
- * flush() copies the back buffer to the framebuffer.
+ * Owns the VESA framebuffer and a ring-buffered back buffer. All
+ * drawing operates on the back buffer via std::gfx::PixelBuffer.
+ * Scroll just increments an offset (O(1), no data movement).
+ * flush() copies the ring buffer to the linear framebuffer.
  *
  */
 
@@ -42,11 +43,12 @@ public:
 private:
     std::u32* framebuffer;
     std::gfx::PixelBuffer backBuf;
-    std::u32 fbSize; ///< Total framebuffer size in bytes (pitch * height).
-    std::u32 dirtyTop;    ///< First dirty scanline (inclusive).
-    std::u32 dirtyBottom; ///< Last dirty scanline (exclusive).
+    std::u32 pitch;
+    std::u32 height;
+    std::u32 scrollOffset; ///< Ring buffer offset in pixels (rows).
 
-    void markDirty(std::u32 y, std::u32 h);
+    /// Translate a screen Y coordinate to the wrapped back buffer Y.
+    std::u32 wrap(std::u32 y) const;
 };
 
 } // namespace cassio

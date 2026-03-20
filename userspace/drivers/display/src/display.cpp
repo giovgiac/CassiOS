@@ -15,79 +15,109 @@ using namespace cassio;
 using namespace std;
 
 Display::Display(u32* framebuffer, u32* backBuffer, u32 width, u32 height, u32 pitch)
-    : framebuffer(framebuffer), backBuf(backBuffer, width, height, pitch), fbSize(pitch * height),
-      dirtyTop(height), dirtyBottom(0) {}
+    : framebuffer(framebuffer), backBuf(backBuffer, width, height, pitch), pitch(pitch),
+      height(height), scrollOffset(0) {}
 
-void Display::markDirty(u32 y, u32 h) {
-    if (y < dirtyTop) {
-        dirtyTop = y;
-    }
-    u32 bottom = y + h;
-    if (bottom > backBuf.getHeight()) {
-        bottom = backBuf.getHeight();
-    }
-    if (bottom > dirtyBottom) {
-        dirtyBottom = bottom;
-    }
-}
+u32 Display::wrap(u32 y) const { return height > 0 ? (y + scrollOffset) % height : 0; }
 
 void Display::fillRect(u32 x, u32 y, u32 w, u32 h, gfx::Color color) {
-    backBuf.fillRect(x, y, w, h, color);
-    markDirty(y, h);
+    // Row-by-row to handle wrapping.
+    for (u32 row = 0; row < h; ++row) {
+        u32 wy = wrap(y + row);
+        if (wy < height) {
+            u32* dst = reinterpret_cast<u32*>(reinterpret_cast<u8*>(backBuf.getData()) +
+                                              wy * pitch) +
+                       x;
+            for (u32 col = 0; col < w && x + col < backBuf.getWidth(); ++col) {
+                dst[col] = color;
+            }
+        }
+    }
 }
 
 void Display::drawRect(u32 x, u32 y, u32 w, u32 h, gfx::Color color) {
-    backBuf.drawRect(x, y, w, h, color);
-    markDirty(y, h);
+    if (w == 0 || h == 0) {
+        return;
+    }
+    fillRect(x, y, w, 1, color);
+    fillRect(x, y + h - 1, w, 1, color);
+    if (h > 2) {
+        fillRect(x, y + 1, 1, h - 2, color);
+        fillRect(x + w - 1, y + 1, 1, h - 2, color);
+    }
 }
 
 void Display::blit(u32 x, u32 y, u32 w, u32 h, const u32* pixels) {
-    gfx::PixelBuffer src(const_cast<u32*>(pixels), w, h, w * sizeof(u32));
-    backBuf.blit(x, y, src, 0, 0, w, h);
-    markDirty(y, h);
+    for (u32 row = 0; row < h; ++row) {
+        u32 wy = wrap(y + row);
+        if (wy < height) {
+            u32* dst = reinterpret_cast<u32*>(reinterpret_cast<u8*>(backBuf.getData()) +
+                                              wy * pitch) +
+                       x;
+            const u32* src = pixels + row * w;
+            u32 copyW = w;
+            if (x + copyW > backBuf.getWidth()) {
+                copyW = backBuf.getWidth() - x;
+            }
+            mem::copy(dst, src, copyW * sizeof(u32));
+        }
+    }
 }
 
 void Display::drawChar(u32 x, u32 y, char ch, gfx::Color fg, gfx::Color bg) {
-    backBuf.drawChar(x, y, ch, fg, bg);
-    markDirty(y, gfx::FONT_HEIGHT);
+    const u8* glyph = gfx::font[static_cast<u8>(ch)];
+    u32 bufWidth = backBuf.getWidth();
+
+    for (u32 row = 0; row < gfx::FONT_HEIGHT; ++row) {
+        u32 wy = wrap(y + row);
+        if (wy >= height) {
+            continue;
+        }
+        u32* dst = reinterpret_cast<u32*>(reinterpret_cast<u8*>(backBuf.getData()) + wy * pitch) +
+                   x;
+        u8 bits = glyph[row];
+        for (u32 col = 0; col < gfx::FONT_WIDTH && x + col < bufWidth; ++col) {
+            dst[col] = (bits & (0x80 >> col)) ? fg : bg;
+        }
+    }
 }
 
 void Display::scroll(u32 pixels, gfx::Color color) {
-    // Flush pending changes so the framebuffer is up-to-date before
-    // we scroll it. Without this, the scroll shifts stale content.
-    flush();
-
-    backBuf.scroll(pixels, color);
-
-    // Apply the same scroll to the framebuffer so we don't have to
-    // flush the entire buffer. Only the new bottom rows are dirty.
-    u32 height = backBuf.getHeight();
-    u32 pitch = backBuf.getPitch();
-    if (pixels < height) {
-        u32 copyRows = height - pixels;
-        mem::copy(framebuffer, reinterpret_cast<u8*>(framebuffer) + pixels * pitch,
-                  copyRows * pitch);
+    if (height == 0) {
+        return;
     }
-    markDirty(height - pixels, pixels);
+
+    // Clear the rows that are about to become the new bottom.
+    // These are at the old top of the ring (current scrollOffset).
+    for (u32 row = 0; row < pixels && row < height; ++row) {
+        u32 clearRow = (scrollOffset + row) % height;
+        u32* dst =
+            reinterpret_cast<u32*>(reinterpret_cast<u8*>(backBuf.getData()) + clearRow * pitch);
+        u32 w = backBuf.getWidth();
+        for (u32 col = 0; col < w; ++col) {
+            dst[col] = color;
+        }
+    }
+
+    // Advance the offset. No data movement.
+    scrollOffset = (scrollOffset + pixels) % height;
 }
 
 void Display::flush() {
-    if (dirtyTop >= dirtyBottom) {
-        return; // Nothing dirty.
+    u32 firstRows = height - scrollOffset;
+    u8* src = reinterpret_cast<u8*>(backBuf.getData());
+    u8* dst = reinterpret_cast<u8*>(framebuffer);
+
+    // Copy back[scrollOffset..height) to framebuffer[0..firstRows).
+    mem::copy(dst, src + scrollOffset * pitch, firstRows * pitch);
+
+    // Copy back[0..scrollOffset) to framebuffer[firstRows..height).
+    if (scrollOffset > 0) {
+        mem::copy(dst + firstRows * pitch, src, scrollOffset * pitch);
     }
-
-    u32 pitch = backBuf.getPitch();
-    u8* dst = reinterpret_cast<u8*>(framebuffer) + dirtyTop * pitch;
-    const u8* src = reinterpret_cast<const u8*>(backBuf.getData()) + dirtyTop * pitch;
-    u32 bytes = (dirtyBottom - dirtyTop) * pitch;
-    mem::copy(dst, src, bytes);
-
-    // Reset dirty region.
-    dirtyTop = backBuf.getHeight();
-    dirtyBottom = 0;
 }
 
 u32 Display::getWidth() const { return backBuf.getWidth(); }
-u32 Display::getHeight() const { return backBuf.getHeight(); }
-u32 Display::getPitch() const { return backBuf.getPitch(); }
+u32 Display::getHeight() const { return height; }
+u32 Display::getPitch() const { return pitch; }
 u32 Display::getBpp() const { return 32; }

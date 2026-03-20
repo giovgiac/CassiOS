@@ -46,9 +46,11 @@ private:
     std::gfx::Color fg;
     std::gfx::Color bg;
 
+    std::u32 pendingScroll; ///< Accumulated scroll rows (flushed before next draw).
+
+    void flushScroll();
     void drawGlyph(char ch, std::u32 col, std::u32 row);
     void clearCell(std::u32 col, std::u32 row);
-    void scrollUp();
 };
 
 } // namespace cassio

@@ -15,19 +15,23 @@ using namespace std::gfx;
 
 Terminal::Terminal(display::Display& display, u32 screenWidth, u32 screenHeight)
     : display(display), cols(screenWidth / FONT_WIDTH), rows(screenHeight / FONT_HEIGHT), x(0),
-      y(0), fg(0x00AAAAAA), bg(0x00000000) {}
+      y(0), fg(0x00AAAAAA), bg(0x00000000), pendingScroll(0) {}
+
+void Terminal::flushScroll() {
+    if (pendingScroll > 0) {
+        display.scroll(pendingScroll * FONT_HEIGHT, bg);
+        pendingScroll = 0;
+    }
+}
 
 void Terminal::drawGlyph(char ch, u32 col, u32 row) {
+    flushScroll();
     display.drawChar(col * FONT_WIDTH, row * FONT_HEIGHT, ch, fg, bg);
 }
 
 void Terminal::clearCell(u32 col, u32 row) {
+    flushScroll();
     display.fillRect(col * FONT_WIDTH, row * FONT_HEIGHT, FONT_WIDTH, FONT_HEIGHT, bg);
-}
-
-void Terminal::scrollUp() {
-    display.scroll(FONT_HEIGHT, bg);
-    y = static_cast<u8>(rows - 1);
 }
 
 void Terminal::putchar(char ch) {
@@ -75,24 +79,27 @@ void Terminal::putchar(char ch) {
     }
 
     if (y >= rows) {
-        scrollUp();
+        pendingScroll += y - rows + 1;
+        y = static_cast<u8>(rows - 1);
     }
 }
 
 void Terminal::clear() {
+    pendingScroll = 0;
     display.fillRect(0, 0, cols * FONT_WIDTH, rows * FONT_HEIGHT, bg);
     x = 0;
     y = 0;
 }
 
 void Terminal::drawCursor() {
-    // Underline cursor: 8x2 bar at the bottom of the character cell.
+    flushScroll();
     u32 px = x * FONT_WIDTH;
     u32 py = y * FONT_HEIGHT + FONT_HEIGHT - 2;
     display.fillRect(px, py, FONT_WIDTH, 2, fg);
 }
 
 void Terminal::eraseCursor() {
+    flushScroll();
     u32 px = x * FONT_WIDTH;
     u32 py = y * FONT_HEIGHT + FONT_HEIGHT - 2;
     display.fillRect(px, py, FONT_WIDTH, 2, bg);
