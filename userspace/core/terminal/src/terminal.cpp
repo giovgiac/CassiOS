@@ -97,9 +97,7 @@ void Terminal::clear() {
 
 void Terminal::renderCursor(gfx::Color color) {
     flushScroll();
-    u32 px = x * FONT_WIDTH;
-    u32 py = y * FONT_HEIGHT + FONT_HEIGHT - 2;
-    display.fillRect(px, py, FONT_WIDTH, 2, color);
+    display.fillRect(x * FONT_WIDTH, y * FONT_HEIGHT, FONT_WIDTH, FONT_HEIGHT, color);
 }
 
 void Terminal::drawCursor() {
