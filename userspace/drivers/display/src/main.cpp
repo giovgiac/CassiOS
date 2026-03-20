@@ -32,9 +32,12 @@ extern "C" void _start() {
     u32 fbSizeBytes = fb.pitch * fb.height;
     u32 pages = (fbSizeBytes + 0xFFF) / 0x1000;
 
-    // Map framebuffer into our address space at the same virtual address.
-    os::mapDevice(fb.address, fb.address, pages);
-    u32* framebuffer = reinterpret_cast<u32*>(fb.address);
+    // Map framebuffer into our address space. The physical address is
+    // typically above KERNEL_VBASE (e.g., 0xFD000000), so we map it
+    // at a fixed userspace virtual address.
+    static constexpr u32 FB_VIRT = 0x10000000;
+    os::mapDevice(fb.address, FB_VIRT, pages);
+    u32* framebuffer = reinterpret_cast<u32*>(FB_VIRT);
 
     // Allocate back buffer via sbrk.
     u32* backBuffer = static_cast<u32*>(os::sbrk(fbSizeBytes));

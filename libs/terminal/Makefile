@@ -1,13 +1,13 @@
-# std::vga library - VGA terminal service client
+# std::terminal library - terminal service client
 
 ROOT     = ../..
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP $(foreach dir,$(wildcard $(ROOT)/libs/*/include),-I$(dir))
 
-OBJDIR   = $(ROOT)/obj/std/vga
+OBJDIR   = $(ROOT)/obj/std/terminal
 LIBDIR   = $(ROOT)/lib
-OUTPUT   = $(LIBDIR)/libstd_vga.a
+OUTPUT   = $(LIBDIR)/libstd_terminal.a
 
-SOURCES  = vga.cpp
+SOURCES  = terminal.cpp
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
 $(OUTPUT): $(OBJECTS)

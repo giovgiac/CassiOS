@@ -72,6 +72,13 @@ constexpr u32 DisplayBlit = 23;
 constexpr u32 DisplayScroll = 24;
 constexpr u32 DisplayFlush = 25;
 constexpr u32 DisplayGetInfo = 26;
+
+// Terminal.
+constexpr u32 TerminalPutchar = 27;
+constexpr u32 TerminalWrite = 28;
+constexpr u32 TerminalClear = 29;
+constexpr u32 TerminalSetCursor = 30;
+constexpr u32 TerminalGetCursor = 31;
 } // namespace MessageType
 
 /**

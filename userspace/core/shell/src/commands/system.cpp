@@ -40,7 +40,7 @@ void Shell::cmdHelp() {
 }
 
 void Shell::cmdClear() {
-    vga.clear();
+    terminal.clear();
 }
 
 void Shell::cmdEcho(const char** args, u8 argc) {

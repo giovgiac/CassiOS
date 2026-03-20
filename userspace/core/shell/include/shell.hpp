@@ -13,7 +13,7 @@
 #include <std/kbd.hpp>
 #include <std/types.hpp>
 #include <std/vfs.hpp>
-#include <std/vga.hpp>
+#include <std/terminal.hpp>
 
 namespace cassio {
 
@@ -24,7 +24,7 @@ constexpr std::u32 SHELL_MAX_PATH = 64;
 class Shell {
 private:
     std::kbd::Kbd kbd;
-    std::vga::Vga vga;
+    std::terminal::Terminal terminal;
     std::vfs::Vfs vfs;
 
     char buffer[SHELL_MAX_INPUT + 1]; // +1 for null terminator in execute()

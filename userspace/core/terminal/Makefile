@@ -1,4 +1,4 @@
-SERVICE = vga
+SERVICE = terminal
 SOURCES = main.cpp terminal.cpp
 
 ROOT     := $(dir $(lastword $(MAKEFILE_LIST)))../../..
@@ -15,12 +15,14 @@ LIBSTD_HEAP = $(ROOT)/lib/libstd_heap.a
 LIBSTD_OS = $(ROOT)/lib/libstd_os.a
 LIBSTD_IPC = $(ROOT)/lib/libstd_ipc.a
 LIBSTD_NS = $(ROOT)/lib/libstd_ns.a
+LIBSTD_GFX = $(ROOT)/lib/libstd_gfx.a
+LIBSTD_DISPLAY = $(ROOT)/lib/libstd_display.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_GFX) $(LIBSTD_DISPLAY)
 	@mkdir -p $(BINDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_DISPLAY) $(LIBSTD_GFX) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)

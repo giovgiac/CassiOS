@@ -1,5 +1,5 @@
 /**
- * linker.ld -- VGA terminal service userspace linker script
+ * linker.ld -- Terminal service userspace linker script
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
