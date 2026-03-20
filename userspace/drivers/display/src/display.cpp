@@ -75,7 +75,7 @@ void Display::flush() {
     u32 pitch = backBuf.getPitch();
     u8* dst = reinterpret_cast<u8*>(framebuffer) + dirtyTop * pitch;
     const u8* src = reinterpret_cast<const u8*>(backBuf.getData()) + dirtyTop * pitch;
-    u32 bytes = rows * pitch;
+    u32 bytes = (dirtyBottom - dirtyTop) * pitch;
     mem::copy(dst, src, bytes);
 
     // Reset dirty region.
