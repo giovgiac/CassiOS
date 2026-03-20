@@ -108,10 +108,33 @@ Switch from VGA text mode to a VESA/VBE framebuffer (32bpp, requested via multib
 
 Double buffering (draw to RAM, flush to framebuffer) prevents tearing. Separating display from terminal keeps the driver clean and avoids a refactor when non-terminal apps (editor, GUI) need direct screen access later.
 
+## Phase 11: Text Editor
+
+**Status**: Not started
+
+A nano-like fullscreen text editor, compiled to `disk/bin/edit.elf` and launched from the shell via `exec /bin/edit.elf <filename>`. Uses the terminal service for rendering (putchar, setCursor, clear, flush) and the keyboard service for input.
+
+- **Buffer**: gap buffer for efficient insert/delete at cursor. Heap-allocated, grows as needed
+- **Viewport**: scrollable window over the buffer. Arrow keys move cursor, Page Up/Down scroll. Line wrapping or horizontal scroll for long lines
+- **Editing**: type to insert at cursor, backspace/delete to remove, enter to split line
+- **Status bar**: bottom row shows filename, modified flag, and key hints (Ctrl+S Save, Ctrl+Q Quit)
+- **File I/O**: load file from VFS on startup, save back on Ctrl+S via VFS write
+- **No syntax highlighting or advanced features** — just a clean, usable text editor
+
+## Phase 12: BASIC Interpreter
+
+**Status**: Not started
+
+An interpreter for a custom BASIC dialect, compiled to `disk/bin/basic.elf`. File execution only: `exec /bin/basic.elf /path/to/script.bas`. The language has built-in bindings to OS services, making it a scripting layer for the entire system.
+
+- **Language**: `PRINT`, `INPUT`, `LET`, `IF/THEN/ELSE`, `FOR/NEXT`, `WHILE/WEND`, `GOTO`, `GOSUB/RETURN`, `DIM` for arrays, string and numeric variables. Line numbers optional
+- **Execution**: tokenizer + tree-walk interpreter. No compilation step — keeps it simple. Load a `.bas` file from VFS, parse, run, exit
+- **OS bindings**: `PRINT`/`INPUT` through the terminal, `OPEN`/`READ`/`WRITE`/`CLOSE` through VFS, `DRAW`/`FILL`/`FLUSH` directly to the display service for graphics programs, `SLEEP`/`UPTIME` for system calls
+- **Error handling**: line-number-based error messages ("Error in line 42: Division by zero")
+
 ## Future Considerations
 
 - **Window manager**: composite multiple app buffers, window decorations, mouse-driven input routing — path from terminal OS to desktop GUI using the same gfx primitives
-- **Text editor**: fullscreen editor app (nano-like), works in both text mode and graphics terminal
 - **Networking**: NE2000 or virtio-net driver, TCP/IP stack as a userspace service
 - **Disk caching**: page cache layer between filesystem and block device
 - **ACPI**: proper shutdown, hardware enumeration
