@@ -18,11 +18,7 @@ Terminal::Terminal(display::Display& display, u32 screenWidth, u32 screenHeight)
       y(0), fg(0x00AAAAAA), bg(0x00000000) {}
 
 void Terminal::drawGlyph(char ch, u32 col, u32 row) {
-    // Render glyph into a small local buffer, then blit to display.
-    u32 pixels[FONT_WIDTH * FONT_HEIGHT];
-    PixelBuffer buf(pixels, FONT_WIDTH, FONT_HEIGHT, FONT_WIDTH * sizeof(u32));
-    buf.drawChar(0, 0, ch, fg, bg);
-    display.blit(col * FONT_WIDTH, row * FONT_HEIGHT, FONT_WIDTH, FONT_HEIGHT, pixels);
+    display.drawChar(col * FONT_WIDTH, row * FONT_HEIGHT, ch, fg, bg);
 }
 
 void Terminal::clearCell(u32 col, u32 row) {

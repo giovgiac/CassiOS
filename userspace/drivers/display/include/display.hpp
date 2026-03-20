@@ -27,6 +27,7 @@ public:
     void fillRect(std::u32 x, std::u32 y, std::u32 w, std::u32 h, std::gfx::Color color);
     void drawRect(std::u32 x, std::u32 y, std::u32 w, std::u32 h, std::gfx::Color color);
     void blit(std::u32 x, std::u32 y, std::u32 w, std::u32 h, const std::u32* pixels);
+    void drawChar(std::u32 x, std::u32 y, char ch, std::gfx::Color fg, std::gfx::Color bg);
     void scroll(std::u32 pixels, std::gfx::Color color);
     void flush();
 

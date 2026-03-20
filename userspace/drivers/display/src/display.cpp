@@ -47,6 +47,11 @@ void Display::blit(u32 x, u32 y, u32 w, u32 h, const u32* pixels) {
     markDirty(y, h);
 }
 
+void Display::drawChar(u32 x, u32 y, char ch, gfx::Color fg, gfx::Color bg) {
+    backBuf.drawChar(x, y, ch, fg, bg);
+    markDirty(y, gfx::FONT_HEIGHT);
+}
+
 void Display::scroll(u32 pixels, gfx::Color color) {
     backBuf.scroll(pixels, color);
     // Scroll affects the entire buffer.

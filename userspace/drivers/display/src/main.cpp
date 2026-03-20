@@ -70,6 +70,10 @@ extern "C" void _start() {
                          reinterpret_cast<const u32*>(dataBuf));
             break;
 
+        case ipc::MessageType::DisplayDrawChar:
+            display.drawChar(msg.arg1, msg.arg2, static_cast<char>(msg.arg3), msg.arg4, msg.arg5);
+            break;
+
         case ipc::MessageType::DisplayScroll:
             display.scroll(msg.arg1, msg.arg2);
             break;
