@@ -18,7 +18,8 @@ LIBSTD_NS = $(ROOT)/lib/libstd_ns.a
 LIBSTD_KBD = $(ROOT)/lib/libstd_kbd.a
 LIBSTD_VGA = $(ROOT)/lib/libstd_vga.a
 LIBSTD_VFS = $(ROOT)/lib/libstd_vfs.a
-LIBSTD_FMT = $(ROOT)/lib/libstd_fmt.a
+LIBSTD_FMT  = $(ROOT)/lib/libstd_fmt.a
+
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
 $(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_FMT)

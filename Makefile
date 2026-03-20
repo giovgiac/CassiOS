@@ -28,7 +28,6 @@ LIBSTD_STR = lib/libstd_str.a
 LIBSTD_ALLOC = lib/libstd_alloc.a
 LIBSTD_HEAP = lib/libstd_heap.a
 LIBSTD_FMT = lib/libstd_fmt.a
-
 LIBSTD_TEST = lib/libstd_test.a
 LIBSTD_OS = lib/libstd_os.a
 LIBSTD_IPC = lib/libstd_ipc.a
