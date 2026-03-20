@@ -178,6 +178,7 @@ void Shell::run() {
             if (cursor > 0) {
                 --cursor;
                 terminal.setCursor(promptCol + cursor, promptRow);
+                terminal.flush();
             }
             continue;
 
@@ -185,6 +186,7 @@ void Shell::run() {
             if (cursor < length) {
                 ++cursor;
                 terminal.setCursor(promptCol + cursor, promptRow);
+                terminal.flush();
             }
             continue;
 
