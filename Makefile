@@ -193,7 +193,7 @@ test-kernel:
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -drive file=/tmp/cassio-test-disk.img,format=raw,if=ide \
-	    -no-reboot; \
+	    -no-reboot 2>/dev/null; \
 	EXIT_CODE=$$?; \
 	rm -f /tmp/cassio-test-disk.img; \
 	cat /tmp/cassio-test-results.txt; \
@@ -219,39 +219,37 @@ test-userspace:
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -drive file=/tmp/cassio-usertest-disk.img,format=raw,if=ide \
-	    -no-reboot; \
+	    -no-reboot 2>/dev/null; \
 	EXIT_CODE=$$?; \
 	rm -f /tmp/cassio-usertest-disk.img; \
 	cat /tmp/cassio-usertest-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
-iso: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL)
-	mkdir iso
-	mkdir iso/boot
-	mkdir iso/boot/grub
-	cp $(KERNEL) iso/boot/
-	cp $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) iso/boot/
-	echo 'set default=0' > iso/boot/grub/grub.cfg
-	echo 'set timeout=0' >> iso/boot/grub/grub.cfg
-	echo '' >> iso/boot/grub/grub.cfg
-	echo 'menuentry "CassiOS" {' >> iso/boot/grub/grub.cfg
-	echo '	multiboot /boot/cassio.bin' >> iso/boot/grub/grub.cfg
-	echo '	module /boot/ns.elf' >> iso/boot/grub/grub.cfg
-	echo '	module /boot/kbd.elf' >> iso/boot/grub/grub.cfg
-	echo '	module /boot/vga.elf' >> iso/boot/grub/grub.cfg
-	echo '	module /boot/vfs.elf' >> iso/boot/grub/grub.cfg
-	echo '	module /boot/mouse.elf' >> iso/boot/grub/grub.cfg
-	echo '	module /boot/ata.elf' >> iso/boot/grub/grub.cfg
-	echo '	module /boot/shell.elf' >> iso/boot/grub/grub.cfg
-	echo '	boot' >> iso/boot/grub/grub.cfg
-	echo '}' >> iso/boot/grub/grub.cfg
-	echo '' >> iso/boot/grub/grub.cfg
-	grub-mkrescue --output=$(ISO) iso
-	rm -rf iso
+$(ISO): kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL)
+	@rm -rf iso
+	@mkdir -p iso/boot/grub
+	@cp $(KERNEL) iso/boot/
+	@cp $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) iso/boot/
+	@echo 'set default=0' > iso/boot/grub/grub.cfg
+	@echo 'set timeout=0' >> iso/boot/grub/grub.cfg
+	@echo '' >> iso/boot/grub/grub.cfg
+	@echo 'menuentry "CassiOS" {' >> iso/boot/grub/grub.cfg
+	@echo '	multiboot /boot/cassio.bin' >> iso/boot/grub/grub.cfg
+	@echo '	module /boot/ns.elf' >> iso/boot/grub/grub.cfg
+	@echo '	module /boot/kbd.elf' >> iso/boot/grub/grub.cfg
+	@echo '	module /boot/vga.elf' >> iso/boot/grub/grub.cfg
+	@echo '	module /boot/vfs.elf' >> iso/boot/grub/grub.cfg
+	@echo '	module /boot/mouse.elf' >> iso/boot/grub/grub.cfg
+	@echo '	module /boot/ata.elf' >> iso/boot/grub/grub.cfg
+	@echo '	module /boot/shell.elf' >> iso/boot/grub/grub.cfg
+	@echo '	boot' >> iso/boot/grub/grub.cfg
+	@echo '}' >> iso/boot/grub/grub.cfg
+	@echo '' >> iso/boot/grub/grub.cfg
+	grub-mkrescue --output=$(ISO) iso 2>/dev/null
+	@rm -rf iso
 
-run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) $(DISK)
-	qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(USERSHELL)" \
+run: $(ISO) $(DISK)
+	qemu-system-i386 -machine pc -cdrom $(ISO) \
 	    -drive file=$(DISK),format=raw,if=ide
 
 # Include auto-generated header dependencies (produced by -MMD -MP).
@@ -260,6 +258,6 @@ run: kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) $(DI
 -include $(lib_test_objects:.o=.d)
 -include $(usertest_objects:.o=.d)
 
-.PHONY: kernel iso clean run test test-kernel test-userspace
+.PHONY: kernel clean run test test-kernel test-userspace
 clean:
 	rm -rf obj/ bin/ lib/
