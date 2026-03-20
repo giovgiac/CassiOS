@@ -46,12 +46,14 @@ private:
     std::gfx::Color fg;
     std::gfx::Color bg;
 
+    char* cells;            ///< Character grid (cols * rows), heap-allocated.
     std::u32 pendingScroll; ///< Accumulated scroll rows (flushed before next draw).
 
+    char cellAt(std::u32 col, std::u32 row) const;
+    void setCellAt(std::u32 col, std::u32 row, char ch);
     void flushScroll();
     void drawGlyph(char ch, std::u32 col, std::u32 row);
     void clearCell(std::u32 col, std::u32 row);
-    void renderCursor(std::gfx::Color color);
 };
 
 } // namespace cassio

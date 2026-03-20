@@ -9,28 +9,64 @@
 
 #include <terminal.hpp>
 
+#include <std/mem.hpp>
+#include <std/os.hpp>
+
 using namespace cassio;
 using namespace std;
 using namespace std::gfx;
 
 Terminal::Terminal(display::Display& display, u32 screenWidth, u32 screenHeight)
     : display(display), cols(screenWidth / FONT_WIDTH), rows(screenHeight / FONT_HEIGHT), x(0),
-      y(0), fg(0x00AAAAAA), bg(0x00000000), pendingScroll(0) {}
+      y(0), fg(0x00AAAAAA), bg(0x00000000), cells(nullptr), pendingScroll(0) {
+    u32 gridSize = cols * rows;
+    if (gridSize > 0) {
+        cells = static_cast<char*>(os::sbrk(gridSize));
+        mem::set(cells, ' ', gridSize);
+    }
+}
+
+char Terminal::cellAt(u32 col, u32 row) const {
+    if (!cells || col >= cols || row >= rows) {
+        return ' ';
+    }
+    return cells[row * cols + col];
+}
+
+void Terminal::setCellAt(u32 col, u32 row, char ch) {
+    if (cells && col < cols && row < rows) {
+        cells[row * cols + col] = ch;
+    }
+}
 
 void Terminal::flushScroll() {
     if (pendingScroll > 0) {
         display.scroll(pendingScroll * FONT_HEIGHT, bg);
+
+        // Shift the character grid up and clear the new bottom rows.
+        if (cells) {
+            u32 scrollRows = pendingScroll;
+            if (scrollRows >= rows) {
+                mem::set(cells, ' ', cols * rows);
+            } else {
+                mem::move(cells, cells + scrollRows * cols, (rows - scrollRows) * cols);
+                mem::set(cells + (rows - scrollRows) * cols, ' ', scrollRows * cols);
+            }
+        }
+
         pendingScroll = 0;
     }
 }
 
 void Terminal::drawGlyph(char ch, u32 col, u32 row) {
     flushScroll();
+    setCellAt(col, row, ch);
     display.drawChar(col * FONT_WIDTH, row * FONT_HEIGHT, ch, fg, bg);
 }
 
 void Terminal::clearCell(u32 col, u32 row) {
     flushScroll();
+    setCellAt(col, row, ' ');
     display.fillRect(col * FONT_WIDTH, row * FONT_HEIGHT, FONT_WIDTH, FONT_HEIGHT, bg);
 }
 
@@ -90,22 +126,26 @@ void Terminal::putchar(char ch) {
 
 void Terminal::clear() {
     pendingScroll = 0;
+    if (cells) {
+        mem::set(cells, ' ', cols * rows);
+    }
     display.fillRect(0, 0, cols * FONT_WIDTH, rows * FONT_HEIGHT, bg);
     x = 0;
     y = 0;
 }
 
-void Terminal::renderCursor(gfx::Color color) {
-    flushScroll();
-    display.fillRect(x * FONT_WIDTH, y * FONT_HEIGHT, FONT_WIDTH, FONT_HEIGHT, color);
-}
-
 void Terminal::drawCursor() {
-    renderCursor(fg);
+    flushScroll();
+    // Draw the character under the cursor with inverted colors.
+    char ch = cellAt(x, y);
+    display.drawChar(x * FONT_WIDTH, y * FONT_HEIGHT, ch, bg, fg);
 }
 
 void Terminal::eraseCursor() {
-    renderCursor(bg);
+    flushScroll();
+    // Redraw the character under the cursor with normal colors.
+    char ch = cellAt(x, y);
+    display.drawChar(x * FONT_WIDTH, y * FONT_HEIGHT, ch, fg, bg);
 }
 
 void Terminal::setCursor(u8 col, u8 row) {
