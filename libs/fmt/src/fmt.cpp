@@ -11,6 +11,16 @@
 
 using namespace std;
 
+// -- Format spec parsed from {:...} --
+
+struct Spec {
+    u32 width;
+    bool leftAlign;
+    bool zeroPad;
+    bool hex;
+    bool upperHex;
+};
+
 // -- Output helpers --
 
 static usize put(char* buf, usize size, usize pos, char c) {
@@ -63,16 +73,6 @@ static usize fmtHex(char* tmp, u32 value, bool upper) {
     }
     return count;
 }
-
-// -- Format spec parsed from {:...} --
-
-struct Spec {
-    u32 width;
-    bool leftAlign;
-    bool zeroPad;
-    bool hex;
-    bool upperHex;
-};
 
 static Spec parseSpec(const char* fmt, usize& i) {
     Spec s = {0, false, false, false, false};
