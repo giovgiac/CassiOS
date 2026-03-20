@@ -1,0 +1,37 @@
+# CassiOS code style
+#
+# Use with clang-format 14+ (IncludeCategories regex support).
+# VSCode: enable "Format On Save" and set C_Cpp.clang_format_style to "file".
+
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+
+# Braces
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# Pointers and references
+PointerAlignment: Left
+
+# Namespaces
+NamespaceIndentation: None
+
+# Constructor initializers
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerIndentWidth: 4
+
+# Includes: sort and group (quoted first, then std libs, then other)
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"'
+    Priority: 1
+  - Regex: '^<std/'
+    Priority: 2
+  - Regex: '^<'
+    Priority: 3
