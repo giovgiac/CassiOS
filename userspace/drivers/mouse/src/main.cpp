@@ -11,11 +11,12 @@
  *
  */
 
-#include <std/types.hpp>
+#include <std/io.hpp>
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
 #include <std/os.hpp>
-#include <std/io.hpp>
+#include <std/types.hpp>
+
 #include <mouse.hpp>
 
 using namespace cassio;
@@ -40,7 +41,7 @@ static void activate() {
     // Send 0xF4 (enable reporting) to mouse device.
     cmd.write(0xD4);
     data.write(0xF4);
-    data.read();  // Drain ACK
+    data.read(); // Drain ACK
 }
 
 extern "C" void _start() {

@@ -20,7 +20,7 @@ namespace std {
 namespace vfs {
 
 class Vfs {
-public:
+  public:
     /// Construct a VFS client. Blocks until the "vfs" service is
     /// registered with the nameserver.
     Vfs();
@@ -58,11 +58,11 @@ public:
     Vfs(const Vfs&) = delete;
     Vfs& operator=(const Vfs&) = delete;
 
-private:
+  private:
     u32 pid;
 };
 
-} // vfs
-} // std
+} // namespace vfs
+} // namespace std
 
 #endif // STD_VFS_HPP

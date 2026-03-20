@@ -11,11 +11,12 @@
  *
  */
 
-#include <std/types.hpp>
+#include <std/io.hpp>
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
 #include <std/os.hpp>
-#include <std/io.hpp>
+#include <std/types.hpp>
+
 #include <keyboard.hpp>
 
 using namespace cassio;
@@ -39,8 +40,8 @@ static void activate() {
     // Read and modify command byte: enable keyboard IRQs, clear disable bit.
     cmd.write(0x20);
     u8 status = data.read();
-    status |= 0x01;   // keyboard_interrupt = 1
-    status &= ~0x10;  // disable_keyboard = 0
+    status |= 0x01;  // keyboard_interrupt = 1
+    status &= ~0x10; // disable_keyboard = 0
     cmd.write(0x60);
     data.write(status);
 

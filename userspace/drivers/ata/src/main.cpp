@@ -11,10 +11,11 @@
  *
  */
 
-#include <std/types.hpp>
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
 #include <std/os.hpp>
+#include <std/types.hpp>
+
 #include <ata.hpp>
 
 using namespace cassio;
@@ -45,8 +46,7 @@ extern "C" void _start() {
             reply.arg1 = drive.readSector(lba, sectorBuf) ? 0 : 1;
 
             if (sender > 0) {
-                ipc::reply(static_cast<u32>(sender), &reply, sectorBuf,
-                           SECTOR_SIZE);
+                ipc::reply(static_cast<u32>(sender), &reply, sectorBuf, SECTOR_SIZE);
             }
             break;
         }

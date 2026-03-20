@@ -1,8 +1,8 @@
 #ifndef HARDWARE_SERIAL_HPP_
 #define HARDWARE_SERIAL_HPP_
 
-#include <std/types.hpp>
 #include <std/io.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 namespace hardware {
@@ -11,7 +11,7 @@ using std::io::Port;
 using std::io::PortType;
 
 class Serial {
-private:
+  private:
     Port<std::u8> data;
     Port<std::u8> interrupt_enable;
     Port<std::u8> fifo_control;
@@ -19,9 +19,9 @@ private:
     Port<std::u8> modem_control;
     Port<std::u8> line_status;
 
-public:
-    Serial(PortType data, PortType interrupt_enable, PortType fifo_control,
-           PortType line_control, PortType modem_control, PortType line_status);
+  public:
+    Serial(PortType data, PortType interrupt_enable, PortType fifo_control, PortType line_control,
+           PortType modem_control, PortType line_status);
     ~Serial() = default;
 
     void putchar(char ch);
@@ -34,18 +34,16 @@ public:
 };
 
 class COM1 final {
-private:
+  private:
     static Serial instance;
 
     COM1() = delete;
 
-public:
-    inline static Serial& getSerial() {
-        return instance;
-    }
+  public:
+    inline static Serial& getSerial() { return instance; }
 };
 
-} // hardware
-} // cassio
+} // namespace hardware
+} // namespace cassio
 
 #endif // HARDWARE_SERIAL_HPP_

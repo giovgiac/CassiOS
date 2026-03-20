@@ -8,6 +8,7 @@
  */
 
 #include <std/test.hpp>
+
 #include <mouse.hpp>
 
 using namespace cassio;
@@ -25,9 +26,9 @@ TEST(mouse_init_state) {
 TEST(mouse_single_packet_movement) {
     mouse.init();
     // Packet: no buttons, dx=+5, dy=-3 (raw byte 3, negated = -3)
-    mouse.handleByte(0x00);  // buttons
-    mouse.handleByte(5);     // dx
-    mouse.handleByte(3);     // raw dy (negated to -3)
+    mouse.handleByte(0x00); // buttons
+    mouse.handleByte(5);    // dx
+    mouse.handleByte(3);    // raw dy (negated to -3)
 
     ASSERT_EQ(mouse.getButtons(), 0u);
     ASSERT_EQ(mouse.getDx(), 5);
@@ -36,7 +37,7 @@ TEST(mouse_single_packet_movement) {
 
 TEST(mouse_button_left) {
     mouse.init();
-    mouse.handleByte(0x01);  // left button pressed
+    mouse.handleByte(0x01); // left button pressed
     mouse.handleByte(0);
     mouse.handleByte(0);
 
@@ -45,7 +46,7 @@ TEST(mouse_button_left) {
 
 TEST(mouse_button_right) {
     mouse.init();
-    mouse.handleByte(0x02);  // right button pressed
+    mouse.handleByte(0x02); // right button pressed
     mouse.handleByte(0);
     mouse.handleByte(0);
 
@@ -54,7 +55,7 @@ TEST(mouse_button_right) {
 
 TEST(mouse_button_middle) {
     mouse.init();
-    mouse.handleByte(0x04);  // middle button pressed
+    mouse.handleByte(0x04); // middle button pressed
     mouse.handleByte(0);
     mouse.handleByte(0);
 

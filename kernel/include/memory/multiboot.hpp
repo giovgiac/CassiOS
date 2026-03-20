@@ -46,7 +46,7 @@ static constexpr std::u32 MULTIBOOT_FLAG_MODS = (1 << 3);
 static constexpr std::u32 MULTIBOOT_FLAG_MMAP = (1 << 6);
 static constexpr std::u32 MULTIBOOT_MMAP_AVAILABLE = 1;
 
-} // memory
-} // cassio
+} // namespace memory
+} // namespace cassio
 
 #endif // MEMORY_MULTIBOOT_HPP_

@@ -1,7 +1,8 @@
-#include <core/syscall.hpp>
+#include <std/test.hpp>
+
 #include <core/process.hpp>
 #include <core/scheduler.hpp>
-#include <std/test.hpp>
+#include <core/syscall.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -26,7 +27,7 @@ TEST(ipc_send_queue_push_pop) {
     ASSERT_EQ(p->sendQueuePop(), 2u);
     ASSERT_EQ(p->sendQueuePop(), 3u);
     ASSERT_EQ(p->sendQueue.getCount(), 0u);
-    ASSERT_EQ(p->sendQueuePop(), 0u);  // Empty queue returns 0.
+    ASSERT_EQ(p->sendQueuePop(), 0u); // Empty queue returns 0.
 
     pm.destroy(p->pid);
 }
@@ -55,12 +56,14 @@ TEST(ipc_send_queue_interleaved_push_pop) {
     ASSERT(p != nullptr);
 
     // Push 5, pop 3, push 5 more -- tests FIFO ordering.
-    for (u32 i = 0; i < 5; i++) p->sendQueuePush(i + 1);
+    for (u32 i = 0; i < 5; i++)
+        p->sendQueuePush(i + 1);
     ASSERT_EQ(p->sendQueuePop(), 1u);
     ASSERT_EQ(p->sendQueuePop(), 2u);
     ASSERT_EQ(p->sendQueuePop(), 3u);
 
-    for (u32 i = 0; i < 5; i++) p->sendQueuePush(i + 10);
+    for (u32 i = 0; i < 5; i++)
+        p->sendQueuePush(i + 10);
     ASSERT_EQ(p->sendQueue.getCount(), 7u);
 
     // FIFO order: 4, 5, 10, 11, 12, 13, 14
@@ -122,7 +125,8 @@ TEST(ipc_notify_queue_with_data) {
     ASSERT(p != nullptr);
 
     u8 sendData[32];
-    for (u32 i = 0; i < 32; i++) sendData[i] = static_cast<u8>(i + 1);
+    for (u32 i = 0; i < 32; i++)
+        sendData[i] = static_cast<u8>(i + 1);
 
     ipc::Message m = {5, 32, 0, 0, 0, 0};
     ASSERT(p->notifyPush(7, m, sendData, 32));
@@ -147,7 +151,8 @@ TEST(ipc_notify_queue_data_truncated) {
     ASSERT(p != nullptr);
 
     u8 sendData[32];
-    for (u32 i = 0; i < 32; i++) sendData[i] = static_cast<u8>(i + 100);
+    for (u32 i = 0; i < 32; i++)
+        sendData[i] = static_cast<u8>(i + 100);
 
     ipc::Message m = {1, 0, 0, 0, 0, 0};
     ASSERT(p->notifyPush(1, m, sendData, 32));
@@ -186,7 +191,7 @@ TEST(ipc_send_to_receive_blocked_delivers_immediately) {
 
     // Set sender as current process and call send().
     pm.setCurrent(sender);
-    ipc::Message sendMsg = { 42, 1, 2, 3, 4, 5 };
+    ipc::Message sendMsg = {42, 1, 2, 3, 4, 5};
     i32 result = sh.send(receiver->pid, &sendMsg, 0, 0);
 
     // Sender should block.
@@ -214,10 +219,10 @@ TEST(ipc_send_to_non_blocked_queues_sender) {
     ASSERT(sender != nullptr);
     ASSERT(receiver != nullptr);
 
-    receiver->state = ProcessState::Ready;  // Not ReceiveBlocked.
+    receiver->state = ProcessState::Ready; // Not ReceiveBlocked.
 
     pm.setCurrent(sender);
-    ipc::Message sendMsg = { 99, 0, 0, 0, 0, 0 };
+    ipc::Message sendMsg = {99, 0, 0, 0, 0, 0};
     i32 result = sh.send(receiver->pid, &sendMsg, 0, 0);
 
     ASSERT_EQ(result, 0);
@@ -243,7 +248,7 @@ TEST(ipc_receive_with_pending_sender) {
 
     // Simulate sender already in queue with a message.
     sender->state = ProcessState::SendBlocked;
-    sender->msg = { 77, 10, 20, 30, 40, 50 };
+    sender->msg = {77, 10, 20, 30, 40, 50};
     receiver->sendQueuePush(sender->pid);
 
     pm.setCurrent(receiver);
@@ -300,14 +305,14 @@ TEST(ipc_reply_unblocks_sender) {
     sender->esp = (u32)&senderFrame;
 
     pm.setCurrent(replier);
-    ipc::Message replyMsg = { 100, 11, 22, 33, 44, 55 };
+    ipc::Message replyMsg = {100, 11, 22, 33, 44, 55};
     i32 result = sh.reply(sender->pid, &replyMsg, 0, 0);
 
     ASSERT_EQ(result, 0);
     ASSERT(sender->state == ProcessState::Ready);
     ASSERT_EQ(replyBuf.type, 100u);
     ASSERT_EQ(replyBuf.arg5, 55u);
-    ASSERT_EQ(senderFrame.eax, 0u);  // Sender's return value = 0 (success).
+    ASSERT_EQ(senderFrame.eax, 0u); // Sender's return value = 0 (success).
 
     pm.destroy(sender->pid);
     pm.destroy(replier->pid);
@@ -322,10 +327,10 @@ TEST(ipc_reply_to_non_blocked_fails) {
     ASSERT(target != nullptr);
     ASSERT(replier != nullptr);
 
-    target->state = ProcessState::Ready;  // Not SendBlocked.
+    target->state = ProcessState::Ready; // Not SendBlocked.
 
     pm.setCurrent(replier);
-    ipc::Message replyMsg = { 0, 0, 0, 0, 0, 0 };
+    ipc::Message replyMsg = {0, 0, 0, 0, 0, 0};
     i32 result = sh.reply(target->pid, &replyMsg, 0, 0);
 
     ASSERT_EQ(result, static_cast<i32>(-1));
@@ -342,7 +347,7 @@ TEST(ipc_send_to_self_fails) {
     ASSERT(p != nullptr);
 
     pm.setCurrent(p);
-    ipc::Message msg = { 1, 0, 0, 0, 0, 0 };
+    ipc::Message msg = {1, 0, 0, 0, 0, 0};
     i32 result = sh.send(p->pid, &msg, 0, 0);
 
     ASSERT_EQ(result, static_cast<i32>(-1));
@@ -360,7 +365,7 @@ TEST(ipc_send_to_invalid_pid_fails) {
     ASSERT(p != nullptr);
 
     pm.setCurrent(p);
-    ipc::Message msg = { 1, 0, 0, 0, 0, 0 };
+    ipc::Message msg = {1, 0, 0, 0, 0, 0};
     i32 result = sh.send(99999, &msg, 0, 0);
 
     ASSERT_EQ(result, static_cast<i32>(-1));
@@ -392,7 +397,7 @@ TEST(ipc_full_round_trip) {
 
     // Step 2: Client calls send() -- server is ReceiveBlocked, delivers immediately.
     pm.setCurrent(client);
-    ipc::Message request = { 42, 1, 2, 3, 4, 5 };
+    ipc::Message request = {42, 1, 2, 3, 4, 5};
     result = sh.send(server->pid, &request, 0, 0);
     ASSERT_EQ(result, 0);
     ASSERT(client->state == ProcessState::SendBlocked);
@@ -410,7 +415,7 @@ TEST(ipc_full_round_trip) {
 
     // Step 3: Server calls reply() -- unblocks client with response.
     pm.setCurrent(server);
-    ipc::Message response = { 99, 10, 20, 30, 40, 50 };
+    ipc::Message response = {99, 10, 20, 30, 40, 50};
     result = sh.reply(client->pid, &response, 0, 0);
     ASSERT_EQ(result, 0);
     ASSERT(client->state == ProcessState::Ready);
@@ -450,12 +455,12 @@ TEST(ipc_send_receive_blocked_with_data) {
 
     // Sender sends with data.
     u8 sendData[32];
-    for (u32 i = 0; i < 32; i++) sendData[i] = static_cast<u8>(i + 1);
+    for (u32 i = 0; i < 32; i++)
+        sendData[i] = static_cast<u8>(i + 1);
 
     pm.setCurrent(sender);
-    ipc::Message sendMsg = { 10, 32, 0, 0, 0, 0 };
-    i32 result = sh.send(receiver->pid, &sendMsg,
-                         (u32)sendData, sizeof(sendData));
+    ipc::Message sendMsg = {10, 32, 0, 0, 0, 0};
+    i32 result = sh.send(receiver->pid, &sendMsg, (u32)sendData, sizeof(sendData));
 
     ASSERT_EQ(result, 0);
     ASSERT(receiver->state == ProcessState::Ready);
@@ -493,12 +498,12 @@ TEST(ipc_send_data_truncated) {
 
     // Sender sends more data than receiver can hold.
     u8 sendData[64];
-    for (u32 i = 0; i < 64; i++) sendData[i] = static_cast<u8>(i + 10);
+    for (u32 i = 0; i < 64; i++)
+        sendData[i] = static_cast<u8>(i + 10);
 
     pm.setCurrent(sender);
-    ipc::Message sendMsg = { 20, 64, 0, 0, 0, 0 };
-    i32 result = sh.send(receiver->pid, &sendMsg,
-                         (u32)sendData, sizeof(sendData));
+    ipc::Message sendMsg = {20, 64, 0, 0, 0, 0};
+    i32 result = sh.send(receiver->pid, &sendMsg, (u32)sendData, sizeof(sendData));
 
     ASSERT_EQ(result, 0);
 
@@ -523,7 +528,8 @@ TEST(ipc_send_no_data_backward_compat) {
     // Receiver has a data buffer but sender sends no data.
     ipc::Message recvBuf = {};
     u8 recvData[32];
-    for (u32 i = 0; i < 32; i++) recvData[i] = 0xFF;
+    for (u32 i = 0; i < 32; i++)
+        recvData[i] = 0xFF;
     receiver->state = ProcessState::ReceiveBlocked;
     receiver->msgPtr = (u32)&recvBuf;
     receiver->dataPtr = (u32)recvData;
@@ -533,7 +539,7 @@ TEST(ipc_send_no_data_backward_compat) {
     receiver->esp = (u32)&recvFrame;
 
     pm.setCurrent(sender);
-    ipc::Message sendMsg = { 42, 0, 0, 0, 0, 0 };
+    ipc::Message sendMsg = {42, 0, 0, 0, 0, 0};
     i32 result = sh.send(receiver->pid, &sendMsg, 0, 0);
 
     ASSERT_EQ(result, 0);
@@ -570,12 +576,12 @@ TEST(ipc_reply_with_data) {
 
     // Replier sends reply with data.
     u8 replyData[48];
-    for (u32 i = 0; i < 48; i++) replyData[i] = static_cast<u8>(i + 50);
+    for (u32 i = 0; i < 48; i++)
+        replyData[i] = static_cast<u8>(i + 50);
 
     pm.setCurrent(replier);
-    ipc::Message replyMsg = { 200, 48, 0, 0, 0, 0 };
-    i32 result = sh.reply(sender->pid, &replyMsg,
-                          (u32)replyData, sizeof(replyData));
+    ipc::Message replyMsg = {200, 48, 0, 0, 0, 0};
+    i32 result = sh.reply(sender->pid, &replyMsg, (u32)replyData, sizeof(replyData));
 
     ASSERT_EQ(result, 0);
     ASSERT(sender->state == ProcessState::Ready);
@@ -613,12 +619,12 @@ TEST(ipc_full_round_trip_with_data) {
 
     // Step 2: Client sends with data.
     u8 clientData[64];
-    for (u32 i = 0; i < 64; i++) clientData[i] = static_cast<u8>(i);
+    for (u32 i = 0; i < 64; i++)
+        clientData[i] = static_cast<u8>(i);
 
     pm.setCurrent(client);
-    ipc::Message request = { 42, 64, 0, 0, 0, 0 };
-    result = sh.send(server->pid, &request,
-                     (u32)clientData, sizeof(clientData));
+    ipc::Message request = {42, 64, 0, 0, 0, 0};
+    result = sh.send(server->pid, &request, (u32)clientData, sizeof(clientData));
     ASSERT_EQ(result, 0);
     ASSERT(server->state == ProcessState::Ready);
 
@@ -634,12 +640,12 @@ TEST(ipc_full_round_trip_with_data) {
 
     // Step 3: Server replies with data.
     u8 replyData[32];
-    for (u32 i = 0; i < 32; i++) replyData[i] = static_cast<u8>(i + 100);
+    for (u32 i = 0; i < 32; i++)
+        replyData[i] = static_cast<u8>(i + 100);
 
     pm.setCurrent(server);
-    ipc::Message response = { 99, 32, 0, 0, 0, 0 };
-    result = sh.reply(client->pid, &response,
-                      (u32)replyData, sizeof(replyData));
+    ipc::Message response = {99, 32, 0, 0, 0, 0};
+    result = sh.reply(client->pid, &response, (u32)replyData, sizeof(replyData));
     ASSERT_EQ(result, 0);
     ASSERT(client->state == ProcessState::Ready);
 
@@ -665,10 +671,11 @@ TEST(ipc_receive_queued_sender_with_data) {
 
     // Simulate sender already in queue with data.
     u8 senderData[24];
-    for (u32 i = 0; i < 24; i++) senderData[i] = static_cast<u8>(i + 200);
+    for (u32 i = 0; i < 24; i++)
+        senderData[i] = static_cast<u8>(i + 200);
 
     sender->state = ProcessState::SendBlocked;
-    sender->msg = { 77, 24, 0, 0, 0, 0 };
+    sender->msg = {77, 24, 0, 0, 0, 0};
     sender->dataPtr = (u32)senderData;
     sender->dataLen = sizeof(senderData);
     receiver->sendQueuePush(sender->pid);

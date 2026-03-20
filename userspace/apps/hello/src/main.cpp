@@ -7,14 +7,13 @@
  *
  */
 
-#include <std/vga.hpp>
 #include <std/os.hpp>
+#include <std/vga.hpp>
 
 using namespace std;
 
 extern "C" void _start() {
     vga::Vga vga;
     vga.write("Hello, World!\n");
-
     os::exit(0);
 }

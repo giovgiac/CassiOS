@@ -14,22 +14,22 @@ namespace std {
 namespace types {
 
 // Float Types
-typedef     float               f32;
-typedef     double              f64;
+typedef float f32;
+typedef double f64;
 
 // Integer Types
-typedef     char                i8;
-typedef     unsigned char       u8;
-typedef     short               i16;
-typedef     unsigned short      u16;
-typedef     int                 i32;
-typedef     unsigned int        u32;
-typedef     long long           i64;
-typedef     unsigned long long  u64;
+typedef char i8;
+typedef unsigned char u8;
+typedef short i16;
+typedef unsigned short u16;
+typedef int i32;
+typedef unsigned int u32;
+typedef long long i64;
+typedef unsigned long long u64;
 
 // Size Types
-typedef     int                 isize;
-typedef     __SIZE_TYPE__       usize;
+typedef int isize;
+typedef __SIZE_TYPE__ usize;
 
 // Guarantee Expected Sizes
 static_assert(sizeof(f32) == 4, "Unexpected size for f32");
@@ -45,22 +45,22 @@ static_assert(sizeof(u64) == 8, "Unexpected size for u64");
 static_assert(sizeof(isize) == 4, "Unexpected size for isize");
 static_assert(sizeof(usize) == 4, "Unexpected size for usize");
 
-}
+} // namespace types
 
 // Re-export types into std:: for convenience.
 using types::f32;
 using types::f64;
-using types::i8;
-using types::u8;
 using types::i16;
-using types::u16;
 using types::i32;
-using types::u32;
 using types::i64;
-using types::u64;
+using types::i8;
 using types::isize;
+using types::u16;
+using types::u32;
+using types::u64;
+using types::u8;
 using types::usize;
 
-}
+} // namespace std
 
 #endif // STD_TYPES_HPP

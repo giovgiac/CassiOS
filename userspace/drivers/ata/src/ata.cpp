@@ -23,15 +23,19 @@ void Ata::delay400ns() {
 
 u8 Ata::poll() {
     u8 status;
-    while ((status = commandStatus.read()) & Status::Bsy) {}
+    while ((status = commandStatus.read()) & Status::Bsy) {
+    }
     return status;
 }
 
 bool Ata::waitForData() {
     u8 status = poll();
-    if (status & Status::Err) return false;
-    if (status & Status::Df) return false;
-    if (!(status & Status::Drq)) return false;
+    if (status & Status::Err)
+        return false;
+    if (status & Status::Df)
+        return false;
+    if (!(status & Status::Drq))
+        return false;
     return true;
 }
 
@@ -82,12 +86,11 @@ void Ata::init() {
     }
 
     // Extract 28-bit LBA sector count from words 60-61.
-    sectors = static_cast<u32>(identify[60]) |
-              (static_cast<u32>(identify[61]) << 16);
+    sectors = static_cast<u32>(identify[60]) | (static_cast<u32>(identify[61]) << 16);
 
     // Extract model string from words 27-46 (40 ASCII chars, byte-swapped).
     for (u32 i = 0; i < 20; ++i) {
-        model[i * 2]     = static_cast<char>(identify[27 + i] >> 8);
+        model[i * 2] = static_cast<char>(identify[27 + i] >> 8);
         model[i * 2 + 1] = static_cast<char>(identify[27 + i] & 0xFF);
     }
     model[40] = '\0';
@@ -117,7 +120,8 @@ const char* Ata::getModel() const {
 }
 
 bool Ata::readSectorInternal(u32 lba) {
-    if (!present || lba >= sectors) return false;
+    if (!present || lba >= sectors)
+        return false;
 
     driveSelect.write(MASTER_LBA | ((lba >> 24) & 0x0F));
     delay400ns();
@@ -130,7 +134,8 @@ bool Ata::readSectorInternal(u32 lba) {
     commandStatus.write(Command::ReadSectors);
     delay400ns();
 
-    if (!waitForData()) return false;
+    if (!waitForData())
+        return false;
 
     u16* buf16 = reinterpret_cast<u16*>(sectorBuf);
     for (u32 i = 0; i < 256; ++i) {
@@ -143,7 +148,8 @@ bool Ata::readSectorInternal(u32 lba) {
 }
 
 bool Ata::writeSectorInternal(u32 lba) {
-    if (!present || lba >= sectors) return false;
+    if (!present || lba >= sectors)
+        return false;
 
     driveSelect.write(MASTER_LBA | ((lba >> 24) & 0x0F));
     delay400ns();
@@ -156,7 +162,8 @@ bool Ata::writeSectorInternal(u32 lba) {
     commandStatus.write(Command::WriteSectors);
     delay400ns();
 
-    if (!waitForData()) return false;
+    if (!waitForData())
+        return false;
 
     const u16* buf16 = reinterpret_cast<const u16*>(sectorBuf);
     for (u32 i = 0; i < 256; ++i) {
@@ -171,7 +178,8 @@ bool Ata::writeSectorInternal(u32 lba) {
 
 bool Ata::readSector(u32 lba, u8* buf) {
     if (!cacheValid || cachedLba != lba) {
-        if (!readSectorInternal(lba)) return false;
+        if (!readSectorInternal(lba))
+            return false;
     }
 
     for (u32 i = 0; i < SECTOR_SIZE; ++i) {

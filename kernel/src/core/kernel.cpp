@@ -7,8 +7,9 @@
  *
  */
 
-#include "core/elf.hpp"
 #include "core/kernel.hpp"
+
+#include "core/elf.hpp"
 #include "core/process.hpp"
 #include "core/scheduler.hpp"
 #include "hardware/pit.hpp"
@@ -16,6 +17,7 @@
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
 #include "memory/virtual.hpp"
+
 #include <std/alloc.hpp>
 
 using namespace cassio;

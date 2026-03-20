@@ -10,9 +10,10 @@
 #ifndef HARDWARE_INTERRUPT_HPP_
 #define HARDWARE_INTERRUPT_HPP_
 
-#include <std/types.hpp>
-#include <core/gdt.hpp>
 #include <std/io.hpp>
+#include <std/types.hpp>
+
+#include <core/gdt.hpp>
 
 namespace cassio {
 namespace hardware {
@@ -28,11 +29,12 @@ enum InterruptFlags : std::u8 {
 };
 
 /**
- * @brief Singleton that owns the IDT. Delegates to ExceptionHandler, IrqManager, and SyscallHandler.
+ * @brief Singleton that owns the IDT. Delegates to ExceptionHandler, IrqManager, and
+ * SyscallHandler.
  *
  */
 class InterruptManager final {
-private:
+  private:
     /**
      * @brief An 8-byte packed IDT entry pointing to an interrupt handler.
      *
@@ -40,8 +42,8 @@ private:
     struct __attribute__((packed)) GateDescriptor {
         std::u16 handler_low;
         std::u16 code_offset;
-        std::u8  reserved;
-        std::u8  access;
+        std::u8 reserved;
+        std::u8 access;
         std::u16 handler_high;
     };
 
@@ -54,13 +56,13 @@ private:
         std::u32 base;
     };
 
-private:
+  private:
     GateDescriptor idt[256];
     std::u16 code_offset;
 
     static InterruptManager instance;
 
-private:
+  private:
     /**
      * @brief Constructs the manager.
      *
@@ -77,16 +79,15 @@ private:
      * @brief Writes a gate descriptor entry into the IDT at the given index.
      *
      */
-    void setInterrupt(std::u8 number, std::u16 code_offset, void(*handler)(), std::u8 access, std::u8 flags);
+    void setInterrupt(std::u8 number, std::u16 code_offset, void (*handler)(), std::u8 access,
+                      std::u8 flags);
 
-public:
+  public:
     /**
      * @brief Returns the singleton InterruptManager instance.
      *
      */
-    inline static InterruptManager& getManager() {
-        return instance;
-    }
+    inline static InterruptManager& getManager() { return instance; }
 
     static void ignoreInterruptRequest();
 
@@ -106,13 +107,13 @@ public:
      * @brief Sets an interrupt gate (DPL=0) at the given vector.
      *
      */
-    void setInterruptGate(std::u8 vector, void(*handler)());
+    void setInterruptGate(std::u8 vector, void (*handler)());
 
     /**
      * @brief Sets a trap gate at the given vector with the specified DPL.
      *
      */
-    void setTrapGate(std::u8 vector, void(*handler)(), std::u8 dpl);
+    void setTrapGate(std::u8 vector, void (*handler)(), std::u8 dpl);
 
     /**
      * @brief Populates the IDT, delegates to sub-managers, and loads the IDT via lidt.
@@ -125,10 +126,9 @@ public:
     InterruptManager(InterruptManager&&) = delete;
     InterruptManager& operator=(const InterruptManager&) = delete;
     InterruptManager& operator=(InterruptManager&&) = delete;
-
 };
 
-}
-}
+} // namespace hardware
+} // namespace cassio
 
 #endif // HARDWARE_INTERRUPT_HPP_

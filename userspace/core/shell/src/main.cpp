@@ -11,6 +11,7 @@
  */
 
 #include <std/ns.hpp>
+
 #include <shell.hpp>
 
 using namespace cassio;

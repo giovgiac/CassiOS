@@ -1,6 +1,6 @@
 /**
  * gdt.cpp
- * 
+ *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
@@ -8,6 +8,7 @@
  */
 
 #include "core/gdt.hpp"
+
 #include <std/mem.hpp>
 
 using namespace cassio;
@@ -17,11 +18,8 @@ using namespace cassio::kernel;
 /** Global Descriptor Table Methods */
 
 GlobalDescriptorTable::GlobalDescriptorTable()
-    : nullSegment(0, 0, 0),
-      codeSegment(0, 0xFFFFFFFF, 0x9A),
-      dataSegment(0, 0xFFFFFFFF, 0x92),
-      userCodeSegment(0, 0xFFFFFFFF, 0xFA),
-      userDataSegment(0, 0xFFFFFFFF, 0xF2),
+    : nullSegment(0, 0, 0), codeSegment(0, 0xFFFFFFFF, 0x9A), dataSegment(0, 0xFFFFFFFF, 0x92),
+      userCodeSegment(0, 0xFFFFFFFF, 0xFA), userDataSegment(0, 0xFFFFFFFF, 0xF2),
       tssDescriptor((u32)&tss, sizeof(TaskStateSegment) - 1, 0x89) {
     // Fix TSS descriptor: SegmentDescriptor sets D/B=1 (0x40) for small limits,
     // but TSS descriptors must have D/B=0.
@@ -38,26 +36,25 @@ GlobalDescriptorTable::GlobalDescriptorTable()
     gdtr[1] = (usize)this;
     gdtr[0] = (6 * sizeof(SegmentDescriptor)) << 16;
 
-    asm volatile(
-        "lgdt  (%0)\n"
-        "ljmp  $0x08, $1f\n"
-        "1:\n"
-        "mov   $0x10, %%ax\n"
-        "mov   %%ax, %%ds\n"
-        "mov   %%ax, %%es\n"
-        "mov   %%ax, %%fs\n"
-        "mov   %%ax, %%gs\n"
-        "mov   %%ax, %%ss\n"
-        : : "p" ((u8*)gdtr + 2)
-        : "eax"
-    );
+    asm volatile("lgdt  (%0)\n"
+                 "ljmp  $0x08, $1f\n"
+                 "1:\n"
+                 "mov   $0x10, %%ax\n"
+                 "mov   %%ax, %%ds\n"
+                 "mov   %%ax, %%es\n"
+                 "mov   %%ax, %%fs\n"
+                 "mov   %%ax, %%gs\n"
+                 "mov   %%ax, %%ss\n"
+                 :
+                 : "p"((u8*)gdtr + 2)
+                 : "eax");
 
     // Load TSS.
-    asm volatile(
-        "mov   $0x28, %%ax\n"
-        "ltr   %%ax\n"
-        : : : "eax"
-    );
+    asm volatile("mov   $0x28, %%ax\n"
+                 "ltr   %%ax\n"
+                 :
+                 :
+                 : "eax");
 }
 
 GlobalDescriptorTable::~GlobalDescriptorTable() {}
@@ -93,12 +90,10 @@ GlobalDescriptorTable::SegmentDescriptor::SegmentDescriptor(u32 base, u32 limit,
 
     if (limit <= 65536) {
         target[6] = 0x40;
-    }
-    else {
+    } else {
         if ((limit & 0xFFF) != 0xFFF) {
             limit = (limit >> 12) - 1;
-        }
-        else {
+        } else {
             limit = limit >> 12;
         }
 

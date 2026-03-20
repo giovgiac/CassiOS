@@ -8,9 +8,10 @@
  */
 
 #include "hardware/irq.hpp"
-#include "hardware/interrupt.hpp"
+
 #include "core/process.hpp"
 #include "core/syscall.hpp"
+#include "hardware/interrupt.hpp"
 
 using namespace cassio;
 using namespace std;
@@ -22,10 +23,8 @@ IrqManager IrqManager::instance;
 // any constructors run, and handlers may be registered before this constructor
 // executes (static initialization order).
 IrqManager::IrqManager()
-    : pic_master_cmd(PortType::MasterPicCommand),
-      pic_master_data(PortType::MasterPicData),
-      pic_slave_cmd(PortType::SlavePicCommand),
-      pic_slave_data(PortType::SlavePicData) {}
+    : pic_master_cmd(PortType::MasterPicCommand), pic_master_data(PortType::MasterPicData),
+      pic_slave_cmd(PortType::SlavePicCommand), pic_slave_data(PortType::SlavePicData) {}
 
 void IrqManager::load() {
     InterruptManager& im = InterruptManager::getManager();
@@ -68,8 +67,7 @@ u32 IrqManager::handleIrq(u8 number, u32 esp) {
 
     // Forward to userspace if a process is registered for this IRQ.
     if (irq < 16 && forwardPid[irq] != 0) {
-        kernel::Process* target =
-            kernel::ProcessManager::getManager().get(forwardPid[irq]);
+        kernel::Process* target = kernel::ProcessManager::getManager().get(forwardPid[irq]);
         if (target && target->state == kernel::ProcessState::ReceiveBlocked) {
             // Deliver IrqNotify message directly to the waiting process.
             // Must switch to target's page directory to access its userspace buffer.

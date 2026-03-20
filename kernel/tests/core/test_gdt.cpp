@@ -1,5 +1,6 @@
-#include <core/gdt.hpp>
 #include <std/test.hpp>
+
+#include <core/gdt.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -50,7 +51,8 @@ TEST(gdt_segment_descriptor_limit_large) {
     // Granularity bit set: limit stored as pages, decoded with | 0xFFF
     GlobalDescriptorTable::SegmentDescriptor desc(0, 0xFFFFFFFF, 0x9A);
     u32 limit = desc.getLimit();
-    // 0xFFFFFFFF -> (0xFFFFFFFF >> 12) = 0xFFFFF pages -> decoded: (0xFFFFF << 12) | 0xFFF = 0xFFFFFFFF
+    // 0xFFFFFFFF -> (0xFFFFFFFF >> 12) = 0xFFFFF pages -> decoded: (0xFFFFF << 12) | 0xFFF =
+    // 0xFFFFFFFF
     ASSERT_EQ(limit, 0xFFFFFFFFu);
 }
 

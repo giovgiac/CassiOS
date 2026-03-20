@@ -29,74 +29,70 @@ struct Message {
 };
 
 namespace MessageType {
-    // Kernel.
-    constexpr u32 IrqNotify    = 1;
+// Kernel.
+constexpr u32 IrqNotify = 1;
 
-    // Nameserver.
-    constexpr u32 NsRegister   = 2;
-    constexpr u32 NsLookup     = 3;
+// Nameserver.
+constexpr u32 NsRegister = 2;
+constexpr u32 NsLookup = 3;
 
-    // Keyboard.
-    constexpr u32 KbdRead      = 4;
+// Keyboard.
+constexpr u32 KbdRead = 4;
 
-    // VGA.
-    constexpr u32 VgaPutchar   = 5;
-    constexpr u32 VgaWrite     = 6;
-    constexpr u32 VgaClear     = 7;
-    constexpr u32 VgaSetCursor = 8;
-    constexpr u32 VgaGetCursor = 9;
+// VGA.
+constexpr u32 VgaPutchar = 5;
+constexpr u32 VgaWrite = 6;
+constexpr u32 VgaClear = 7;
+constexpr u32 VgaSetCursor = 8;
+constexpr u32 VgaGetCursor = 9;
 
-    // VFS.
-    constexpr u32 VfsMkdir     = 10;
-    constexpr u32 VfsRemove    = 11;
-    constexpr u32 VfsOpen      = 12;
-    constexpr u32 VfsRead      = 13;
-    constexpr u32 VfsWrite     = 14;
-    constexpr u32 VfsList      = 15;
-    constexpr u32 VfsStat      = 16;
+// VFS.
+constexpr u32 VfsMkdir = 10;
+constexpr u32 VfsRemove = 11;
+constexpr u32 VfsOpen = 12;
+constexpr u32 VfsRead = 13;
+constexpr u32 VfsWrite = 14;
+constexpr u32 VfsList = 15;
+constexpr u32 VfsStat = 16;
 
-    // Mouse.
-    constexpr u32 MouseRead    = 17;
+// Mouse.
+constexpr u32 MouseRead = 17;
 
-    // ATA.
-    constexpr u32 AtaRead      = 18;
-    constexpr u32 AtaWrite     = 19;
+// ATA.
+constexpr u32 AtaRead = 18;
+constexpr u32 AtaWrite = 19;
 
-    // Nameserver (extended).
-    constexpr u32 NsListAll    = 20;
-}
+// Nameserver (extended).
+constexpr u32 NsListAll = 20;
+} // namespace MessageType
 
 /**
  * Send a message to process @p pid and block until it replies.
  * The reply overwrites @p msg in place.
  * Returns the sender PID on success, negative on error.
  */
-i32 send(u32 pid, Message* msg,
-         const void* data = nullptr, u32 dataLen = 0);
+i32 send(u32 pid, Message* msg, const void* data = nullptr, u32 dataLen = 0);
 
 /**
  * Block until a message arrives. The message is written into @p msg.
  * Optional @p data buffer receives bulk data (up to @p dataCapacity bytes).
  * Returns the sender PID, or negative on error.
  */
-i32 receive(Message* msg,
-            void* data = nullptr, u32 dataCapacity = 0);
+i32 receive(Message* msg, void* data = nullptr, u32 dataCapacity = 0);
 
 /**
  * Reply to a blocked sender at @p pid. Unblocks the sender.
  * Returns 0 on success, negative on error.
  */
-i32 reply(u32 pid, Message* msg,
-          const void* data = nullptr, u32 dataLen = 0);
+i32 reply(u32 pid, Message* msg, const void* data = nullptr, u32 dataLen = 0);
 
 /**
  * Fire-and-forget: enqueue a message to @p pid without blocking.
  * Returns 0 on success, negative if the queue is full.
  */
-i32 notify(u32 pid, Message* msg,
-           const void* data = nullptr, u32 dataLen = 0);
+i32 notify(u32 pid, Message* msg, const void* data = nullptr, u32 dataLen = 0);
 
-}
-}
+} // namespace ipc
+} // namespace std
 
 #endif // STD_IPC_HPP

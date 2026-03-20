@@ -8,19 +8,21 @@
  */
 
 #include "core/syscall.hpp"
+
 #include "core/elf.hpp"
 #include "core/gdt.hpp"
 #include "core/process.hpp"
-#include <std/mem.hpp>
 #include "core/scheduler.hpp"
-#include "hardware/pit.hpp"
 #include "hardware/interrupt.hpp"
 #include "hardware/irq.hpp"
-#include <std/io.hpp>
+#include "hardware/pit.hpp"
 #include "hardware/serial.hpp"
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
 #include "memory/virtual.hpp"
+
+#include <std/io.hpp>
+#include <std/mem.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -71,7 +73,8 @@ static void copyDataToProcess(Process* target, u8* dst, const u8* src, u32 len) 
         u32 offset = 0;
         while (offset < len) {
             u32 n = len - offset;
-            if (n > 256) n = 256;
+            if (n > 256)
+                n = 256;
 
             mem::copy(chunk, src + offset, n);
 
@@ -98,7 +101,8 @@ static void copyDataFromProcess(Process* source, u8* dst, const u8* src, u32 len
         u32 offset = 0;
         while (offset < len) {
             u32 n = len - offset;
-            if (n > 256) n = 256;
+            if (n > 256)
+                n = 256;
 
             asm volatile("mov %0, %%cr3" : : "r"(sourcePD) : "memory");
             mem::copy(chunk, src + offset, n);
@@ -124,7 +128,7 @@ i32 SyscallHandler::send(u32 targetPid, ipc::Message* msg, u32 dataPtr, u32 data
 
     // Copy outgoing message into sender's process struct.
     copyMessage(msg, &sender->msg);
-    sender->msgPtr = (u32)msg;  // Reply will be written here.
+    sender->msgPtr = (u32)msg; // Reply will be written here.
     sender->dataPtr = dataPtr;
     sender->dataLen = dataLen;
 
@@ -134,11 +138,9 @@ i32 SyscallHandler::send(u32 targetPid, ipc::Message* msg, u32 dataPtr, u32 data
         copyMessageToProcess(target, targetBuf, &sender->msg);
 
         // Copy bulk data if both sides provided buffers.
-        if (dataPtr != 0 && dataLen > 0 &&
-            target->dataPtr != 0 && target->dataLen > 0) {
+        if (dataPtr != 0 && dataLen > 0 && target->dataPtr != 0 && target->dataLen > 0) {
             u32 copyLen = dataLen < target->dataLen ? dataLen : target->dataLen;
-            copyDataToProcess(target, (u8*)target->dataPtr,
-                              (const u8*)dataPtr, copyLen);
+            copyDataToProcess(target, (u8*)target->dataPtr, (const u8*)dataPtr, copyLen);
         }
 
         // Set target's return value to sender PID.
@@ -149,12 +151,12 @@ i32 SyscallHandler::send(u32 targetPid, ipc::Message* msg, u32 dataPtr, u32 data
     } else {
         // Target is busy -- enqueue sender.
         if (!target->sendQueuePush(sender->pid)) {
-            return -1;  // Queue full.
+            return -1; // Queue full.
         }
     }
 
     sender->state = ProcessState::SendBlocked;
-    return 0;  // Caller should block.
+    return 0; // Caller should block.
 }
 
 i32 SyscallHandler::receive(ipc::Message* msg, u32 dataPtr, u32 dataCapacity) {
@@ -168,15 +170,14 @@ i32 SyscallHandler::receive(ipc::Message* msg, u32 dataPtr, u32 dataCapacity) {
     // Check for pending IRQ notifications first (no bulk data).
     IrqManager& irqMgr = IrqManager::getManager();
     if (irqMgr.deliverPending(receiver->pid, msg)) {
-        return -2;  // IRQ notification delivered; handleSyscall sets eax=0.
+        return -2; // IRQ notification delivered; handleSyscall sets eax=0.
     }
 
     // Drain queued notifications before blocked senders so that
     // fire-and-forget messages are processed in chronological order
     // relative to blocking sends from the same source.
     u32 notifySender;
-    if (receiver->notifyPop(notifySender, *msg,
-                            (void*)dataPtr, dataCapacity)) {
+    if (receiver->notifyPop(notifySender, *msg, (void*)dataPtr, dataCapacity)) {
         return -3;
     }
 
@@ -191,12 +192,9 @@ i32 SyscallHandler::receive(ipc::Message* msg, u32 dataPtr, u32 dataCapacity) {
         copyMessage(&sender->msg, msg);
 
         // Copy bulk data from sender to receiver.
-        if (sender->dataPtr != 0 && sender->dataLen > 0 &&
-            dataPtr != 0 && dataCapacity > 0) {
-            u32 copyLen = sender->dataLen < dataCapacity
-                        ? sender->dataLen : dataCapacity;
-            copyDataFromProcess(sender, (u8*)dataPtr,
-                                (const u8*)sender->dataPtr, copyLen);
+        if (sender->dataPtr != 0 && sender->dataLen > 0 && dataPtr != 0 && dataCapacity > 0) {
+            u32 copyLen = sender->dataLen < dataCapacity ? sender->dataLen : dataCapacity;
+            copyDataFromProcess(sender, (u8*)dataPtr, (const u8*)sender->dataPtr, copyLen);
         }
 
         return static_cast<i32>(senderPid);
@@ -205,7 +203,7 @@ i32 SyscallHandler::receive(ipc::Message* msg, u32 dataPtr, u32 dataCapacity) {
     // No pending IRQs, notifications, or senders -- block.
     receiver->msgPtr = (u32)msg;
     receiver->state = ProcessState::ReceiveBlocked;
-    return 0;  // Caller should block.
+    return 0; // Caller should block.
 }
 
 i32 SyscallHandler::reply(u32 targetPid, ipc::Message* msg, u32 dataPtr, u32 dataLen) {
@@ -226,11 +224,9 @@ i32 SyscallHandler::reply(u32 targetPid, ipc::Message* msg, u32 dataPtr, u32 dat
     copyMessageToProcess(target, senderBuf, &replyBuf);
 
     // Copy reply bulk data to sender's data buffer.
-    if (dataPtr != 0 && dataLen > 0 &&
-        target->dataPtr != 0 && target->dataLen > 0) {
+    if (dataPtr != 0 && dataLen > 0 && target->dataPtr != 0 && target->dataLen > 0) {
         u32 copyLen = dataLen < target->dataLen ? dataLen : target->dataLen;
-        copyDataToProcess(target, (u8*)target->dataPtr,
-                          (const u8*)dataPtr, copyLen);
+        copyDataToProcess(target, (u8*)target->dataPtr, (const u8*)dataPtr, copyLen);
     }
 
     // Set sender's return value to 0 (success).
@@ -260,11 +256,9 @@ i32 SyscallHandler::notify(u32 targetPid, ipc::Message* msg, u32 dataPtr, u32 da
         copyMessageToProcess(target, targetBuf, &temp);
 
         // Copy bulk data if both sides provided buffers.
-        if (dataPtr != 0 && dataLen > 0 &&
-            target->dataPtr != 0 && target->dataLen > 0) {
+        if (dataPtr != 0 && dataLen > 0 && target->dataPtr != 0 && target->dataLen > 0) {
             u32 copyLen = dataLen < target->dataLen ? dataLen : target->dataLen;
-            copyDataToProcess(target, (u8*)target->dataPtr,
-                              (const u8*)dataPtr, copyLen);
+            copyDataToProcess(target, (u8*)target->dataPtr, (const u8*)dataPtr, copyLen);
         }
 
         // Return 0 as sender so receiver knows not to reply.
@@ -275,13 +269,12 @@ i32 SyscallHandler::notify(u32 targetPid, ipc::Message* msg, u32 dataPtr, u32 da
     } else {
         // Queue for later delivery. Copy data to kernel heap since the
         // sender's address space won't be available when it's delivered.
-        if (!target->notifyPush(sender->pid, temp,
-                                (const void*)dataPtr, dataLen)) {
+        if (!target->notifyPush(sender->pid, temp, (const void*)dataPtr, dataLen)) {
             return -1;
         }
     }
 
-    return 0;  // Caller continues (no blocking).
+    return 0; // Caller continues (no blocking).
 }
 
 i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
@@ -321,10 +314,7 @@ i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
     u16 flags = memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER;
 
     for (u32 i = 0; i < pages; ++i) {
-        paging.mapUserPage(caller->pageDirectory,
-                           virt + i * 0x1000,
-                           physical + i * 0x1000,
-                           flags);
+        paging.mapUserPage(caller->pageDirectory, virt + i * 0x1000, physical + i * 0x1000, flags);
     }
 
     return 0;
@@ -392,8 +382,7 @@ u32 SyscallHandler::exec(u32 elfPtr, u32 elfSize) {
         return 0;
     }
 
-    Process* child = pm.spawn(pdPhysical, elf.entryPoint, elf.heapStart,
-                              caller->cs, caller->ds);
+    Process* child = pm.spawn(pdPhysical, elf.entryPoint, elf.heapStart, caller->cs, caller->ds);
     if (!child) {
         paging.destroyAddressSpace(pdPhysical);
         return 0;
@@ -413,7 +402,7 @@ i32 SyscallHandler::waitpid(u32 pid) {
 
     caller->waitPid = pid;
     caller->state = ProcessState::WaitBlocked;
-    return 0;  // Caller should block.
+    return 0; // Caller should block.
 }
 
 u32 SyscallHandler::procList(os::ProcEntry* buf, u32 maxEntries) {
@@ -422,12 +411,11 @@ u32 SyscallHandler::procList(os::ProcEntry* buf, u32 maxEntries) {
 
     for (Process* p = pm.getHead(); p && count < maxEntries; p = p->next) {
         if (p->pid == 0) {
-            continue;  // Skip kernel task.
+            continue; // Skip kernel task.
         }
         buf[count].pid = p->pid;
         buf[count].state = static_cast<u32>(p->state);
-        buf[count].heapSize = (p->heapBreak > p->heapBase)
-                            ? (p->heapBreak - p->heapBase) : 0;
+        buf[count].heapSize = (p->heapBreak > p->heapBase) ? (p->heapBreak - p->heapBase) : 0;
         ++count;
     }
 
@@ -493,8 +481,7 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
 
     switch (number) {
     case os::syscall::Send: {
-        i32 result = send(frame->ebx, (ipc::Message*)frame->ecx,
-                          frame->esi, frame->edi);
+        i32 result = send(frame->ebx, (ipc::Message*)frame->ecx, frame->esi, frame->edi);
         if (result == 0) {
             Scheduler& sched = Scheduler::getScheduler();
             return sched.reschedule(esp);
@@ -503,8 +490,7 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     }
     case os::syscall::Receive: {
-        i32 result = receive((ipc::Message*)frame->ebx,
-                             frame->esi, frame->edi);
+        i32 result = receive((ipc::Message*)frame->ebx, frame->esi, frame->edi);
         if (result == 0) {
             Scheduler& sched = Scheduler::getScheduler();
             return sched.reschedule(esp);
@@ -518,16 +504,15 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         return esp;
     }
     case os::syscall::Reply: {
-        i32 result = reply(frame->ebx, (ipc::Message*)frame->ecx,
-                           frame->esi, frame->edi);
+        i32 result = reply(frame->ebx, (ipc::Message*)frame->ecx, frame->esi, frame->edi);
         frame->eax = static_cast<u32>(result);
         return esp;
     }
     case os::syscall::IrqRegister: {
         IrqManager& irqMgr = IrqManager::getManager();
         ProcessManager& pm = ProcessManager::getManager();
-        frame->eax = static_cast<u32>(irqMgr.registerForward(
-            static_cast<u8>(frame->ebx), pm.current()->pid));
+        frame->eax = static_cast<u32>(
+            irqMgr.registerForward(static_cast<u8>(frame->ebx), pm.current()->pid));
         return esp;
     }
     case os::syscall::Write:
@@ -558,8 +543,8 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
         frame->eax = static_cast<u32>(mapDevice(frame->ebx, frame->ecx, frame->edx));
         return esp;
     case os::syscall::Notify:
-        frame->eax = static_cast<u32>(notify(frame->ebx, (ipc::Message*)frame->ecx,
-                                             frame->esi, frame->edi));
+        frame->eax =
+            static_cast<u32>(notify(frame->ebx, (ipc::Message*)frame->ecx, frame->esi, frame->edi));
         return esp;
     case os::syscall::MemInfo: {
         u32 total, used, free;

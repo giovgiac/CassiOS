@@ -20,7 +20,7 @@ namespace std {
 namespace mouse {
 
 class Mouse {
-public:
+  public:
     /// Construct a mouse client. Blocks until the "mouse" service is
     /// registered with the nameserver.
     Mouse();
@@ -32,11 +32,11 @@ public:
     Mouse(const Mouse&) = delete;
     Mouse& operator=(const Mouse&) = delete;
 
-private:
+  private:
     u32 pid;
 };
 
-} // mouse
-} // std
+} // namespace mouse
+} // namespace std
 
 #endif // STD_MOUSE_HPP

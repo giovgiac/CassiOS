@@ -7,8 +7,8 @@
  *
  */
 
-#include <std/kbd.hpp>
 #include <std/ipc.hpp>
+#include <std/kbd.hpp>
 #include <std/ns.hpp>
 
 using namespace std;

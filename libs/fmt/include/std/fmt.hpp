@@ -41,7 +41,7 @@ namespace fmt {
  */
 usize format(char* buf, usize size, const char* fmt, ...);
 
-}
-}
+} // namespace fmt
+} // namespace std
 
 #endif // STD_FMT_HPP

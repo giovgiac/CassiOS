@@ -48,7 +48,9 @@ TEST(box_release) {
 }
 
 TEST(box_arrow) {
-    struct S { u32 val; };
+    struct S {
+        u32 val;
+    };
     Box<S> b(new S{42});
     ASSERT_EQ(b->val, (u32)42);
 }
@@ -108,7 +110,9 @@ TEST(rc_move_no_refcount_change) {
 }
 
 TEST(rc_arrow) {
-    struct S { u32 val; };
+    struct S {
+        u32 val;
+    };
     auto r = Rc<S>::make(S{42});
     ASSERT_EQ(r->val, (u32)42);
 }

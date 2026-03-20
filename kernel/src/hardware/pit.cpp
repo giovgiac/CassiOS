@@ -8,6 +8,7 @@
  */
 
 #include "hardware/pit.hpp"
+
 #include "core/scheduler.hpp"
 
 using namespace cassio;
@@ -18,9 +19,7 @@ using namespace cassio::hardware;
 PitTimer PitTimer::instance;
 
 PitTimer::PitTimer()
-    : channel0(PortType::PitChannel0Data),
-      command(PortType::PitCommand),
-      ticks(0) {
+    : channel0(PortType::PitChannel0Data), command(PortType::PitCommand), ticks(0) {
     IrqManager& irq = IrqManager::getManager();
     irq.registerHandler(0, &PitTimer::irqHandler);
 }

@@ -1,5 +1,6 @@
-#include <memory/heap.hpp>
 #include <std/test.hpp>
+
+#include <memory/heap.hpp>
 
 using namespace cassio;
 using namespace std;

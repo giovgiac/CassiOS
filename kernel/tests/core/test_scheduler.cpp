@@ -1,5 +1,6 @@
-#include <core/scheduler.hpp>
 #include <std/test.hpp>
+
+#include <core/scheduler.hpp>
 
 using namespace cassio;
 using namespace std;

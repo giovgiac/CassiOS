@@ -10,12 +10,12 @@
 #ifndef VGA_TERMINAL_HPP_
 #define VGA_TERMINAL_HPP_
 
-#include <std/types.hpp>
 #include <std/io.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
-constexpr std::u8 VGA_WIDTH  = 80;
+constexpr std::u8 VGA_WIDTH = 80;
 constexpr std::u8 VGA_HEIGHT = 25;
 
 /**
@@ -27,7 +27,7 @@ constexpr std::u8 VGA_HEIGHT = 25;
  *
  */
 class VgaTerminal {
-public:
+  public:
     VgaTerminal(std::u16* buffer);
 
     void putchar(char ch);
@@ -36,7 +36,7 @@ public:
     std::u8 getCursorX() const;
     std::u8 getCursorY() const;
 
-private:
+  private:
     std::u16* buffer;
     std::u8 x;
     std::u8 y;
@@ -49,6 +49,6 @@ private:
     void scrollUp();
 };
 
-} // cassio
+} // namespace cassio
 
 #endif // VGA_TERMINAL_HPP_

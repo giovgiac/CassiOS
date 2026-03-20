@@ -1,12 +1,13 @@
+#include <std/io.hpp>
+#include <std/test.hpp>
+
 #include <core/gdt.hpp>
 #include <core/kernel.hpp>
 #include <hardware/interrupt.hpp>
 #include <hardware/serial.hpp>
-#include <std/io.hpp>
 #include <memory/heap.hpp>
 #include <memory/paging.hpp>
 #include <memory/physical.hpp>
-#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;

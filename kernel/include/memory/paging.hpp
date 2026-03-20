@@ -11,20 +11,19 @@
 #define MEMORY_PAGING_HPP_
 
 #include <std/types.hpp>
+
 #include <memory/multiboot.hpp>
 
 namespace cassio {
 namespace memory {
 
-static constexpr std::u16 PAGE_PRESENT    = 0x01;
-static constexpr std::u16 PAGE_READWRITE  = 0x02;
-static constexpr std::u16 PAGE_USER       = 0x04;
+static constexpr std::u16 PAGE_PRESENT = 0x01;
+static constexpr std::u16 PAGE_READWRITE = 0x02;
+static constexpr std::u16 PAGE_USER = 0x04;
 
 class PagingManager {
-public:
-    inline static PagingManager& getManager() {
-        return instance;
-    }
+  public:
+    inline static PagingManager& getManager() { return instance; }
 
     void init(MultibootInfo* multibootInfo);
 
@@ -48,7 +47,8 @@ public:
      * Accesses the target page directory and page tables via phys + KERNEL_VBASE.
      *
      */
-    void mapUserPage(std::u32 pdPhysical, std::u32 virtualAddr, std::u32 physicalAddr, std::u16 flags);
+    void mapUserPage(std::u32 pdPhysical, std::u32 virtualAddr, std::u32 physicalAddr,
+                     std::u16 flags);
 
     /**
      * @brief Frees all user page tables, mapped user frames, and the page directory.
@@ -61,7 +61,7 @@ public:
     PagingManager& operator=(const PagingManager&) = delete;
     PagingManager& operator=(PagingManager&&) = delete;
 
-private:
+  private:
     PagingManager();
 
     static PagingManager instance;
@@ -69,7 +69,7 @@ private:
     std::u32 pageDirectory[1024] __attribute__((aligned(4096)));
 };
 
-} // memory
-} // cassio
+} // namespace memory
+} // namespace cassio
 
 #endif // MEMORY_PAGING_HPP_

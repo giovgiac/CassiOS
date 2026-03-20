@@ -13,20 +13,17 @@
 #ifndef STD_PTR_RC_HPP
 #define STD_PTR_RC_HPP
 
-#include <std/types.hpp>
 #include <std/alloc.hpp>
+#include <std/types.hpp>
 
 namespace std {
 namespace ptr {
 
-template <typename T>
-class Rc {
-public:
+template <typename T> class Rc {
+  public:
     // No public constructor from raw pointer -- use Rc::make().
 
-    ~Rc() {
-        release();
-    }
+    ~Rc() { release(); }
 
     Rc(const Rc& other) : block(other.block) {
         if (block) {
@@ -45,9 +42,7 @@ public:
         return *this;
     }
 
-    Rc(Rc&& other) : block(other.block) {
-        other.block = nullptr;
-    }
+    Rc(Rc&& other) : block(other.block) { other.block = nullptr; }
 
     Rc& operator=(Rc&& other) {
         if (this != &other) {
@@ -65,21 +60,19 @@ public:
 
     u32 refCount() const { return block ? block->refCount : 0; }
 
-    template <typename... Args>
-    static Rc make(Args&&... args) {
+    template <typename... Args> static Rc make(Args&&... args) {
         // Single allocation: control block + object.
         void* mem = operator new(sizeof(ControlBlock));
         ControlBlock* cb = new (mem) ControlBlock(args...);
         return Rc(cb);
     }
 
-private:
+  private:
     struct ControlBlock {
         u32 refCount;
         T object;
 
-        template <typename... Args>
-        ControlBlock(Args&&... args) : refCount(1), object(args...) {}
+        template <typename... Args> ControlBlock(Args&&... args) : refCount(1), object(args...) {}
     };
 
     explicit Rc(ControlBlock* cb) : block(cb) {}
@@ -98,7 +91,7 @@ private:
     ControlBlock* block;
 };
 
-} // ptr
-} // std
+} // namespace ptr
+} // namespace std
 
 #endif // STD_PTR_RC_HPP

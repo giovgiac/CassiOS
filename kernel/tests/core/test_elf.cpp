@@ -1,7 +1,8 @@
+#include <std/test.hpp>
+
 #include <core/elf.hpp>
 #include <memory/paging.hpp>
 #include <memory/physical.hpp>
-#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -12,7 +13,8 @@ using namespace cassio::memory;
 // The segment loads 4 bytes of code at virtual address 0x00400000.
 static void buildMinimalElf(u8* buf, u32& size) {
     // Zero the buffer.
-    for (u32 i = 0; i < 256; i++) buf[i] = 0;
+    for (u32 i = 0; i < 256; i++)
+        buf[i] = 0;
 
     // ELF header (52 bytes).
     Elf32Header* h = (Elf32Header*)buf;
@@ -20,11 +22,11 @@ static void buildMinimalElf(u8* buf, u32& size) {
     h->e_ident[1] = 'E';
     h->e_ident[2] = 'L';
     h->e_ident[3] = 'F';
-    h->e_ident[4] = 1;         // ELFCLASS32
-    h->e_ident[5] = 1;         // little-endian
-    h->e_ident[6] = 1;         // ELF version
-    h->e_type = 2;             // ET_EXEC
-    h->e_machine = 3;          // EM_386
+    h->e_ident[4] = 1; // ELFCLASS32
+    h->e_ident[5] = 1; // little-endian
+    h->e_ident[6] = 1; // ELF version
+    h->e_type = 2;     // ET_EXEC
+    h->e_machine = 3;  // EM_386
     h->e_version = 1;
     h->e_entry = 0x00400000;
     h->e_phoff = sizeof(Elf32Header);
@@ -34,13 +36,13 @@ static void buildMinimalElf(u8* buf, u32& size) {
 
     // Program header (32 bytes), immediately after ELF header.
     Elf32ProgramHeader* ph = (Elf32ProgramHeader*)(buf + sizeof(Elf32Header));
-    ph->p_type = 1;            // PT_LOAD
-    ph->p_offset = 128;        // data starts at byte 128 in the file
+    ph->p_type = 1;     // PT_LOAD
+    ph->p_offset = 128; // data starts at byte 128 in the file
     ph->p_vaddr = 0x00400000;
     ph->p_paddr = 0x00400000;
     ph->p_filesz = 4;
     ph->p_memsz = 4;
-    ph->p_flags = 5;           // PF_R | PF_X
+    ph->p_flags = 5; // PF_R | PF_X
     ph->p_align = 0x1000;
 
     // 4 bytes of "code" at offset 128.

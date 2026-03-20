@@ -10,10 +10,11 @@
 #ifndef HARDWARE_PIT_HPP_
 #define HARDWARE_PIT_HPP_
 
-#include <std/types.hpp>
-#include <std/os.hpp>
-#include <hardware/irq.hpp>
 #include <std/io.hpp>
+#include <std/os.hpp>
+#include <std/types.hpp>
+
+#include <hardware/irq.hpp>
 
 namespace cassio {
 namespace hardware {
@@ -38,25 +39,23 @@ constexpr std::u8 PIT_CMD_CHANNEL0_MODE2 = 0x34;
  *
  */
 class PitTimer {
-private:
+  private:
     std::io::Port<std::u8> channel0;
     std::io::Port<std::u8> command;
     volatile std::u32 ticks;
 
     static PitTimer instance;
 
-private:
+  private:
     PitTimer();
     ~PitTimer() = default;
 
-public:
+  public:
     /**
      * @brief Returns the PitTimer singleton instance.
      *
      */
-    inline static PitTimer& getTimer() {
-        return instance;
-    }
+    inline static PitTimer& getTimer() { return instance; }
 
     /**
      * @brief Static IRQ handler registered with IrqManager.
@@ -95,7 +94,7 @@ public:
     PitTimer& operator=(PitTimer&&) = delete;
 };
 
-} // hardware
-} // cassio
+} // namespace hardware
+} // namespace cassio
 
 #endif // HARDWARE_PIT_HPP_

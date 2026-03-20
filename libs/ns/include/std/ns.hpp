@@ -17,8 +17,8 @@
 #ifndef STD_NS_HPP
 #define STD_NS_HPP
 
-#include <std/types.hpp>
 #include <std/ipc.hpp>
+#include <std/types.hpp>
 
 namespace std {
 namespace ns {
@@ -31,7 +31,7 @@ constexpr u32 MAX_NAME_LEN = 16;
 
 /// Entry returned by listAll(), containing a service name and its PID.
 struct Entry {
-    char name[20];  // MAX_NAME_LEN + 1 + padding for u32 alignment.
+    char name[20]; // MAX_NAME_LEN + 1 + padding for u32 alignment.
     u32 pid;
 };
 
@@ -57,7 +57,7 @@ u32 lookup(const char* name);
 /// entries into buf and returns the number actually written.
 u32 listAll(Entry* buf, u32 maxEntries);
 
-} // ns
-} // std
+} // namespace ns
+} // namespace std
 
 #endif // STD_NS_HPP

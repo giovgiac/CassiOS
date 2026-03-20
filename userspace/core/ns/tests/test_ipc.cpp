@@ -1,6 +1,6 @@
-#include <std/test.hpp>
 #include <std/ns.hpp>
 #include <std/str.hpp>
+#include <std/test.hpp>
 
 using namespace std;
 using str::StringView;

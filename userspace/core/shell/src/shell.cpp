@@ -7,19 +7,19 @@
  *
  */
 
-#include <shell.hpp>
-#include <std/str.hpp>
-#include <std/mem.hpp>
 #include <std/fmt.hpp>
 #include <std/ipc.hpp>
+#include <std/mem.hpp>
+#include <std/str.hpp>
+
+#include <shell.hpp>
 
 using namespace cassio;
 using namespace std;
 using std::kbd::KeyCode;
 using str::StringView;
 
-Shell::Shell()
-    : length(0), cursor(0), promptCol(0), promptRow(0) {
+Shell::Shell() : length(0), cursor(0), promptCol(0), promptRow(0) {
     cwd[0] = '/';
     cwd[1] = '\0';
     for (u8 i = 0; i < SHELL_MAX_INPUT; ++i) {
@@ -84,24 +84,42 @@ void Shell::execute() {
     }
 
     StringView cmd(args[0]);
-    if (cmd == "help")          cmdHelp();
-    else if (cmd == "clear")    cmdClear();
-    else if (cmd == "echo")     cmdEcho(args, argc);
-    else if (cmd == "mem")      cmdMem();
-    else if (cmd == "ps")       cmdPs();
-    else if (cmd == "uptime")   cmdUptime();
-    else if (cmd == "reboot")   cmdReboot();
-    else if (cmd == "shutdown") cmdShutdown();
-    else if (cmd == "ls")       cmdLs(args, argc);
-    else if (cmd == "cd")       cmdCd(args, argc);
-    else if (cmd == "pwd")      cmdPwd();
-    else if (cmd == "mkdir")    cmdMkdir(args, argc);
-    else if (cmd == "rmdir")    cmdRmdir(args, argc);
-    else if (cmd == "touch")    cmdTouch(args, argc);
-    else if (cmd == "rm")       cmdRm(args, argc);
-    else if (cmd == "cat")      cmdCat(args, argc);
-    else if (cmd == "write")    cmdWrite(args, argc);
-    else if (cmd == "exec")     cmdExec(args, argc);
+    if (cmd == "help")
+        cmdHelp();
+    else if (cmd == "clear")
+        cmdClear();
+    else if (cmd == "echo")
+        cmdEcho(args, argc);
+    else if (cmd == "mem")
+        cmdMem();
+    else if (cmd == "ps")
+        cmdPs();
+    else if (cmd == "uptime")
+        cmdUptime();
+    else if (cmd == "reboot")
+        cmdReboot();
+    else if (cmd == "shutdown")
+        cmdShutdown();
+    else if (cmd == "ls")
+        cmdLs(args, argc);
+    else if (cmd == "cd")
+        cmdCd(args, argc);
+    else if (cmd == "pwd")
+        cmdPwd();
+    else if (cmd == "mkdir")
+        cmdMkdir(args, argc);
+    else if (cmd == "rmdir")
+        cmdRmdir(args, argc);
+    else if (cmd == "touch")
+        cmdTouch(args, argc);
+    else if (cmd == "rm")
+        cmdRm(args, argc);
+    else if (cmd == "cat")
+        cmdCat(args, argc);
+    else if (cmd == "write")
+        cmdWrite(args, argc);
+    else if (cmd == "exec")
+        cmdExec(args, argc);
     else {
         print("Unknown command: ");
         print(args[0]);
@@ -118,7 +136,8 @@ void Shell::run() {
 
     while (true) {
         u8 key = kbd.read();
-        if (key == 0) continue;
+        if (key == 0)
+            continue;
 
         switch (static_cast<KeyCode>(key)) {
         case KeyCode::Enter:
@@ -209,8 +228,7 @@ u8 Shell::parseArgs(char* buf, u8 len, const char** args, u8 maxArgs) {
     return argc;
 }
 
-void Shell::resolvePath(const char* cwdPath, const char* input,
-                        char* out, u32 maxLen) {
+void Shell::resolvePath(const char* cwdPath, const char* input, char* out, u32 maxLen) {
     StringView inp(input);
     if (inp[0] == '/') {
         inp.copyTo(out, maxLen);
@@ -239,7 +257,8 @@ void Shell::resolvePath(const char* cwdPath, const char* input,
 
 void Shell::parentDir(char* path) {
     StringView sv(path);
-    if (sv.length() <= 1) return;
+    if (sv.length() <= 1)
+        return;
     u32 len = sv.length();
 
     u32 last = len - 1;
@@ -253,4 +272,3 @@ void Shell::parentDir(char* path) {
         path[last] = '\0';
     }
 }
-

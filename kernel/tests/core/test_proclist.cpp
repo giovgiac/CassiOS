@@ -1,7 +1,8 @@
-#include <core/syscall.hpp>
-#include <core/process.hpp>
-#include <memory/paging.hpp>
 #include <std/test.hpp>
+
+#include <core/process.hpp>
+#include <core/syscall.hpp>
+#include <memory/paging.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -37,7 +38,7 @@ TEST(proclist_includes_created_process) {
         if (buf[i].pid == p->pid) {
             found = true;
             ASSERT_EQ(buf[i].state, static_cast<u32>(ProcessState::Ready));
-            ASSERT_EQ(buf[i].heapSize, 0x3000u);  // 3 pages = 12 KiB.
+            ASSERT_EQ(buf[i].heapSize, 0x3000u); // 3 pages = 12 KiB.
             break;
         }
     }

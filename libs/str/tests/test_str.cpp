@@ -152,4 +152,3 @@ TEST(sv_to_u32_empty) {
     StringView sv("");
     ASSERT_EQ(sv.to<u32>(), (u32)0);
 }
-

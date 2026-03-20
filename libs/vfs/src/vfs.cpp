@@ -7,9 +7,9 @@
  *
  */
 
-#include <std/vfs.hpp>
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
+#include <std/vfs.hpp>
 
 using namespace std;
 
@@ -21,7 +21,8 @@ vfs::Vfs::Vfs() : pid(0) {
 
 static u32 pathLen(const char* path) {
     u32 len = 0;
-    while (path[len] != '\0') len++;
+    while (path[len] != '\0')
+        len++;
     return len;
 }
 
@@ -51,7 +52,8 @@ u32 vfs::Vfs::open(const char* path, bool create) {
 }
 
 i32 vfs::Vfs::read(u32 handle, u32 offset, u8* buf, u32 bufLen) {
-    for (u32 i = 0; i < bufLen; i++) buf[i] = 0;
+    for (u32 i = 0; i < bufLen; i++)
+        buf[i] = 0;
     ipc::Message msg = {};
     msg.type = ipc::MessageType::VfsRead;
     msg.arg1 = handle;
@@ -82,7 +84,8 @@ bool vfs::Vfs::list(const char* path, u32 index, char* nameOut, u32 nameMax) {
     u32 pLen = pathLen(path);
 
     char buf[65];
-    for (u32 k = 0; k < sizeof(buf); k++) buf[k] = 0;
+    for (u32 k = 0; k < sizeof(buf); k++)
+        buf[k] = 0;
     u32 i = 0;
     while (i < sizeof(buf) - 1 && i <= pLen) {
         buf[i] = path[i];

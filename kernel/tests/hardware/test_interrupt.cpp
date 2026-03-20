@@ -1,7 +1,8 @@
+#include <std/test.hpp>
+
+#include <core/gdt.hpp>
 #include <hardware/interrupt.hpp>
 #include <hardware/irq.hpp>
-#include <core/gdt.hpp>
-#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -22,7 +23,10 @@ extern cassio::kernel::GlobalDescriptorTable test_gdt;
 
 TEST(interrupt_idt_size_and_base) {
     // IDT should have 256 entries of 8 bytes each.
-    struct __attribute__((packed)) { u16 limit; u32 base; } idtr;
+    struct __attribute__((packed)) {
+        u16 limit;
+        u32 base;
+    } idtr;
     asm volatile("sidt %0" : "=m"(idtr));
 
     ASSERT_EQ(static_cast<u32>(idtr.limit), 256u * 8u - 1u);
@@ -32,7 +36,10 @@ TEST(interrupt_idt_size_and_base) {
 TEST(interrupt_idt_code_offset_matches_gdt) {
     GlobalDescriptorTable& gdt = test_gdt;
 
-    struct __attribute__((packed)) { u16 limit; u32 base; } idtr;
+    struct __attribute__((packed)) {
+        u16 limit;
+        u32 base;
+    } idtr;
     asm volatile("sidt %0" : "=m"(idtr));
 
     // Check an IRQ entry (0x21 keyboard) -- code_offset should match GDT.
@@ -48,17 +55,20 @@ TEST(interrupt_idt_code_offset_matches_gdt) {
 
 TEST(interrupt_unused_vectors_are_ignore) {
     // Unused vectors should all point to the same ignore handler.
-    struct __attribute__((packed)) { u16 limit; u32 base; } idtr;
+    struct __attribute__((packed)) {
+        u16 limit;
+        u32 base;
+    } idtr;
     asm volatile("sidt %0" : "=m"(idtr));
 
     // Vectors 3 and 4 are unused.
     u8* entry3 = reinterpret_cast<u8*>(idtr.base) + 3 * 8;
     u8* entry4 = reinterpret_cast<u8*>(idtr.base) + 4 * 8;
 
-    u32 addr3 = static_cast<u32>(*reinterpret_cast<u16*>(entry3 + 6)) << 16
-              | static_cast<u32>(*reinterpret_cast<u16*>(entry3));
-    u32 addr4 = static_cast<u32>(*reinterpret_cast<u16*>(entry4 + 6)) << 16
-              | static_cast<u32>(*reinterpret_cast<u16*>(entry4));
+    u32 addr3 = static_cast<u32>(*reinterpret_cast<u16*>(entry3 + 6)) << 16 |
+                static_cast<u32>(*reinterpret_cast<u16*>(entry3));
+    u32 addr4 = static_cast<u32>(*reinterpret_cast<u16*>(entry4 + 6)) << 16 |
+                static_cast<u32>(*reinterpret_cast<u16*>(entry4));
 
     ASSERT_EQ(addr3, addr4);
     ASSERT(addr3 != 0);

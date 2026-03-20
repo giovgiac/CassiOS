@@ -20,26 +20,22 @@ namespace ptr {
 
 // -- Utility: move --
 
-template <typename T>
-T&& move(T& t) { return static_cast<T&&>(t); }
+template <typename T> T&& move(T& t) {
+    return static_cast<T&&>(t);
+}
 
 // ============================================================
 // Box<T> -- unique ownership
 // ============================================================
 
-template <typename T>
-class Box {
-public:
+template <typename T> class Box {
+  public:
     explicit Box(T* raw = nullptr) : ptr(raw) {}
 
-    ~Box() {
-        delete ptr;
-    }
+    ~Box() { delete ptr; }
 
     // Move.
-    Box(Box&& other) : ptr(other.ptr) {
-        other.ptr = nullptr;
-    }
+    Box(Box&& other) : ptr(other.ptr) { other.ptr = nullptr; }
 
     Box& operator=(Box&& other) {
         if (this != &other) {
@@ -66,12 +62,9 @@ public:
 
     explicit operator bool() const { return ptr != nullptr; }
 
-    template <typename... Args>
-    static Box make(Args&&... args) {
-        return Box(new T(args...));
-    }
+    template <typename... Args> static Box make(Args&&... args) { return Box(new T(args...)); }
 
-private:
+  private:
     T* ptr;
 };
 
@@ -79,19 +72,14 @@ private:
 // Box<T[]> -- unique ownership of arrays
 // ============================================================
 
-template <typename T>
-class Box<T[]> {
-public:
+template <typename T> class Box<T[]> {
+  public:
     explicit Box(T* raw = nullptr) : ptr(raw) {}
 
-    ~Box() {
-        delete[] ptr;
-    }
+    ~Box() { delete[] ptr; }
 
     // Move.
-    Box(Box&& other) : ptr(other.ptr) {
-        other.ptr = nullptr;
-    }
+    Box(Box&& other) : ptr(other.ptr) { other.ptr = nullptr; }
 
     Box& operator=(Box&& other) {
         if (this != &other) {
@@ -117,11 +105,11 @@ public:
 
     explicit operator bool() const { return ptr != nullptr; }
 
-private:
+  private:
     T* ptr;
 };
 
-} // ptr
-} // std
+} // namespace ptr
+} // namespace std
 
 #endif // STD_PTR_BOX_HPP

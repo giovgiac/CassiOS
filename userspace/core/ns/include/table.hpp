@@ -10,14 +10,14 @@
 #ifndef NS_TABLE_HPP_
 #define NS_TABLE_HPP_
 
-#include <std/types.hpp>
 #include <std/collections/list.hpp>
 #include <std/ns.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
 class NsTable {
-public:
+  public:
     static constexpr std::u32 MAX_NAME_LEN = 16;
 
     struct Entry {
@@ -38,10 +38,10 @@ public:
     NsTable& operator=(const NsTable&) = delete;
     NsTable& operator=(NsTable&&) = delete;
 
-private:
+  private:
     std::collections::LinkedList<Entry> entries;
 };
 
-} // cassio
+} // namespace cassio
 
 #endif // NS_TABLE_HPP_

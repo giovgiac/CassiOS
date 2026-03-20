@@ -10,32 +10,32 @@
 #ifndef USERSPACE_ATA_ATA_HPP_
 #define USERSPACE_ATA_ATA_HPP_
 
-#include <std/types.hpp>
 #include <std/io.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 namespace ata {
 
 namespace Status {
-    constexpr std::u8 Err = 0x01;
-    constexpr std::u8 Drq = 0x08;
-    constexpr std::u8 Df  = 0x20;
-    constexpr std::u8 Rdy = 0x40;
-    constexpr std::u8 Bsy = 0x80;
-}
+constexpr std::u8 Err = 0x01;
+constexpr std::u8 Drq = 0x08;
+constexpr std::u8 Df = 0x20;
+constexpr std::u8 Rdy = 0x40;
+constexpr std::u8 Bsy = 0x80;
+} // namespace Status
 
 namespace Command {
-    constexpr std::u8 ReadSectors  = 0x20;
-    constexpr std::u8 WriteSectors = 0x30;
-    constexpr std::u8 CacheFlush   = 0xE7;
-    constexpr std::u8 Identify     = 0xEC;
-}
+constexpr std::u8 ReadSectors = 0x20;
+constexpr std::u8 WriteSectors = 0x30;
+constexpr std::u8 CacheFlush = 0xE7;
+constexpr std::u8 Identify = 0xEC;
+} // namespace Command
 
 constexpr std::u32 SECTOR_SIZE = 512;
 constexpr std::u8 MASTER_LBA = 0xE0;
 
 class Ata {
-private:
+  private:
     std::io::Port<std::u16> data{std::io::PortType::PrimaryAtaData};
     std::io::Port<std::u8> error{std::io::PortType::PrimaryAtaError};
     std::io::Port<std::u8> sectorCount{std::io::PortType::PrimaryAtaSectorCount};
@@ -60,7 +60,7 @@ private:
     bool readSectorInternal(std::u32 lba);
     bool writeSectorInternal(std::u32 lba);
 
-public:
+  public:
     Ata() = default;
 
     void init();
@@ -92,7 +92,7 @@ public:
     Ata& operator=(Ata&&) = delete;
 };
 
-} // ata
-} // cassio
+} // namespace ata
+} // namespace cassio
 
 #endif // USERSPACE_ATA_ATA_HPP_

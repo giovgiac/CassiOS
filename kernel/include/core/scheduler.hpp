@@ -11,6 +11,7 @@
 #define CORE_SCHEDULER_HPP_
 
 #include <std/types.hpp>
+
 #include <core/gdt.hpp>
 #include <core/process.hpp>
 
@@ -27,12 +28,10 @@ namespace kernel {
  *
  */
 class Scheduler {
-public:
+  public:
     static constexpr std::u32 DEFAULT_TIME_SLICE = 10;
 
-    inline static Scheduler& getScheduler() {
-        return instance;
-    }
+    inline static Scheduler& getScheduler() { return instance; }
 
     /**
      * @brief Stores a reference to the GDT for TSS.esp0 updates.
@@ -81,7 +80,7 @@ public:
     Scheduler& operator=(const Scheduler&) = delete;
     Scheduler& operator=(Scheduler&&) = delete;
 
-private:
+  private:
     Scheduler();
 
     Process* findNextReady(Process* current);
@@ -94,7 +93,7 @@ private:
     std::u32 timeSlice;
 };
 
-} // kernel
-} // cassio
+} // namespace kernel
+} // namespace cassio
 
 #endif // CORE_SCHEDULER_HPP_
