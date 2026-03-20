@@ -52,7 +52,7 @@ private:
     u8* regionEnd;
 };
 
-}
-}
+} // namespace alloc
+} // namespace std
 
 #endif // STD_ALLOC_HPP

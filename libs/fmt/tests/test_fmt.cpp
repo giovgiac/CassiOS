@@ -255,7 +255,6 @@ TEST(fmt_left_overrides_zeropad) {
 
 TEST(fmt_table_row) {
     char buf[64];
-    fmt::format(buf, sizeof(buf), "%3u  %-9s  %-14s  %u KB",
-                (u32)3, "shell", "Ready", (u32)4);
+    fmt::format(buf, sizeof(buf), "%3u  %-9s  %-14s  %u KB", (u32)3, "shell", "Ready", (u32)4);
     ASSERT(StringView(buf) == "  3  shell      Ready           4 KB");
 }

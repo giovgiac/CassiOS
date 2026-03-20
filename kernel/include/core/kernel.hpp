@@ -1,6 +1,6 @@
 /**
  * kernel.hpp
- * 
+ *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
@@ -10,10 +10,11 @@
 #ifndef CORE_KERNEL_HPP_
 #define CORE_KERNEL_HPP_
 
+#include <std/io.hpp>
 #include <std/types.hpp>
+
 #include <core/gdt.hpp>
 #include <hardware/interrupt.hpp>
-#include <std/io.hpp>
 
 /**
  * @brief Function pointer type for global constructors.

@@ -10,9 +10,9 @@
 #ifndef HARDWARE_IRQ_HPP_
 #define HARDWARE_IRQ_HPP_
 
-#include <std/types.hpp>
-#include <std/ipc.hpp>
 #include <std/io.hpp>
+#include <std/ipc.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 namespace hardware {
@@ -56,9 +56,7 @@ public:
      * @brief Returns the singleton IrqManager instance.
      *
      */
-    inline static IrqManager& getManager() {
-        return instance;
-    }
+    inline static IrqManager& getManager() { return instance; }
 
     /**
      * @brief Assembly entry points for IRQ vectors (defined in stub.s).
@@ -118,8 +116,8 @@ public:
     IrqManager& operator=(IrqManager&&) = delete;
 };
 
-} // hardware
-} // cassio
+} // namespace hardware
+} // namespace cassio
 
 /**
  * @brief C-linkage interrupt handler called from assembly stubs in stub.s.

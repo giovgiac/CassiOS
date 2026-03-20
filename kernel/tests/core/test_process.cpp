@@ -1,5 +1,6 @@
-#include <core/process.hpp>
 #include <std/test.hpp>
+
+#include <core/process.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -65,8 +66,8 @@ TEST(process_current_returns_kernel_task) {
     // Before any scheduling, current() returns the kernel task (PID 0).
     Process* cur = pm.current();
     ASSERT(cur != nullptr);
-    ASSERT(cur->state == ProcessState::Empty || cur->state == ProcessState::Running
-           || cur->state == ProcessState::Ready);
+    ASSERT(cur->state == ProcessState::Empty || cur->state == ProcessState::Running ||
+           cur->state == ProcessState::Ready);
 }
 
 TEST(process_get_returns_null_for_nonexistent) {

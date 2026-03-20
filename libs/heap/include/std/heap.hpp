@@ -28,7 +28,7 @@ void* alloc(usize size);
 /// Free a previously allocated pointer.
 void free(void* ptr);
 
-}
-}
+} // namespace heap
+} // namespace std
 
 #endif // STD_HEAP_HPP

@@ -11,6 +11,7 @@
 #define MEMORY_PHYSICAL_HPP_
 
 #include <std/types.hpp>
+
 #include <memory/multiboot.hpp>
 
 namespace cassio {
@@ -21,9 +22,7 @@ static constexpr std::u32 BITMAP_SIZE = 131072;
 
 class PhysicalMemoryManager {
 public:
-    inline static PhysicalMemoryManager& getManager() {
-        return instance;
-    }
+    inline static PhysicalMemoryManager& getManager() { return instance; }
 
     void init(MultibootInfo* multibootInfo);
 
@@ -52,7 +51,7 @@ private:
     std::u32 totalFrames;
 };
 
-} // memory
-} // cassio
+} // namespace memory
+} // namespace cassio
 
 #endif // MEMORY_PHYSICAL_HPP_

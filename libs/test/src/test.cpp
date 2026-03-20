@@ -7,8 +7,8 @@
  *
  */
 
-#include <std/test.hpp>
 #include <std/fmt.hpp>
+#include <std/test.hpp>
 
 using namespace std;
 
@@ -18,7 +18,8 @@ static test::WriteFn write_fn = nullptr;
 
 static void puts(const char* s) {
     u32 len = 0;
-    while (s[len] != '\0') ++len;
+    while (s[len] != '\0')
+        ++len;
     write_fn(s, len);
 }
 
@@ -50,14 +51,14 @@ u32 test::run() {
 
 void test::fail(const char* name, const char* expr, const char* file, int line) {
     char buf[128];
-    fmt::format(buf, sizeof(buf), "[FAIL] %s: assertion failed: \"%s\" at %s:%d\n",
-                name, expr, file, line);
+    fmt::format(buf, sizeof(buf), "[FAIL] %s: assertion failed: \"%s\" at %s:%d\n", name, expr,
+                file, line);
     puts(buf);
 }
 
 void test::fail_eq(const char* name, u32 expected, u32 got, const char* file, int line) {
     char buf[128];
-    fmt::format(buf, sizeof(buf), "[FAIL] %s: expected 0x%X, got 0x%X at %s:%d\n",
-                name, expected, got, file, line);
+    fmt::format(buf, sizeof(buf), "[FAIL] %s: expected 0x%X, got 0x%X at %s:%d\n", name, expected,
+                got, file, line);
     puts(buf);
 }

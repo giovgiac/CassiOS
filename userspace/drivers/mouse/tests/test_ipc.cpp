@@ -7,8 +7,8 @@
  *
  */
 
-#include <std/test.hpp>
 #include <std/mouse.hpp>
+#include <std/test.hpp>
 
 using namespace std;
 

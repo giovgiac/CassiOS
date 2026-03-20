@@ -10,10 +10,10 @@
 #ifndef CORE_PROCESS_HPP_
 #define CORE_PROCESS_HPP_
 
-#include <std/types.hpp>
-#include <std/ipc.hpp>
 #include <std/collections/list.hpp>
+#include <std/ipc.hpp>
 #include <std/ptr.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 namespace kernel {
@@ -38,14 +38,14 @@ struct Process {
     struct NotifyNode {
         std::u32 senderPid;
         std::ipc::Message msg;
-        std::ptr::Box<std::u8[]> data;  // Heap-allocated copy of sender's bulk data.
-        std::u32 dataLen;   // Length of copied data.
+        std::ptr::Box<std::u8[]> data; // Heap-allocated copy of sender's bulk data.
+        std::u32 dataLen;              // Length of copied data.
         NotifyNode* next;
     };
 
     std::u32 pid;
     ProcessState state;
-    Process* next;  // Intrusive list link for ProcessManager.
+    Process* next; // Intrusive list link for ProcessManager.
 
     std::u32 eax, ebx, ecx, edx;
     std::u32 esi, edi, ebp, esp;
@@ -55,16 +55,16 @@ struct Process {
 
     std::u32 pageDirectory;
     std::u32 kernelEsp;
-    std::u32 heapBase;   // Initial heap address (set once at ELF load, for heap size).
-    std::u32 heapBreak;  // Current top of process heap (page-aligned, for sbrk).
+    std::u32 heapBase;  // Initial heap address (set once at ELF load, for heap size).
+    std::u32 heapBreak; // Current top of process heap (page-aligned, for sbrk).
 
-    std::u32 waitPid;        // PID being waited on (valid when state == WaitBlocked).
+    std::u32 waitPid; // PID being waited on (valid when state == WaitBlocked).
 
     // IPC state.
-    std::ipc::Message msg;        // Outgoing message (sender) or staging buffer.
-    std::u32 msgPtr;         // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
-    std::u32 dataPtr;        // Userspace pointer to bulk data buffer.
-    std::u32 dataLen;        // Bulk data length (outgoing) or capacity (incoming).
+    std::ipc::Message msg; // Outgoing message (sender) or staging buffer.
+    std::u32 msgPtr;       // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
+    std::u32 dataPtr;      // Userspace pointer to bulk data buffer.
+    std::u32 dataLen;      // Bulk data length (outgoing) or capacity (incoming).
 
     // Send queue: PIDs of processes waiting to send to this process.
     std::collections::LinkedList<SendNode> sendQueue;
@@ -75,10 +75,10 @@ struct Process {
     // Notification queue: fire-and-forget messages (no reply expected).
     std::collections::LinkedList<NotifyNode> notifyQueue;
 
-    bool notifyPush(std::u32 senderPid, const std::ipc::Message& msg,
-                    const void* data = nullptr, std::u32 dataLen = 0);
-    bool notifyPop(std::u32& senderPid, std::ipc::Message& msg,
-                   void* dataDst = nullptr, std::u32 dataCapacity = 0);
+    bool notifyPush(std::u32 senderPid, const std::ipc::Message& msg, const void* data = nullptr,
+                    std::u32 dataLen = 0);
+    bool notifyPop(std::u32& senderPid, std::ipc::Message& msg, void* dataDst = nullptr,
+                   std::u32 dataCapacity = 0);
 };
 
 /**
@@ -90,9 +90,7 @@ struct Process {
  */
 class ProcessManager {
 public:
-    inline static ProcessManager& getManager() {
-        return instance;
-    }
+    inline static ProcessManager& getManager() { return instance; }
 
     /**
      * @brief Creates a new process via heap allocation.
@@ -110,8 +108,8 @@ public:
      * on failure (cleans up on error).
      *
      */
-    Process* spawn(std::u32 pdPhysical, std::u32 entryPoint, std::u32 heapStart,
-                   std::u32 userCS, std::u32 userDS);
+    Process* spawn(std::u32 pdPhysical, std::u32 entryPoint, std::u32 heapStart, std::u32 userCS,
+                   std::u32 userDS);
 
     /**
      * @brief Destroys a process, freeing its IPC queues and the process itself.
@@ -166,7 +164,7 @@ private:
     std::u32 nextPid;
 };
 
-} // kernel
-} // cassio
+} // namespace kernel
+} // namespace cassio
 
 #endif // CORE_PROCESS_HPP_

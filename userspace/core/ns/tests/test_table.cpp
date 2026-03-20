@@ -1,6 +1,7 @@
-#include <std/test.hpp>
-#include <table.hpp>
 #include <std/str.hpp>
+#include <std/test.hpp>
+
+#include <table.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -61,8 +62,10 @@ TEST(ns_table_list_all_returns_entries) {
     bool foundVga = false;
     bool foundKbd = false;
     for (u32 i = 0; i < count; ++i) {
-        if (StringView(buf[i].name) == "vga" && buf[i].pid == 3) foundVga = true;
-        if (StringView(buf[i].name) == "kbd" && buf[i].pid == 2) foundKbd = true;
+        if (StringView(buf[i].name) == "vga" && buf[i].pid == 3)
+            foundVga = true;
+        if (StringView(buf[i].name) == "kbd" && buf[i].pid == 2)
+            foundKbd = true;
     }
     ASSERT(foundVga);
     ASSERT(foundKbd);

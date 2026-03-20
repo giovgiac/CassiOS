@@ -7,9 +7,9 @@
  *
  */
 
+#include <std/str.hpp>
 #include <std/test.hpp>
 #include <std/vfs.hpp>
-#include <std/str.hpp>
 
 using namespace std;
 using str::StringView;
@@ -126,7 +126,8 @@ TEST(vfs_ipc_large_write_read) {
 
     // Write 64 bytes (exceeds old 12-byte limit).
     u8 data[64];
-    for (u32 i = 0; i < 64; i++) data[i] = static_cast<u8>(i + 1);
+    for (u32 i = 0; i < 64; i++)
+        data[i] = static_cast<u8>(i + 1);
 
     u32 wret = fs.write(handle, data, 64);
     ASSERT_EQ(wret, 0u);
@@ -210,8 +211,10 @@ TEST(vfs_ipc_empty_file_in_subdir) {
     char name[32];
     u32 count = 0;
     for (u32 i = 0; i < 32; i++) {
-        if (!fs.list("/subtest", i, name, sizeof(name))) break;
-        if (StringView(name) == "file.txt") count++;
+        if (!fs.list("/subtest", i, name, sizeof(name)))
+            break;
+        if (StringView(name) == "file.txt")
+            count++;
     }
     ASSERT_EQ(count, 1u);
 }

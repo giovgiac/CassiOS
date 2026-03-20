@@ -54,6 +54,6 @@ public:
     Mouse& operator=(Mouse&&) = delete;
 };
 
-} // cassio
+} // namespace cassio
 
 #endif // USERSPACE_MOUSE_MOUSE_HPP_

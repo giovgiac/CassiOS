@@ -20,7 +20,7 @@ void* move(void* dst, const void* src, usize n);
 void* set(void* dst, int val, usize n);
 int compare(const void* a, const void* b, usize n);
 
-}
-}
+} // namespace mem
+} // namespace std
 
 #endif // STD_MEM_HPP

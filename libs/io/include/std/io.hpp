@@ -21,32 +21,32 @@ namespace io {
  * @see https://wiki.osdev.org/I/O_Ports
  */
 enum class PortType : u16 {
-    MasterPicCommand        = 0x20,
-    MasterPicData           = 0x21,
-    PitChannel0Data         = 0x40,
-    PitCommand              = 0x43,
-    KbdData                 = 0x60,
-    KbdCommand              = 0x64,
-    SlavePicCommand         = 0xA0,
-    SlavePicData            = 0xA1,
-    PrimaryAtaData          = 0x1F0,
-    PrimaryAtaError         = 0x1F1,
-    PrimaryAtaSectorCount   = 0x1F2,
-    PrimaryAtaLbaLow        = 0x1F3,
-    PrimaryAtaLbaMid        = 0x1F4,
-    PrimaryAtaLbaHigh       = 0x1F5,
-    PrimaryAtaDriveSelect   = 0x1F6,
+    MasterPicCommand = 0x20,
+    MasterPicData = 0x21,
+    PitChannel0Data = 0x40,
+    PitCommand = 0x43,
+    KbdData = 0x60,
+    KbdCommand = 0x64,
+    SlavePicCommand = 0xA0,
+    SlavePicData = 0xA1,
+    PrimaryAtaData = 0x1F0,
+    PrimaryAtaError = 0x1F1,
+    PrimaryAtaSectorCount = 0x1F2,
+    PrimaryAtaLbaLow = 0x1F3,
+    PrimaryAtaLbaMid = 0x1F4,
+    PrimaryAtaLbaHigh = 0x1F5,
+    PrimaryAtaDriveSelect = 0x1F6,
     PrimaryAtaCommandStatus = 0x1F7,
-    VgaCrtcIndex            = 0x3D4,
-    VgaCrtcData             = 0x3D5,
+    VgaCrtcIndex = 0x3D4,
+    VgaCrtcData = 0x3D5,
     PrimaryAtaDeviceControl = 0x3F6,
-    SerialCOM1Data          = 0x3F8,
+    SerialCOM1Data = 0x3F8,
     SerialCOM1InterruptEnable = 0x3F9,
-    SerialCOM1FIFOControl   = 0x3FA,
-    SerialCOM1LineControl   = 0x3FB,
-    SerialCOM1ModemControl  = 0x3FC,
-    SerialCOM1LineStatus    = 0x3FD,
-    QemuDebugExit           = 0xF4
+    SerialCOM1FIFOControl = 0x3FA,
+    SerialCOM1LineControl = 0x3FB,
+    SerialCOM1ModemControl = 0x3FC,
+    SerialCOM1LineStatus = 0x3FD,
+    QemuDebugExit = 0xF4
 };
 
 /**
@@ -55,8 +55,7 @@ enum class PortType : u16 {
  * Reads and writes use inline asm with the appropriate in/out
  * instruction selected at compile time via if constexpr.
  */
-template <typename T>
-class Port {
+template <typename T> class Port {
 public:
     Port(PortType type) : number(static_cast<u16>(type)) {}
 
@@ -89,7 +88,7 @@ private:
     u16 number;
 };
 
-}
-}
+} // namespace io
+} // namespace std
 
 #endif // STD_IO_HPP

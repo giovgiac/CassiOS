@@ -1,6 +1,6 @@
 /**
  * gdt.hpp
- * 
+ *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
@@ -35,10 +35,10 @@ public:
     private:
         std::u16 limit_low;
         std::u16 base_low;
-        std::u8  base_high;
-        std::u8  flags;
-        std::u8  limit_high;
-        std::u8  base_very_high;
+        std::u8 base_high;
+        std::u8 flags;
+        std::u8 limit_high;
+        std::u8 base_very_high;
 
     public:
         /**
@@ -58,7 +58,6 @@ public:
          *
          */
         std::u32 getLimit();
-
     };
 
     /**
@@ -165,7 +164,7 @@ private:
     TaskStateSegment tss;
 };
 
-} // kernel
-} // cassio
+} // namespace kernel
+} // namespace cassio
 
 #endif // CORE_GDT_HPP_

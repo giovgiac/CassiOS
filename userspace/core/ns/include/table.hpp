@@ -10,9 +10,9 @@
 #ifndef NS_TABLE_HPP_
 #define NS_TABLE_HPP_
 
-#include <std/types.hpp>
 #include <std/collections/list.hpp>
 #include <std/ns.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
@@ -42,6 +42,6 @@ private:
     std::collections::LinkedList<Entry> entries;
 };
 
-} // cassio
+} // namespace cassio
 
 #endif // NS_TABLE_HPP_

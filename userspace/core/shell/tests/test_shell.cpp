@@ -7,9 +7,10 @@
  *
  */
 
-#include <shell.hpp>
 #include <std/str.hpp>
 #include <std/test.hpp>
+
+#include <shell.hpp>
 
 using namespace cassio;
 using namespace std;

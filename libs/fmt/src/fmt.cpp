@@ -65,10 +65,8 @@ static usize fmt_hex(char* tmp, u32 value, bool upper) {
 }
 
 // Write a formatted value with padding and optional sign.
-static usize put_padded(char* buf, usize size, usize pos,
-                        const char* tmp, usize len,
-                        u32 width, bool left_align, char pad_char,
-                        char sign = 0) {
+static usize put_padded(char* buf, usize size, usize pos, const char* tmp, usize len, u32 width,
+                        bool left_align, char pad_char, char sign = 0) {
     usize total = len + (sign ? 1 : 0);
     u32 padding = (width > total) ? width - total : 0;
 
@@ -96,12 +94,14 @@ static usize put_padded(char* buf, usize size, usize pos,
 }
 
 // Write a string with padding.
-static usize put_str_padded(char* buf, usize size, usize pos,
-                            const char* s, u32 width, bool left_align) {
-    if (s == nullptr) s = "(null)";
+static usize put_str_padded(char* buf, usize size, usize pos, const char* s, u32 width,
+                            bool left_align) {
+    if (s == nullptr)
+        s = "(null)";
 
     usize len = 0;
-    while (s[len] != '\0') ++len;
+    while (s[len] != '\0')
+        ++len;
 
     u32 padding = (width > len) ? width - len : 0;
 
@@ -121,7 +121,8 @@ static usize put_str_padded(char* buf, usize size, usize pos,
 }
 
 usize fmt::format(char* buf, usize size, const char* fmt, ...) {
-    if (size == 0) return 0;
+    if (size == 0)
+        return 0;
 
     __builtin_va_list args;
     __builtin_va_start(args, fmt);
@@ -135,14 +136,17 @@ usize fmt::format(char* buf, usize size, const char* fmt, ...) {
         }
 
         ++i;
-        if (fmt[i] == '\0') break;
+        if (fmt[i] == '\0')
+            break;
 
         // Parse flags.
         bool left_align = false;
         bool zero_pad = false;
         while (fmt[i] == '-' || fmt[i] == '0') {
-            if (fmt[i] == '-') left_align = true;
-            if (fmt[i] == '0') zero_pad = true;
+            if (fmt[i] == '-')
+                left_align = true;
+            if (fmt[i] == '0')
+                zero_pad = true;
             ++i;
         }
 
@@ -153,7 +157,8 @@ usize fmt::format(char* buf, usize size, const char* fmt, ...) {
             ++i;
         }
 
-        if (fmt[i] == '\0') break;
+        if (fmt[i] == '\0')
+            break;
 
         // Left-align overrides zero-pad.
         char pad_char = (zero_pad && !left_align) ? '0' : ' ';

@@ -7,8 +7,8 @@
  *
  */
 
-#include <std/mouse.hpp>
 #include <std/ipc.hpp>
+#include <std/mouse.hpp>
 #include <std/ns.hpp>
 
 using namespace std;

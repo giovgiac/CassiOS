@@ -10,12 +10,12 @@
 #ifndef VGA_TERMINAL_HPP_
 #define VGA_TERMINAL_HPP_
 
-#include <std/types.hpp>
 #include <std/io.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 
-constexpr std::u8 VGA_WIDTH  = 80;
+constexpr std::u8 VGA_WIDTH = 80;
 constexpr std::u8 VGA_HEIGHT = 25;
 
 /**
@@ -49,6 +49,6 @@ private:
     void scrollUp();
 };
 
-} // cassio
+} // namespace cassio
 
 #endif // VGA_TERMINAL_HPP_

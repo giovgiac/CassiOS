@@ -10,12 +10,13 @@
  *
  */
 
-#include <std/types.hpp>
+#include <std/heap.hpp>
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
 #include <std/os.hpp>
-#include <std/heap.hpp>
 #include <std/str.hpp>
+#include <std/types.hpp>
+
 #include <fat32/filesystem.hpp>
 
 using namespace cassio;
@@ -72,10 +73,8 @@ extern "C" void _start() {
             reply.arg1 = (bytesRead >= 0) ? static_cast<u32>(bytesRead) : 0;
 
             if (sender > 0) {
-                u32 replyDataLen = (bytesRead > 0)
-                                 ? static_cast<u32>(bytesRead) : 0;
-                ipc::reply(static_cast<u32>(sender), &reply,
-                           dataBuf, replyDataLen);
+                u32 replyDataLen = (bytesRead > 0) ? static_cast<u32>(bytesRead) : 0;
+                ipc::reply(static_cast<u32>(sender), &reply, dataBuf, replyDataLen);
                 continue;
             }
             break;
@@ -92,13 +91,11 @@ extern "C" void _start() {
             u32 index = msg.arg1;
             char name[MAX_NAME];
 
-            if (fs.listEntry(reinterpret_cast<char*>(dataBuf), index,
-                             name, sizeof(name))) {
+            if (fs.listEntry(reinterpret_cast<char*>(dataBuf), index, name, sizeof(name))) {
                 reply.arg1 = 1;
                 u32 nameLen = str::StringView(name).length();
                 if (sender > 0) {
-                    ipc::reply(static_cast<u32>(sender), &reply,
-                               name, nameLen + 1);
+                    ipc::reply(static_cast<u32>(sender), &reply, name, nameLen + 1);
                     continue;
                 }
             } else {

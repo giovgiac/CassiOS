@@ -8,6 +8,7 @@
  */
 
 #include "memory/physical.hpp"
+
 #include "memory/virtual.hpp"
 
 using namespace cassio;
@@ -19,8 +20,7 @@ extern "C" u32 _kernel_end;
 
 PhysicalMemoryManager PhysicalMemoryManager::instance;
 
-PhysicalMemoryManager::PhysicalMemoryManager()
-    : totalFrames(0) {
+PhysicalMemoryManager::PhysicalMemoryManager() : totalFrames(0) {
     for (u32 i = 0; i < BITMAP_SIZE; i++) {
         bitmap[i] = 0xFF;
     }

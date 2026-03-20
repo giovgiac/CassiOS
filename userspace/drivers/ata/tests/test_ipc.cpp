@@ -7,8 +7,8 @@
  *
  */
 
-#include <std/test.hpp>
 #include <std/ata.hpp>
+#include <std/test.hpp>
 
 using namespace std;
 
@@ -34,20 +34,25 @@ TEST(ata_ipc_write_then_read_sector) {
 
     // Write a known pattern.
     u8 writeBuf[512];
-    for (u32 i = 0; i < 512; ++i) writeBuf[i] = static_cast<u8>(i & 0xFF);
+    for (u32 i = 0; i < 512; ++i)
+        writeBuf[i] = static_cast<u8>(i & 0xFF);
     bool ok = drive.writeSector(testLba, writeBuf);
     ASSERT(ok);
 
     // Read it back.
     u8 readBuf[512];
-    for (u32 i = 0; i < 512; ++i) readBuf[i] = 0;
+    for (u32 i = 0; i < 512; ++i)
+        readBuf[i] = 0;
     ok = drive.readSector(testLba, readBuf);
     ASSERT(ok);
 
     // Verify contents match.
     bool match = true;
     for (u32 i = 0; i < 512; ++i) {
-        if (readBuf[i] != writeBuf[i]) { match = false; break; }
+        if (readBuf[i] != writeBuf[i]) {
+            match = false;
+            break;
+        }
     }
     ASSERT(match);
 }

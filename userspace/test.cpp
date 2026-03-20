@@ -10,9 +10,9 @@
  *
  */
 
-#include <std/test.hpp>
-#include <std/os.hpp>
 #include <std/heap.hpp>
+#include <std/os.hpp>
+#include <std/test.hpp>
 
 using namespace std;
 

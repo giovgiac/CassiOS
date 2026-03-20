@@ -47,16 +47,14 @@ public:
 
     void copyTo(char* dst, usize max) const;
 
-    template <typename T>
-    T to() const;
+    template <typename T> T to() const;
 
 private:
     const char* ptr;
     usize len;
 };
 
-
-}
-}
+} // namespace str
+} // namespace std
 
 #endif // STD_STR_HPP

@@ -1,5 +1,5 @@
-#include <std/test.hpp>
 #include <std/kbd.hpp>
+#include <std/test.hpp>
 
 using namespace std;
 

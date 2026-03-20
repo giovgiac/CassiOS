@@ -11,10 +11,11 @@
  *
  */
 
-#include <std/types.hpp>
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
 #include <std/os.hpp>
+#include <std/types.hpp>
+
 #include <terminal.hpp>
 
 using namespace cassio;
@@ -48,7 +49,8 @@ extern "C" void _start() {
 
         case ipc::MessageType::VgaWrite: {
             u32 len = msg.arg1;
-            if (len > sizeof(dataBuf)) len = sizeof(dataBuf);
+            if (len > sizeof(dataBuf))
+                len = sizeof(dataBuf);
             for (u32 i = 0; i < len; ++i) {
                 terminal.putchar(dataBuf[i]);
             }
@@ -60,9 +62,7 @@ extern "C" void _start() {
             break;
 
         case ipc::MessageType::VgaSetCursor:
-            terminal.setCursor(
-                static_cast<u8>(msg.arg1),
-                static_cast<u8>(msg.arg2));
+            terminal.setCursor(static_cast<u8>(msg.arg1), static_cast<u8>(msg.arg2));
             break;
 
         case ipc::MessageType::VgaGetCursor:

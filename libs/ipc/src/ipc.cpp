@@ -12,42 +12,38 @@
 
 using namespace std;
 
-i32 ipc::send(u32 pid, ipc::Message* msg,
-              const void* data, u32 dataLen) {
+i32 ipc::send(u32 pid, ipc::Message* msg, const void* data, u32 dataLen) {
     i32 ret;
-    asm volatile("int $0x80" : "=a"(ret)
-                 : "a"(os::syscall::Send), "b"(pid), "c"((u32)msg),
-                   "S"((u32)data), "D"(dataLen)
+    asm volatile("int $0x80"
+                 : "=a"(ret)
+                 : "a"(os::syscall::Send), "b"(pid), "c"((u32)msg), "S"((u32)data), "D"(dataLen)
                  : "memory");
     return ret;
 }
 
-i32 ipc::receive(ipc::Message* msg,
-                 void* data, u32 dataCapacity) {
+i32 ipc::receive(ipc::Message* msg, void* data, u32 dataCapacity) {
     i32 ret;
-    asm volatile("int $0x80" : "=a"(ret)
-                 : "a"(os::syscall::Receive), "b"((u32)msg),
-                   "S"((u32)data), "D"(dataCapacity)
+    asm volatile("int $0x80"
+                 : "=a"(ret)
+                 : "a"(os::syscall::Receive), "b"((u32)msg), "S"((u32)data), "D"(dataCapacity)
                  : "memory");
     return ret;
 }
 
-i32 ipc::reply(u32 pid, ipc::Message* msg,
-               const void* data, u32 dataLen) {
+i32 ipc::reply(u32 pid, ipc::Message* msg, const void* data, u32 dataLen) {
     i32 ret;
-    asm volatile("int $0x80" : "=a"(ret)
-                 : "a"(os::syscall::Reply), "b"(pid), "c"((u32)msg),
-                   "S"((u32)data), "D"(dataLen)
+    asm volatile("int $0x80"
+                 : "=a"(ret)
+                 : "a"(os::syscall::Reply), "b"(pid), "c"((u32)msg), "S"((u32)data), "D"(dataLen)
                  : "memory");
     return ret;
 }
 
-i32 ipc::notify(u32 pid, ipc::Message* msg,
-                const void* data, u32 dataLen) {
+i32 ipc::notify(u32 pid, ipc::Message* msg, const void* data, u32 dataLen) {
     i32 ret;
-    asm volatile("int $0x80" : "=a"(ret)
-                 : "a"(os::syscall::Notify), "b"(pid), "c"((u32)msg),
-                   "S"((u32)data), "D"(dataLen)
+    asm volatile("int $0x80"
+                 : "=a"(ret)
+                 : "a"(os::syscall::Notify), "b"(pid), "c"((u32)msg), "S"((u32)data), "D"(dataLen)
                  : "memory");
     return ret;
 }

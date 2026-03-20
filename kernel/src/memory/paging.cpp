@@ -8,8 +8,10 @@
  */
 
 #include "memory/paging.hpp"
+
 #include "memory/physical.hpp"
 #include "memory/virtual.hpp"
+
 #include <std/mem.hpp>
 
 using namespace cassio;
@@ -67,7 +69,7 @@ void PagingManager::init(MultibootInfo* multibootInfo) {
     // Load page directory into CR3. pageDirectory is a virtual address;
     // CR3 needs the physical address.
     u32 pd = (u32)pageDirectory - KERNEL_VBASE;
-    asm volatile("mov %0, %%cr3" :: "r"(pd));
+    asm volatile("mov %0, %%cr3" ::"r"(pd));
 }
 
 void PagingManager::mapPage(u32 virtualAddr, u32 physicalAddr, u16 flags) {
@@ -121,7 +123,7 @@ void PagingManager::unmapPage(u32 virtualAddr) {
 }
 
 void PagingManager::flushTLB(u32 virtualAddr) {
-    asm volatile("invlpg (%0)" :: "r"(virtualAddr) : "memory");
+    asm volatile("invlpg (%0)" ::"r"(virtualAddr) : "memory");
 }
 
 u32 PagingManager::createAddressSpace() {

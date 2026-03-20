@@ -10,9 +10,10 @@
 #ifndef USERSPACE_VFS_FAT32_FILESYSTEM_HPP_
 #define USERSPACE_VFS_FAT32_FILESYSTEM_HPP_
 
-#include <std/types.hpp>
 #include <std/ata.hpp>
 #include <std/ptr.hpp>
+#include <std/types.hpp>
+
 #include <fat32/types.hpp>
 
 namespace cassio {
@@ -26,8 +27,8 @@ constexpr std::u32 CACHE_SIZE = 16;
 struct FileHandle {
     std::u32 startCluster;
     std::u32 size;
-    std::u32 dirCluster;     // cluster containing the directory entry
-    std::u32 dirOffset;      // byte offset of the short entry within that cluster
+    std::u32 dirCluster; // cluster containing the directory entry
+    std::u32 dirOffset;  // byte offset of the short entry within that cluster
     bool isDir;
     bool inUse;
 };
@@ -42,7 +43,7 @@ private:
     std::u32 bytesPerCluster;
     std::u32 reservedSectors;
     std::u32 numFats;
-    std::u32 fatSize;         // sectors per FAT
+    std::u32 fatSize; // sectors per FAT
     std::u32 fatStartSector;
     std::u32 dataStartSector;
     std::u32 rootCluster;
@@ -87,18 +88,18 @@ private:
     // Directory helpers.
     std::u8 lfnChecksum(const std::u8* shortName);
     void nameToShort(const char* name, std::u8* shortName);
-    bool extractLfn(const DirEntry* entries, std::u32 lfnStart, std::u32 shortIdx,
-                    char* nameOut, std::u32 nameMax);
+    bool extractLfn(const DirEntry* entries, std::u32 lfnStart, std::u32 shortIdx, char* nameOut,
+                    std::u32 nameMax);
     bool readDirEntry(std::u32 dirCluster, std::u32 index, char* nameOut, std::u32 nameMax,
                       DirEntry* entryOut, std::u32* entryCluster, std::u32* entryOffset);
     bool findEntry(std::u32 dirCluster, const char* name, DirEntry* entryOut,
                    std::u32* entryCluster, std::u32* entryOffset);
     bool resolvePath(const char* path, std::u32* clusterOut, DirEntry* entryOut,
                      std::u32* entryCluster, std::u32* entryOffset);
-    bool resolveParentPath(const char* path, std::u32* parentClusterOut,
-                           char* nameOut, std::u32 nameMax);
-    bool createEntry(std::u32 dirCluster, const char* name, std::u8 attr,
-                     std::u32* outCluster, std::u32* outOffset);
+    bool resolveParentPath(const char* path, std::u32* parentClusterOut, char* nameOut,
+                           std::u32 nameMax);
+    bool createEntry(std::u32 dirCluster, const char* name, std::u8 attr, std::u32* outCluster,
+                     std::u32* outOffset);
     bool removeEntry(std::u32 dirCluster, const char* name);
 
     // Cluster chain helpers.
@@ -127,7 +128,7 @@ public:
     Fat32Filesystem& operator=(Fat32Filesystem&&) = delete;
 };
 
-} // vfs
-} // cassio
+} // namespace vfs
+} // namespace cassio
 
 #endif // USERSPACE_VFS_FAT32_FILESYSTEM_HPP_

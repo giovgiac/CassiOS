@@ -7,9 +7,10 @@
  *
  */
 
-#include <table.hpp>
-#include <std/str.hpp>
 #include <std/heap.hpp>
+#include <std/str.hpp>
+
+#include <table.hpp>
 
 using namespace cassio;
 using namespace std;

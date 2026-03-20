@@ -35,9 +35,7 @@ public:
      * @brief Returns the singleton ExceptionHandler instance.
      *
      */
-    inline static ExceptionHandler& getHandler() {
-        return instance;
-    }
+    inline static ExceptionHandler& getHandler() { return instance; }
 
     /**
      * @brief Assembly entry points for exception vectors (defined in stub.s).
@@ -67,8 +65,8 @@ public:
     ExceptionHandler& operator=(ExceptionHandler&&) = delete;
 };
 
-} // hardware
-} // cassio
+} // namespace hardware
+} // namespace cassio
 
 /**
  * @brief C-linkage exception handler called from assembly stubs in stub.s.

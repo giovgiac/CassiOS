@@ -62,7 +62,7 @@ private:
     u32 pid;
 };
 
-} // vfs
-} // std
+} // namespace vfs
+} // namespace std
 
 #endif // STD_VFS_HPP

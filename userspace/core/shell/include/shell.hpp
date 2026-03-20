@@ -10,10 +10,10 @@
 #ifndef USERSPACE_SHELL_SHELL_HPP_
 #define USERSPACE_SHELL_SHELL_HPP_
 
-#include <std/types.hpp>
 #include <std/kbd.hpp>
-#include <std/vga.hpp>
+#include <std/types.hpp>
 #include <std/vfs.hpp>
+#include <std/vga.hpp>
 
 namespace cassio {
 
@@ -27,7 +27,7 @@ private:
     std::vga::Vga vga;
     std::vfs::Vfs vfs;
 
-    char buffer[SHELL_MAX_INPUT + 1];  // +1 for null terminator in execute()
+    char buffer[SHELL_MAX_INPUT + 1]; // +1 for null terminator in execute()
     std::u8 length;
     std::u8 cursor;
     std::u8 promptCol;
@@ -69,11 +69,10 @@ public:
 
     // Testable helpers.
     static std::u8 parseArgs(char* buf, std::u8 length, const char** args, std::u8 maxArgs);
-    static void resolvePath(const char* cwd, const char* input,
-                            char* out, std::u32 maxLen);
+    static void resolvePath(const char* cwd, const char* input, char* out, std::u32 maxLen);
     static void parentDir(char* path);
 };
 
-} // cassio
+} // namespace cassio
 
 #endif // USERSPACE_SHELL_SHELL_HPP_

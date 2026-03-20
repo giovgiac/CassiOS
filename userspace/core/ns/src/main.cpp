@@ -10,11 +10,12 @@
  *
  */
 
-#include <std/types.hpp>
+#include <std/heap.hpp>
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
 #include <std/os.hpp>
-#include <std/heap.hpp>
+#include <std/types.hpp>
+
 #include <table.hpp>
 
 using namespace cassio;
@@ -52,8 +53,7 @@ extern "C" void _start() {
             ns::Entry buf[16];
             u32 count = table.listAll(buf, 16);
             reply.arg1 = count;
-            ipc::reply(static_cast<u32>(sender), &reply,
-                       buf, count * sizeof(ns::Entry));
+            ipc::reply(static_cast<u32>(sender), &reply, buf, count * sizeof(ns::Entry));
             break;
         }
         default:

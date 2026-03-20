@@ -1,9 +1,10 @@
-#include <core/syscall.hpp>
+#include <std/test.hpp>
+
 #include <core/process.hpp>
+#include <core/syscall.hpp>
 #include <memory/paging.hpp>
 #include <memory/physical.hpp>
 #include <memory/virtual.hpp>
-#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -47,7 +48,7 @@ TEST(sbrk_zero_returns_current_break) {
 
     u32 result = sh.sbrk(0);
     ASSERT_EQ(result, 0x00600000u);
-    ASSERT_EQ(p->heapBreak, 0x00600000u);  // Unchanged.
+    ASSERT_EQ(p->heapBreak, 0x00600000u); // Unchanged.
 
     paging.destroyAddressSpace(pd);
     pm.destroy(p->pid);
@@ -81,7 +82,7 @@ TEST(sbrk_no_heap_returns_zero) {
 
     Process* p = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
     ASSERT(p != nullptr);
-    p->heapBreak = 0;  // No heap initialized.
+    p->heapBreak = 0; // No heap initialized.
     pm.setCurrent(p);
 
     u32 result = sh.sbrk(4096);
@@ -102,7 +103,7 @@ TEST(sbrk_overflow_returns_zero) {
     // Increment would wrap u32.
     u32 result = sh.sbrk(0x80000001);
     ASSERT_EQ(result, 0u);
-    ASSERT_EQ(p->heapBreak, 0x80000000u);  // Unchanged.
+    ASSERT_EQ(p->heapBreak, 0x80000000u); // Unchanged.
 
     pm.destroy(p->pid);
 }
@@ -123,7 +124,7 @@ TEST(sbrk_stack_collision_returns_zero) {
     // Would collide with user stack at 0xBFFFF000.
     u32 result = sh.sbrk(0x10000);
     ASSERT_EQ(result, 0u);
-    ASSERT_EQ(p->heapBreak, 0xBFFF0000u);  // Unchanged.
+    ASSERT_EQ(p->heapBreak, 0xBFFF0000u); // Unchanged.
 
     paging.destroyAddressSpace(pd);
     pm.destroy(p->pid);

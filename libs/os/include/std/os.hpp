@@ -20,34 +20,34 @@ namespace std {
 namespace os {
 
 namespace syscall {
-    constexpr u32 Send        = 0;
-    constexpr u32 Receive     = 1;
-    constexpr u32 Reply       = 2;
-    constexpr u32 IrqRegister = 3;
-    constexpr u32 Write       = 4;
-    constexpr u32 Sleep       = 5;
-    constexpr u32 Uptime      = 6;
-    constexpr u32 Reboot      = 7;
-    constexpr u32 Shutdown    = 8;
-    constexpr u32 Exit        = 9;
-    constexpr u32 MapDevice   = 10;
-    constexpr u32 Notify      = 11;
-    constexpr u32 MemInfo     = 12;
-    constexpr u32 Sbrk        = 13;
-    constexpr u32 ProcList    = 14;
-    constexpr u32 Exec        = 15;
-    constexpr u32 WaitPid     = 16;
-    constexpr u32 Count       = 17;
-}
+constexpr u32 Send = 0;
+constexpr u32 Receive = 1;
+constexpr u32 Reply = 2;
+constexpr u32 IrqRegister = 3;
+constexpr u32 Write = 4;
+constexpr u32 Sleep = 5;
+constexpr u32 Uptime = 6;
+constexpr u32 Reboot = 7;
+constexpr u32 Shutdown = 8;
+constexpr u32 Exit = 9;
+constexpr u32 MapDevice = 10;
+constexpr u32 Notify = 11;
+constexpr u32 MemInfo = 12;
+constexpr u32 Sbrk = 13;
+constexpr u32 ProcList = 14;
+constexpr u32 Exec = 15;
+constexpr u32 WaitPid = 16;
+constexpr u32 Count = 17;
+} // namespace syscall
 
 /** System tick frequency in Hz. Used to convert uptime() ticks to time. */
 constexpr u32 TICK_FREQUENCY = 1000;
 
 /** Process information returned by procList(). */
 struct ProcEntry {
-    u32 pid;       ///< Process ID.
-    u32 state;     ///< 1=Ready, 2=Running, 3=SendBlocked, 4=ReceiveBlocked, 5=WaitBlocked.
-    u32 heapSize;  ///< Heap size in bytes (0 if no heap).
+    u32 pid;      ///< Process ID.
+    u32 state;    ///< 1=Ready, 2=Running, 3=SendBlocked, 4=ReceiveBlocked, 5=WaitBlocked.
+    u32 heapSize; ///< Heap size in bytes (0 if no heap).
 };
 
 /**
@@ -125,7 +125,7 @@ u32 exec(const void* elfData, u32 size);
  */
 i32 waitpid(u32 pid);
 
-}
-}
+} // namespace os
+} // namespace std
 
 #endif // STD_OS_HPP

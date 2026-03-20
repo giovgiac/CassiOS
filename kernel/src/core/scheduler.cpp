@@ -15,8 +15,7 @@ using namespace cassio::kernel;
 
 Scheduler Scheduler::instance;
 
-Scheduler::Scheduler()
-    : gdt(nullptr), tickCount(0), timeSlice(DEFAULT_TIME_SLICE) {}
+Scheduler::Scheduler() : gdt(nullptr), tickCount(0), timeSlice(DEFAULT_TIME_SLICE) {}
 
 void Scheduler::init(GlobalDescriptorTable& gdt) {
     this->gdt = &gdt;

@@ -43,7 +43,7 @@ private:
     u32 pid;
 };
 
-} // ata
-} // std
+} // namespace ata
+} // namespace std
 
 #endif // STD_ATA_HPP

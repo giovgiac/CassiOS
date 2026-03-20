@@ -7,11 +7,12 @@
  *
  */
 
-#include <shell.hpp>
-#include <std/os.hpp>
-#include <std/ns.hpp>
 #include <std/fmt.hpp>
 #include <std/heap.hpp>
+#include <std/ns.hpp>
+#include <std/os.hpp>
+
+#include <shell.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -44,7 +45,8 @@ void Shell::cmdClear() {
 
 void Shell::cmdEcho(const char** args, u8 argc) {
     for (u8 i = 1; i < argc; ++i) {
-        if (i > 1) putchar(' ');
+        if (i > 1)
+            putchar(' ');
         print(args[i]);
     }
     putchar('\n');
@@ -66,12 +68,18 @@ void Shell::cmdMem() {
 
 static const char* stateStr(u32 state) {
     switch (state) {
-    case 1: return "Ready";
-    case 2: return "Running";
-    case 3: return "SendBlocked";
-    case 4: return "ReceiveBlocked";
-    case 5: return "WaitBlocked";
-    default: return "Unknown";
+    case 1:
+        return "Ready";
+    case 2:
+        return "Running";
+    case 3:
+        return "SendBlocked";
+    case 4:
+        return "ReceiveBlocked";
+    case 5:
+        return "WaitBlocked";
+    default:
+        return "Unknown";
     }
 }
 
@@ -95,9 +103,8 @@ void Shell::cmdPs() {
         }
 
         char line[64];
-        fmt::format(line, sizeof(line), "%3u  %-9s  %-14s  %u KB\n",
-                    procs[i].pid, name, stateStr(procs[i].state),
-                    procs[i].heapSize / 1024);
+        fmt::format(line, sizeof(line), "%3u  %-9s  %-14s  %u KB\n", procs[i].pid, name,
+                    stateStr(procs[i].state), procs[i].heapSize / 1024);
         print(line);
     }
 }
@@ -151,7 +158,8 @@ void Shell::cmdExec(const char** args, u8 argc) {
     u32 total = 0;
     while (total < MAX_ELF_SIZE) {
         i32 n = vfs.read(handle, total, elfBuf + total, 512);
-        if (n <= 0) break;
+        if (n <= 0)
+            break;
         total += static_cast<u32>(n);
     }
 

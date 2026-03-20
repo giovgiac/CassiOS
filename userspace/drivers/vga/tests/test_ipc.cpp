@@ -7,9 +7,9 @@
  *
  */
 
-#include <std/test.hpp>
-#include <std/ns.hpp>
 #include <std/ipc.hpp>
+#include <std/ns.hpp>
+#include <std/test.hpp>
 
 using namespace std;
 
@@ -68,7 +68,8 @@ TEST(vga_ipc_write_long) {
 
     const char* text = "This is a long string that exceeds 20 characters!";
     u32 len = 0;
-    while (text[len]) len++;
+    while (text[len])
+        len++;
 
     ipc::Message msg = {};
     msg.type = ipc::MessageType::VgaWrite;

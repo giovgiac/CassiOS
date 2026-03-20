@@ -7,8 +7,9 @@
  *
  */
 
-#include <terminal.hpp>
 #include <std/test.hpp>
+
+#include <terminal.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -96,7 +97,8 @@ TEST(vga_scroll) {
     t.putchar('\n');
 
     ASSERT_EQ(static_cast<u32>(test_buf[0] & 0x00FF), static_cast<u32>('Z'));
-    ASSERT_EQ(static_cast<u32>(test_buf[VGA_WIDTH * (VGA_HEIGHT - 1)] & 0x00FF), static_cast<u32>(' '));
+    ASSERT_EQ(static_cast<u32>(test_buf[VGA_WIDTH * (VGA_HEIGHT - 1)] & 0x00FF),
+              static_cast<u32>(' '));
     ASSERT_EQ(static_cast<u32>(t.getCursorY()), static_cast<u32>(VGA_HEIGHT - 1));
     ASSERT_EQ(static_cast<u32>(t.getCursorX()), 0u);
 }

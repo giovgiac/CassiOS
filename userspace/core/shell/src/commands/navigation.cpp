@@ -7,8 +7,9 @@
  *
  */
 
-#include <shell.hpp>
 #include <std/str.hpp>
+
+#include <shell.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -30,7 +31,7 @@ void Shell::cmdLs(const char** args, u8 argc) {
     }
 
     char name[32];
-    for (u32 i = 0; ; ++i) {
+    for (u32 i = 0;; ++i) {
         if (!vfs.list(path, i, name, sizeof(name))) {
             break;
         }

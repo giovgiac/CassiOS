@@ -7,8 +7,9 @@
  *
  */
 
-#include <shell.hpp>
 #include <std/str.hpp>
+
+#include <shell.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -102,7 +103,8 @@ void Shell::cmdCat(const char** args, u8 argc) {
     u32 offset = 0;
     while (true) {
         i32 n = vfs.read(handle, offset, buf, sizeof(buf));
-        if (n <= 0) break;
+        if (n <= 0)
+            break;
         for (i32 i = 0; i < n; ++i) {
             putchar(static_cast<char>(buf[i]));
         }

@@ -7,9 +7,9 @@
  *
  */
 
-#include <std/vga.hpp>
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
+#include <std/vga.hpp>
 
 using namespace std;
 
@@ -28,7 +28,8 @@ void vga::Vga::putchar(char c) {
 
 void vga::Vga::write(const char* str) {
     u32 len = 0;
-    while (str[len] != '\0') len++;
+    while (str[len] != '\0')
+        len++;
     write(str, len);
 }
 

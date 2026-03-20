@@ -10,9 +10,9 @@
 #ifndef CORE_SYSCALL_HPP_
 #define CORE_SYSCALL_HPP_
 
-#include <std/types.hpp>
-#include <std/os.hpp>
 #include <std/ipc.hpp>
+#include <std/os.hpp>
+#include <std/types.hpp>
 
 namespace cassio {
 namespace kernel {
@@ -63,9 +63,7 @@ public:
      * @brief Returns the singleton SyscallHandler instance.
      *
      */
-    inline static SyscallHandler& getSyscallHandler() {
-        return instance;
-    }
+    inline static SyscallHandler& getSyscallHandler() { return instance; }
 
     /**
      * @brief Registers the syscall gate at vector 0x80 with DPL=3.
@@ -133,8 +131,8 @@ public:
     SyscallHandler& operator=(SyscallHandler&&) = delete;
 };
 
-} // kernel
-} // cassio
+} // namespace kernel
+} // namespace cassio
 
 /**
  * @brief C-linkage syscall handler called from the assembly stub in syscall_stub.s.

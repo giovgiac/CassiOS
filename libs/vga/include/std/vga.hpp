@@ -50,7 +50,7 @@ private:
     u32 pid;
 };
 
-} // vga
-} // std
+} // namespace vga
+} // namespace std
 
 #endif // STD_VGA_HPP

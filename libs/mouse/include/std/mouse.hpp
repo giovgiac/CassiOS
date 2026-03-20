@@ -36,7 +36,7 @@ private:
     u32 pid;
 };
 
-} // mouse
-} // std
+} // namespace mouse
+} // namespace std
 
 #endif // STD_MOUSE_HPP

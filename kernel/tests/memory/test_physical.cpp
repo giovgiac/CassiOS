@@ -1,5 +1,6 @@
-#include <memory/physical.hpp>
 #include <std/test.hpp>
+
+#include <memory/physical.hpp>
 
 using namespace cassio;
 using namespace std;

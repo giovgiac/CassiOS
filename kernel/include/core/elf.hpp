@@ -16,7 +16,7 @@ namespace cassio {
 namespace kernel {
 
 struct __attribute__((packed)) Elf32Header {
-    std::u8  e_ident[16];
+    std::u8 e_ident[16];
     std::u16 e_type;
     std::u16 e_machine;
     std::u32 e_version;
@@ -44,8 +44,8 @@ struct __attribute__((packed)) Elf32ProgramHeader {
 };
 
 // ELF identification indices.
-static constexpr std::u32 EI_MAG0    = 0;
-static constexpr std::u32 EI_CLASS   = 4;
+static constexpr std::u32 EI_MAG0 = 0;
+static constexpr std::u32 EI_CLASS = 4;
 
 // ELF magic bytes.
 static constexpr std::u8 ELFMAG0 = 0x7F;
@@ -67,7 +67,7 @@ static constexpr std::u32 PT_LOAD = 1;
 
 struct ElfLoadResult {
     std::u32 entryPoint;
-    std::u32 heapStart;  // Page-aligned end of loaded segments (initial sbrk break).
+    std::u32 heapStart; // Page-aligned end of loaded segments (initial sbrk break).
     bool success;
 };
 
@@ -80,7 +80,7 @@ public:
     static ElfLoadResult load(std::u32 pdPhysical, const std::u8* elfData, std::u32 elfSize);
 };
 
-} // kernel
-} // cassio
+} // namespace kernel
+} // namespace cassio
 
 #endif // CORE_ELF_HPP_

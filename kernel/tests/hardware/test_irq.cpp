@@ -1,8 +1,9 @@
-#include <hardware/irq.hpp>
+#include <std/test.hpp>
+
 #include <core/process.hpp>
 #include <core/syscall.hpp>
+#include <hardware/irq.hpp>
 #include <hardware/pit.hpp>
-#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -67,16 +68,19 @@ TEST(irq_handleirq_returns_esp_when_no_handler) {
 
 TEST(irq_idt_entries_are_distinct) {
     // Each registered IRQ vector should have a unique handler address.
-    struct __attribute__((packed)) { u16 limit; u32 base; } idtr;
+    struct __attribute__((packed)) {
+        u16 limit;
+        u32 base;
+    } idtr;
     asm volatile("sidt %0" : "=m"(idtr));
 
-    u8 vectors[] = { 0x20, 0x21, 0x2C, 0x2E };
+    u8 vectors[] = {0x20, 0x21, 0x2C, 0x2E};
     u32 addrs[4];
 
     for (u32 i = 0; i < 4; ++i) {
         u8* entry = reinterpret_cast<u8*>(idtr.base) + vectors[i] * 8;
-        addrs[i] = static_cast<u32>(*reinterpret_cast<u16*>(entry + 6)) << 16
-                 | static_cast<u32>(*reinterpret_cast<u16*>(entry));
+        addrs[i] = static_cast<u32>(*reinterpret_cast<u16*>(entry + 6)) << 16 |
+                   static_cast<u32>(*reinterpret_cast<u16*>(entry));
         ASSERT(addrs[i] != 0);
     }
 
@@ -131,7 +135,7 @@ TEST(irq_forward_sets_pending_when_not_receive_blocked) {
 
     Process* target = pm.create(0x1000, 0x2000, 0x08, 0x10, 0);
     ASSERT(target != nullptr);
-    target->state = ProcessState::Ready;  // Not ReceiveBlocked.
+    target->state = ProcessState::Ready; // Not ReceiveBlocked.
 
     irqMgr.registerForward(5, target->pid);
 
@@ -216,12 +220,12 @@ TEST(irq_forward_irq_takes_priority_over_send_queue) {
 
     // Set up: sender in queue AND pending IRQ for receiver.
     sender->state = ProcessState::SendBlocked;
-    sender->msg = { 42, 1, 2, 3, 4, 5 };
+    sender->msg = {42, 1, 2, 3, 4, 5};
     receiver->sendQueuePush(sender->pid);
 
     irqMgr.registerForward(5, receiver->pid);
     receiver->state = ProcessState::Ready;
-    irqMgr.handleIrq(0x25, 0);  // Sets pending (receiver not ReceiveBlocked).
+    irqMgr.handleIrq(0x25, 0); // Sets pending (receiver not ReceiveBlocked).
 
     // receive() should deliver the IRQ first (highest priority).
     pm.setCurrent(receiver);

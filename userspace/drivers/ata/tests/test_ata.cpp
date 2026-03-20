@@ -7,8 +7,9 @@
  *
  */
 
-#include <std/test.hpp>
 #include <std/io.hpp>
+#include <std/test.hpp>
+
 #include <ata.hpp>
 
 using namespace cassio;

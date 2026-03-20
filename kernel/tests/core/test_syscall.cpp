@@ -1,6 +1,7 @@
+#include <std/test.hpp>
+
 #include <core/syscall.hpp>
 #include <hardware/pit.hpp>
-#include <std/test.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -37,7 +38,8 @@ TEST(syscall_sleep_returns_zero) {
 TEST(syscall_write_serial_returns_length) {
     const char* msg = "test";
     i32 result;
-    asm volatile("int $0x80" : "=a"(result)
+    asm volatile("int $0x80"
+                 : "=a"(result)
                  : "a"(os::syscall::Write), "b"(2u), "c"((u32)msg), "d"(4u));
     ASSERT_EQ(result, 4);
 }
@@ -45,7 +47,8 @@ TEST(syscall_write_serial_returns_length) {
 TEST(syscall_write_vga_removed) {
     const char* msg = "x";
     i32 result;
-    asm volatile("int $0x80" : "=a"(result)
+    asm volatile("int $0x80"
+                 : "=a"(result)
                  : "a"(os::syscall::Write), "b"(1u), "c"((u32)msg), "d"(1u));
     ASSERT_EQ(result, static_cast<i32>(-1));
 }
@@ -53,7 +56,8 @@ TEST(syscall_write_vga_removed) {
 TEST(syscall_write_invalid_fd) {
     const char* msg = "x";
     i32 result;
-    asm volatile("int $0x80" : "=a"(result)
+    asm volatile("int $0x80"
+                 : "=a"(result)
                  : "a"(os::syscall::Write), "b"(99u), "c"((u32)msg), "d"(1u));
     ASSERT_EQ(result, static_cast<i32>(-1));
 }

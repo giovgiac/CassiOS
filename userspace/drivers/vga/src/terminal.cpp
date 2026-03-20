@@ -14,11 +14,7 @@ using namespace std;
 using namespace std::io;
 
 VgaTerminal::VgaTerminal(u16* buffer)
-    : buffer(buffer),
-      x(0),
-      y(0),
-      color(0x0700),
-      crtc_index(PortType::VgaCrtcIndex),
+    : buffer(buffer), x(0), y(0), color(0x0700), crtc_index(PortType::VgaCrtcIndex),
       crtc_data(PortType::VgaCrtcData) {}
 
 void VgaTerminal::updateCursor() {

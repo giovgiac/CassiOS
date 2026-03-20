@@ -8,6 +8,7 @@
  */
 
 #include "core/elf.hpp"
+
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
 #include "memory/virtual.hpp"
@@ -27,10 +28,8 @@ ElfLoadResult ElfLoader::load(u32 pdPhysical, const u8* elfData, u32 elfSize) {
     const Elf32Header* header = (const Elf32Header*)elfData;
 
     // Validate magic.
-    if (header->e_ident[EI_MAG0] != ELFMAG0 ||
-        header->e_ident[1] != ELFMAG1 ||
-        header->e_ident[2] != ELFMAG2 ||
-        header->e_ident[3] != ELFMAG3) {
+    if (header->e_ident[EI_MAG0] != ELFMAG0 || header->e_ident[1] != ELFMAG1 ||
+        header->e_ident[2] != ELFMAG2 || header->e_ident[3] != ELFMAG3) {
         return result;
     }
 
@@ -68,10 +67,8 @@ ElfLoadResult ElfLoader::load(u32 pdPhysical, const u8* elfData, u32 elfSize) {
 
         // Validate p_offset and p_filesz to prevent u32 wrap-around
         // that could read kernel memory into a userspace page.
-        if (ph->p_offset > elfSize ||
-            ph->p_filesz > elfSize ||
-            ph->p_offset + ph->p_filesz < ph->p_offset ||
-            ph->p_offset + ph->p_filesz > elfSize) {
+        if (ph->p_offset > elfSize || ph->p_filesz > elfSize ||
+            ph->p_offset + ph->p_filesz < ph->p_offset || ph->p_offset + ph->p_filesz > elfSize) {
             return result;
         }
 

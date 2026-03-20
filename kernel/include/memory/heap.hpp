@@ -20,9 +20,7 @@ static constexpr std::u32 KERNEL_HEAP_SIZE = KERNEL_HEAP_FRAMES * 4096;
 
 class KernelHeap final {
 public:
-    inline static std::alloc::HeapAllocator& getAllocator() {
-        return *instance;
-    }
+    inline static std::alloc::HeapAllocator& getAllocator() { return *instance; }
 
     static void init();
 
@@ -32,7 +30,7 @@ private:
     static std::alloc::HeapAllocator* instance;
 };
 
-} // memory
-} // cassio
+} // namespace memory
+} // namespace cassio
 
 #endif // MEMORY_HEAP_HPP_
