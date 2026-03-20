@@ -19,6 +19,7 @@ VGA = bin/vga.elf
 VFS = bin/vfs.elf
 MOUSE = bin/mouse.elf
 ATA = bin/ata.elf
+DISPLAY = bin/display.elf
 USERSHELL = bin/shell.elf
 HELLO = disk/bin/hello.elf
 ISO = bin/cassio.iso
@@ -38,6 +39,7 @@ LIBSTD_ATA = lib/libstd_ata.a
 LIBSTD_KBD = lib/libstd_kbd.a
 LIBSTD_MOUSE = lib/libstd_mouse.a
 LIBSTD_GFX = lib/libstd_gfx.a
+LIBSTD_DISPLAY = lib/libstd_display.a
 
 
 # Discover all source files automatically.
@@ -118,6 +120,9 @@ $(LIBSTD_MOUSE): FORCE
 $(LIBSTD_GFX): FORCE
 	$(MAKE) -C libs/gfx
 
+$(LIBSTD_DISPLAY): FORCE
+	$(MAKE) -C libs/display
+
 FORCE:
 
 kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
@@ -141,6 +146,9 @@ $(MOUSE): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS
 
 $(ATA): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/drivers/ata
+
+$(DISPLAY): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_GFX)
+	$(MAKE) -C userspace/drivers/display
 
 $(USERSHELL): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_VGA) $(LIBSTD_VFS)
 	$(MAKE) -C userspace/core/shell
@@ -166,9 +174,9 @@ obj/userspace/usertest/%.o: userspace/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
 
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_MOUSE) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_ATA) $(LIBSTD_FMT) $(LIBSTD_TEST)
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_MOUSE) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_ATA) $(LIBSTD_DISPLAY) $(LIBSTD_GFX) $(LIBSTD_FMT) $(LIBSTD_TEST)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_MOUSE) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_DISPLAY) $(LIBSTD_GFX) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_MOUSE) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
 $(DISK): $(disk_files) $(HELLO)
@@ -204,7 +212,7 @@ test-kernel:
 	[ $$EXIT_CODE -eq 1 ]
 
 test-userspace:
-	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERTEST) \
+	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(DISPLAY) $(USERTEST) \
 	    > /tmp/cassio-build.log 2>&1 || (cat /tmp/cassio-build.log; exit 1); \
 	dd if=/dev/zero of=/tmp/cassio-usertest-disk.img bs=1M count=32 2>/dev/null; \
 	mkfs.fat -F 32 /tmp/cassio-usertest-disk.img >/dev/null 2>&1; \
@@ -219,7 +227,7 @@ test-userspace:
 	    done; \
 	fi; \
 	qemu-system-i386 -machine pc -kernel $(KERNEL) \
-	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(USERTEST)" \
+	    -initrd "$(NAMESERVER),$(KBD),$(VGA),$(VFS),$(MOUSE),$(ATA),$(DISPLAY),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -drive file=/tmp/cassio-usertest-disk.img,format=raw,if=ide \
@@ -229,11 +237,11 @@ test-userspace:
 	cat /tmp/cassio-usertest-results.txt; \
 	[ $$EXIT_CODE -eq 1 ]
 
-$(ISO): kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL)
+$(ISO): kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(DISPLAY) $(USERSHELL)
 	@rm -rf iso
 	@mkdir -p iso/boot/grub
 	@cp $(KERNEL) iso/boot/
-	@cp $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL) iso/boot/
+	@cp $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(DISPLAY) $(USERSHELL) iso/boot/
 	@echo 'set default=0' > iso/boot/grub/grub.cfg
 	@echo 'set timeout=0' >> iso/boot/grub/grub.cfg
 	@echo '' >> iso/boot/grub/grub.cfg
@@ -245,6 +253,7 @@ $(ISO): kernel $(NAMESERVER) $(KBD) $(VGA) $(VFS) $(MOUSE) $(ATA) $(USERSHELL)
 	@echo '	module /boot/vfs.elf' >> iso/boot/grub/grub.cfg
 	@echo '	module /boot/mouse.elf' >> iso/boot/grub/grub.cfg
 	@echo '	module /boot/ata.elf' >> iso/boot/grub/grub.cfg
+	@echo '	module /boot/display.elf' >> iso/boot/grub/grub.cfg
 	@echo '	module /boot/shell.elf' >> iso/boot/grub/grub.cfg
 	@echo '	boot' >> iso/boot/grub/grub.cfg
 	@echo '}' >> iso/boot/grub/grub.cfg
