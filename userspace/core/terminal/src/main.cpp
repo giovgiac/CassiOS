@@ -67,7 +67,6 @@ extern "C" void _start() {
             break;
 
         case ipc::MessageType::TerminalGetCursor:
-            // Read-only: no flush needed, just reply with cursor position.
             break;
 
         case ipc::MessageType::TerminalFlush:
@@ -80,13 +79,12 @@ extern "C" void _start() {
             break;
         }
 
+        // Blocking senders get a flush (shows all batched output)
+        // and a reply with the current cursor position.
         if (sender > 0) {
-            // Flush only if content was drawn (not for read-only getCursor).
-            if (msg.type != ipc::MessageType::TerminalGetCursor) {
-                terminal.drawCursor();
-                display.flush();
-                terminal.eraseCursor();
-            }
+            terminal.drawCursor();
+            display.flush();
+            terminal.eraseCursor();
 
             ipc::Message reply = {};
             reply.arg1 = terminal.getCursorX();
