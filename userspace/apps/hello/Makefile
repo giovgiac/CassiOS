@@ -15,7 +15,7 @@ LIBSTD_HEAP = $(ROOT)/lib/libstd_heap.a
 LIBSTD_OS = $(ROOT)/lib/libstd_os.a
 LIBSTD_IPC = $(ROOT)/lib/libstd_ipc.a
 LIBSTD_NS = $(ROOT)/lib/libstd_ns.a
-LIBSTD_TERMINAL = $(ROOT)/lib/libstd_vga.a
+LIBSTD_TERMINAL = $(ROOT)/lib/libstd_terminal.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
