@@ -1,19 +1,19 @@
 /**
- * main.cpp -- VGA terminal service entry point
+ * main.cpp -- Terminal service entry point
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
- * Userspace VGA text-mode terminal service. Registers as "vga" with
- * the nameserver and handles display requests via IPC. Maps VGA
- * memory (physical 0xB8000) into its own address space on startup.
+ * Userspace graphics terminal service. Registers as "terminal"
+ * with the nameserver and handles text output requests via IPC.
+ * Renders characters to the display service using std::gfx.
  *
  */
 
+#include <std/display.hpp>
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
-#include <std/os.hpp>
 #include <std/types.hpp>
 
 #include <terminal.hpp>
@@ -21,21 +21,20 @@
 using namespace cassio;
 using namespace std;
 
-static constexpr u32 VGA_PHYSICAL = 0xB8000;
-
 extern "C" void _start() {
-    ns::registerName("vga");
+    ns::registerName("terminal");
 
-    // Map VGA buffer into our address space.
-    os::mapDevice(VGA_PHYSICAL, VGA_PHYSICAL, 1);
+    display::Display display;
+    display::DisplayInfo info = display.getInfo();
 
-    VgaTerminal terminal(reinterpret_cast<u16*>(VGA_PHYSICAL));
-    terminal.clear();
+    Terminal terminal(display, info.width, info.height);
 
     const char* welcome = "Welcome to the Cassio Operating System!\n";
     for (u32 i = 0; welcome[i] != '\0'; ++i) {
         terminal.putchar(welcome[i]);
     }
+    terminal.drawCursor();
+    display.flush();
 
     while (true) {
         ipc::Message msg;
@@ -43,11 +42,11 @@ extern "C" void _start() {
         i32 sender = ipc::receive(&msg, dataBuf, sizeof(dataBuf));
 
         switch (msg.type) {
-        case ipc::MessageType::VgaPutchar:
+        case ipc::MessageType::TerminalPutchar:
             terminal.putchar(static_cast<char>(msg.arg1));
             break;
 
-        case ipc::MessageType::VgaWrite: {
+        case ipc::MessageType::TerminalWrite: {
             u32 len = msg.arg1;
             if (len > sizeof(dataBuf))
                 len = sizeof(dataBuf);
@@ -57,15 +56,21 @@ extern "C" void _start() {
             break;
         }
 
-        case ipc::MessageType::VgaClear:
+        case ipc::MessageType::TerminalClear:
             terminal.clear();
             break;
 
-        case ipc::MessageType::VgaSetCursor:
+        case ipc::MessageType::TerminalSetCursor:
             terminal.setCursor(static_cast<u8>(msg.arg1), static_cast<u8>(msg.arg2));
             break;
 
-        case ipc::MessageType::VgaGetCursor:
+        case ipc::MessageType::TerminalGetCursor:
+            break;
+
+        case ipc::MessageType::TerminalFlush:
+            terminal.drawCursor();
+            display.flush();
+            terminal.eraseCursor();
             break;
 
         default:

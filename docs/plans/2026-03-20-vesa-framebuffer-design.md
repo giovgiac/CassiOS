@@ -174,3 +174,15 @@ Display must start before terminal (terminal connects to display). Terminal must
 - **Back buffer allocation**: Via `sbrk` in the display service. No new memory syscalls needed.
 - **Framebuffer discovery**: `FramebufferInfo` syscall returns physical address and dimensions from multiboot info.
 - **No text-mode fallback**: QEMU and all modern VBE hardware support 1024x768x32bpp. No fallback path to VGA text mode.
+
+## Implementation Notes
+
+Key deviations from the design during implementation:
+
+- **PixelBuffer ring buffer scroll**: The design described PixelBuffer as stateless, but the implementation uses a ring buffer with a `scrollOffset` field for O(1) scrolling without copying pixel data.
+- **Framebuffer virtual address**: The display service maps the framebuffer at virtual address `0x10000000`. The design did not specify where in the address space to map it.
+- **Terminal character grid**: The terminal maintains a `cells` array (heap-allocated `char` grid) to track character content at each position. Used for cursor rendering (save/restore character under cursor). The design did not mention this data structure.
+- **Explicit terminal flush**: The shell calls `terminal.flush()` explicitly to trigger display updates. The design assumed flushing would happen implicitly on blocking sends.
+- **DisplayDrawChar command**: A `DisplayDrawChar` IPC command was added so the terminal can ask the display to render a glyph directly, avoiding the overhead of blitting an 8x16 pixel buffer per character. The design only had pixel-level commands.
+- **Optimized mem::copy/move/set**: `std::mem::copy`, `std::mem::move`, and `std::mem::set` were optimized with alignment-safe `u32`-width copies to improve framebuffer transfer performance.
+- **IPC message types renumbered**: Message types were renumbered contiguously to accommodate the new Display and Terminal types, rather than appending to the existing sparse numbering.

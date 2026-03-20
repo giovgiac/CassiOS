@@ -11,9 +11,9 @@
 #define USERSPACE_SHELL_SHELL_HPP_
 
 #include <std/kbd.hpp>
+#include <std/terminal.hpp>
 #include <std/types.hpp>
 #include <std/vfs.hpp>
-#include <std/vga.hpp>
 
 namespace cassio {
 
@@ -24,7 +24,7 @@ constexpr std::u32 SHELL_MAX_PATH = 64;
 class Shell {
 private:
     std::kbd::Kbd kbd;
-    std::vga::Vga vga;
+    std::terminal::Terminal terminal;
     std::vfs::Vfs vfs;
 
     char buffer[SHELL_MAX_INPUT + 1]; // +1 for null terminator in execute()
@@ -35,7 +35,7 @@ private:
 
     char cwd[SHELL_MAX_PATH];
 
-    // VGA helpers (use blocking send for ordering).
+    // Terminal helpers.
     void print(const char* str);
     void putchar(char ch);
 

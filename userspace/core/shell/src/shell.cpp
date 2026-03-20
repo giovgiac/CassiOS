@@ -27,39 +27,41 @@ Shell::Shell() : length(0), cursor(0), promptCol(0), promptRow(0) {
     }
 }
 
-// --- VGA helpers ---
+// --- Terminal helpers ---
 // Use fire-and-forget notify for output (no round-trip, fast).
 // Only printPrompt and redrawLine use blocking send (need cursor position
 // or ordering with setCursor).
 
 void Shell::print(const char* str) {
-    vga.write(str);
+    terminal.write(str);
 }
 
 void Shell::putchar(char ch) {
-    vga.putchar(ch);
+    terminal.putchar(ch);
 }
 
 // --- Prompt and line editing ---
 
 void Shell::printPrompt() {
     print("$ ");
-    vga.getCursor(promptCol, promptRow);
+    terminal.flush();
+    terminal.getCursor(promptCol, promptRow);
 }
 
 void Shell::redrawLine() {
-    vga.setCursor(promptCol, promptRow);
+    terminal.setCursor(promptCol, promptRow);
 
     // Write the entire buffer.
     if (length > 0) {
-        vga.write(buffer, length);
+        terminal.write(str::StringView(buffer, length));
     }
 
     // Clear any leftover character from a previous longer line.
     putchar(' ');
 
     // Position cursor at the editing point.
-    vga.setCursor(promptCol + cursor, promptRow);
+    terminal.setCursor(promptCol + cursor, promptRow);
+    terminal.flush();
 }
 
 void Shell::execute() {
@@ -152,10 +154,10 @@ void Shell::run() {
                 --length;
                 --cursor;
                 if (cursor == length) {
-                    // Deleting at end: backspace, clear, backspace.
                     putchar('\b');
                     putchar(' ');
                     putchar('\b');
+                    terminal.flush();
                 } else {
                     redrawLine();
                 }
@@ -175,14 +177,16 @@ void Shell::run() {
         case KeyCode::LeftArrow:
             if (cursor > 0) {
                 --cursor;
-                vga.setCursor(promptCol + cursor, promptRow);
+                terminal.setCursor(promptCol + cursor, promptRow);
+                terminal.flush();
             }
             continue;
 
         case KeyCode::RightArrow:
             if (cursor < length) {
                 ++cursor;
-                vga.setCursor(promptCol + cursor, promptRow);
+                terminal.setCursor(promptCol + cursor, promptRow);
+                terminal.flush();
             }
             continue;
 
@@ -198,8 +202,8 @@ void Shell::run() {
             ++length;
             ++cursor;
             if (cursor == length) {
-                // Appended at end: just print the one character.
                 putchar(static_cast<char>(key));
+                terminal.flush();
             } else {
                 redrawLine();
             }

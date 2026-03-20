@@ -52,6 +52,17 @@ void display::Display::blit(u32 x, u32 y, u32 w, u32 h, const u32* pixels) {
     ipc::send(pid, &msg, pixels, w * h * sizeof(u32));
 }
 
+void display::Display::drawChar(u32 x, u32 y, char ch, gfx::Color fg, gfx::Color bg) {
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::DisplayDrawChar;
+    msg.arg1 = x;
+    msg.arg2 = y;
+    msg.arg3 = static_cast<u32>(static_cast<u8>(ch));
+    msg.arg4 = fg;
+    msg.arg5 = bg;
+    ipc::notify(pid, &msg);
+}
+
 void display::Display::scroll(u32 pixels, gfx::Color color) {
     ipc::Message msg = {};
     msg.type = ipc::MessageType::DisplayScroll;

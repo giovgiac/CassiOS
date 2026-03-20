@@ -1,5 +1,5 @@
 /**
- * main.cpp -- Hello world user program
+ * test_terminal.cpp -- Terminal client library tests
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -7,13 +7,11 @@
  *
  */
 
-#include <std/os.hpp>
 #include <std/terminal.hpp>
+#include <std/test.hpp>
 
 using namespace std;
 
-extern "C" void _start() {
-    terminal::Terminal term;
-    term.write("Hello, World!\n");
-    os::exit(0);
+TEST(terminal_client_size) {
+    ASSERT_EQ(sizeof(terminal::Terminal), (usize)4);
 }

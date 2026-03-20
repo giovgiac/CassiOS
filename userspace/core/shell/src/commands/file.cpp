@@ -99,15 +99,13 @@ void Shell::cmdCat(const char** args, u8 argc) {
         return;
     }
 
-    u8 buf[256];
+    char buf[256];
     u32 offset = 0;
     while (true) {
-        i32 n = vfs.read(handle, offset, buf, sizeof(buf));
+        i32 n = vfs.read(handle, offset, reinterpret_cast<u8*>(buf), sizeof(buf));
         if (n <= 0)
             break;
-        for (i32 i = 0; i < n; ++i) {
-            putchar(static_cast<char>(buf[i]));
-        }
+        terminal.write(str::StringView(buf, static_cast<usize>(n)));
         offset += static_cast<u32>(n);
     }
     putchar('\n');

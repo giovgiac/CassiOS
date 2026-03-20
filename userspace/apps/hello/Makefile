@@ -15,13 +15,13 @@ LIBSTD_HEAP = $(ROOT)/lib/libstd_heap.a
 LIBSTD_OS = $(ROOT)/lib/libstd_os.a
 LIBSTD_IPC = $(ROOT)/lib/libstd_ipc.a
 LIBSTD_NS = $(ROOT)/lib/libstd_ns.a
-LIBSTD_VGA = $(ROOT)/lib/libstd_vga.a
+LIBSTD_TERMINAL = $(ROOT)/lib/libstd_terminal.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_VGA)
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_TERMINAL)
 	@mkdir -p $(DISKDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_VGA) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_TERMINAL) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)

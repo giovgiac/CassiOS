@@ -11,11 +11,10 @@ TEST(ipc_message_type_constants) {
     ASSERT_EQ(ipc::MessageType::IrqNotify, (u32)1);
     ASSERT_EQ(ipc::MessageType::NsRegister, (u32)2);
     ASSERT_EQ(ipc::MessageType::KbdRead, (u32)4);
-    ASSERT_EQ(ipc::MessageType::VgaPutchar, (u32)5);
-    ASSERT_EQ(ipc::MessageType::VfsMkdir, (u32)10);
-    ASSERT_EQ(ipc::MessageType::MouseRead, (u32)17);
-    ASSERT_EQ(ipc::MessageType::AtaRead, (u32)18);
-    ASSERT_EQ(ipc::MessageType::NsListAll, (u32)20);
+    ASSERT_EQ(ipc::MessageType::VfsMkdir, (u32)5);
+    ASSERT_EQ(ipc::MessageType::MouseRead, (u32)12);
+    ASSERT_EQ(ipc::MessageType::AtaRead, (u32)13);
+    ASSERT_EQ(ipc::MessageType::NsListAll, (u32)15);
 }
 
 TEST(ipc_message_fields_zero_initialized) {

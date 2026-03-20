@@ -21,10 +21,10 @@
                 "${workspaceFolder}/libs/os/include",
                 "${workspaceFolder}/libs/ptr/include",
                 "${workspaceFolder}/libs/str/include",
+                "${workspaceFolder}/libs/terminal/include",
                 "${workspaceFolder}/libs/test/include",
                 "${workspaceFolder}/libs/types/include",
                 "${workspaceFolder}/libs/vfs/include",
-                "${workspaceFolder}/libs/vga/include",
                 "${workspaceFolder}/userspace/**/include"
             ],
             "defines": [],

@@ -19,7 +19,7 @@ static constexpr u32 W = 16;
 static constexpr u32 H = 8;
 static constexpr u32 PITCH = W * sizeof(u32);
 
-TEST(display_fill_rect) {
+TEST(display_fill_rect_and_flush) {
     u32 fb[W * H];
     u32 back[W * H];
     mem::set(fb, 0, sizeof(fb));
@@ -27,25 +27,11 @@ TEST(display_fill_rect) {
     Display display(fb, back, W, H, PITCH);
 
     display.fillRect(1, 1, 3, 2, 0xAA);
-
-    // Back buffer should have the fill, framebuffer should not (no flush).
-    ASSERT_EQ(back[1 * W + 1], 0xAAu);
-    ASSERT_EQ(back[2 * W + 3], 0xAAu);
-    ASSERT_EQ(fb[1 * W + 1], 0u);
-}
-
-TEST(display_flush_copies_to_framebuffer) {
-    u32 fb[W * H];
-    u32 back[W * H];
-    mem::set(fb, 0, sizeof(fb));
-    mem::set(back, 0, sizeof(back));
-    Display display(fb, back, W, H, PITCH);
-
-    display.fillRect(0, 0, W, H, 0xBB);
     display.flush();
 
-    ASSERT_EQ(fb[0], 0xBBu);
-    ASSERT_EQ(fb[W * H - 1], 0xBBu);
+    ASSERT_EQ(fb[1 * W + 1], 0xAAu);
+    ASSERT_EQ(fb[2 * W + 3], 0xAAu);
+    ASSERT_EQ(fb[0 * W + 0], 0u);
 }
 
 TEST(display_draw_rect) {
@@ -56,35 +42,70 @@ TEST(display_draw_rect) {
     Display display(fb, back, W, H, PITCH);
 
     display.drawRect(0, 0, 4, 3, 0xCC);
+    display.flush();
 
-    // Outline pixels.
-    ASSERT_EQ(back[0 * W + 0], 0xCCu);
-    ASSERT_EQ(back[0 * W + 3], 0xCCu);
-    ASSERT_EQ(back[2 * W + 0], 0xCCu);
-
-    // Interior.
-    ASSERT_EQ(back[1 * W + 1], 0u);
+    ASSERT_EQ(fb[0 * W + 0], 0xCCu);
+    ASSERT_EQ(fb[0 * W + 3], 0xCCu);
+    ASSERT_EQ(fb[2 * W + 0], 0xCCu);
+    ASSERT_EQ(fb[1 * W + 1], 0u);
 }
 
-TEST(display_scroll) {
+TEST(display_scroll_shifts_content) {
     u32 fb[W * H];
     u32 back[W * H];
     mem::set(fb, 0, sizeof(fb));
     mem::set(back, 0, sizeof(back));
     Display display(fb, back, W, H, PITCH);
 
-    // Fill row 2 with marker.
-    for (u32 x = 0; x < W; ++x) {
-        back[2 * W + x] = 0xDD;
-    }
+    // Draw a marker at row 2.
+    display.fillRect(0, 2, W, 1, 0xDD);
 
+    // Scroll up by 1 row.
     display.scroll(1, 0x00);
+    display.flush();
 
-    // Row 2 should now be in row 1.
-    ASSERT_EQ(back[1 * W + 0], 0xDDu);
+    // Row 2 should now appear at row 1 in the framebuffer.
+    ASSERT_EQ(fb[1 * W + 0], 0xDDu);
 
-    // Bottom row should be fill color.
-    ASSERT_EQ(back[(H - 1) * W + 0], 0u);
+    // Bottom row should be the fill color.
+    ASSERT_EQ(fb[(H - 1) * W + 0], 0u);
+}
+
+TEST(display_scroll_clears_bottom) {
+    u32 fb[W * H];
+    u32 back[W * H];
+    mem::set(fb, 0, sizeof(fb));
+    mem::set(back, 0, sizeof(back));
+    Display display(fb, back, W, H, PITCH);
+
+    // Fill entire screen.
+    display.fillRect(0, 0, W, H, 0xFF);
+    display.scroll(2, 0xAA);
+    display.flush();
+
+    // Bottom 2 rows should be fill color.
+    ASSERT_EQ(fb[(H - 2) * W + 0], 0xAAu);
+    ASSERT_EQ(fb[(H - 1) * W + 0], 0xAAu);
+
+    // Top rows should have shifted content.
+    ASSERT_EQ(fb[0 * W + 0], 0xFFu);
+}
+
+TEST(display_draw_after_scroll) {
+    u32 fb[W * H];
+    u32 back[W * H];
+    mem::set(fb, 0, sizeof(fb));
+    mem::set(back, 0, sizeof(back));
+    Display display(fb, back, W, H, PITCH);
+
+    display.scroll(2, 0x00);
+    display.fillRect(0, H - 1, W, 1, 0xEE);
+    display.flush();
+
+    // The draw at the bottom row should appear correctly.
+    ASSERT_EQ(fb[(H - 1) * W + 0], 0xEEu);
+    // Top should be empty (scrolled up from empty buffer).
+    ASSERT_EQ(fb[0 * W + 0], 0u);
 }
 
 TEST(display_blit) {
@@ -96,11 +117,12 @@ TEST(display_blit) {
 
     u32 pixels[2 * 2] = {0x11, 0x22, 0x33, 0x44};
     display.blit(1, 1, 2, 2, pixels);
+    display.flush();
 
-    ASSERT_EQ(back[1 * W + 1], 0x11u);
-    ASSERT_EQ(back[1 * W + 2], 0x22u);
-    ASSERT_EQ(back[2 * W + 1], 0x33u);
-    ASSERT_EQ(back[2 * W + 2], 0x44u);
+    ASSERT_EQ(fb[1 * W + 1], 0x11u);
+    ASSERT_EQ(fb[1 * W + 2], 0x22u);
+    ASSERT_EQ(fb[2 * W + 1], 0x33u);
+    ASSERT_EQ(fb[2 * W + 2], 0x44u);
 }
 
 TEST(display_getters) {

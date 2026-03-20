@@ -34,6 +34,7 @@ public:
     void fillRect(u32 x, u32 y, u32 w, u32 h, gfx::Color color);
     void drawRect(u32 x, u32 y, u32 w, u32 h, gfx::Color color);
     void blit(u32 x, u32 y, u32 w, u32 h, const u32* pixels);
+    void drawChar(u32 x, u32 y, char ch, gfx::Color fg, gfx::Color bg);
     void scroll(u32 pixels, gfx::Color color);
     void flush();
     DisplayInfo getInfo();
