@@ -40,40 +40,40 @@ constexpr u32 NsLookup = 3;
 constexpr u32 KbdRead = 4;
 
 // VFS.
-constexpr u32 VfsMkdir = 10;
-constexpr u32 VfsRemove = 11;
-constexpr u32 VfsOpen = 12;
-constexpr u32 VfsRead = 13;
-constexpr u32 VfsWrite = 14;
-constexpr u32 VfsList = 15;
-constexpr u32 VfsStat = 16;
+constexpr u32 VfsMkdir = 5;
+constexpr u32 VfsRemove = 6;
+constexpr u32 VfsOpen = 7;
+constexpr u32 VfsRead = 8;
+constexpr u32 VfsWrite = 9;
+constexpr u32 VfsList = 10;
+constexpr u32 VfsStat = 11;
 
 // Mouse.
-constexpr u32 MouseRead = 17;
+constexpr u32 MouseRead = 12;
 
 // ATA.
-constexpr u32 AtaRead = 18;
-constexpr u32 AtaWrite = 19;
+constexpr u32 AtaRead = 13;
+constexpr u32 AtaWrite = 14;
 
 // Nameserver (extended).
-constexpr u32 NsListAll = 20;
+constexpr u32 NsListAll = 15;
 
 // Display.
-constexpr u32 DisplayFillRect = 21;
-constexpr u32 DisplayDrawRect = 22;
-constexpr u32 DisplayBlit = 23;
-constexpr u32 DisplayScroll = 24;
-constexpr u32 DisplayFlush = 25;
-constexpr u32 DisplayGetInfo = 26;
-constexpr u32 DisplayDrawChar = 27;
+constexpr u32 DisplayFillRect = 16;
+constexpr u32 DisplayDrawRect = 17;
+constexpr u32 DisplayBlit = 18;
+constexpr u32 DisplayScroll = 19;
+constexpr u32 DisplayFlush = 20;
+constexpr u32 DisplayGetInfo = 21;
+constexpr u32 DisplayDrawChar = 22;
 
 // Terminal.
-constexpr u32 TerminalPutchar = 28;
-constexpr u32 TerminalWrite = 29;
-constexpr u32 TerminalClear = 30;
-constexpr u32 TerminalSetCursor = 31;
-constexpr u32 TerminalGetCursor = 32;
-constexpr u32 TerminalFlush = 33;
+constexpr u32 TerminalPutchar = 23;
+constexpr u32 TerminalWrite = 24;
+constexpr u32 TerminalClear = 25;
+constexpr u32 TerminalSetCursor = 26;
+constexpr u32 TerminalGetCursor = 27;
+constexpr u32 TerminalFlush = 28;
 } // namespace MessageType
 
 /**

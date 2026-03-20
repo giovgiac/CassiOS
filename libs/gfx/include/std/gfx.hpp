@@ -42,12 +42,17 @@ public:
     u32 getHeight() const;
     u32 getPitch() const;
     u32* getData() const;
+    u32 getScrollOffset() const;
 
 private:
     u32* data;
     u32 width;
     u32 height;
-    u32 pitch; ///< Bytes per scanline.
+    u32 pitch;        ///< Bytes per scanline.
+    u32 scrollOffset; ///< Ring buffer offset in rows.
+
+    /// Translate a logical Y coordinate to the wrapped buffer Y.
+    u32 wrap(u32 y) const;
 
     u32* pixelAt(u32 x, u32 y);
     const u32* pixelAt(u32 x, u32 y) const;

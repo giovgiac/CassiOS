@@ -15,7 +15,7 @@ using namespace std;
 using namespace std::gfx;
 
 TEST(gfx_pixel_buffer_size) {
-    ASSERT_EQ(sizeof(PixelBuffer), (usize)16);
+    ASSERT_EQ(sizeof(PixelBuffer), (usize)20);
 }
 
 TEST(gfx_draw_pixel) {
@@ -152,23 +152,66 @@ TEST(gfx_draw_text) {
     }
 }
 
-TEST(gfx_scroll_shifts_up) {
+TEST(gfx_scroll_advances_offset) {
     u32 data[4 * 4];
     mem::set(data, 0, sizeof(data));
     PixelBuffer buf(data, 4, 4, 4 * sizeof(u32));
 
-    for (u32 x = 0; x < 4; ++x) {
-        data[2 * 4 + x] = 0xDD;
-    }
+    ASSERT_EQ(buf.getScrollOffset(), 0u);
+    buf.scroll(1, 0x00);
+    ASSERT_EQ(buf.getScrollOffset(), 1u);
+    buf.scroll(2, 0x00);
+    ASSERT_EQ(buf.getScrollOffset(), 3u);
+}
 
+TEST(gfx_scroll_draw_at_new_bottom) {
+    u32 data[4 * 4];
+    mem::set(data, 0, sizeof(data));
+    PixelBuffer buf(data, 4, 4, 4 * sizeof(u32));
+
+    // Draw a marker at row 2.
+    buf.fillRect(0, 2, 4, 1, 0xDD);
+
+    // Scroll up by 1 -- marker should now be at logical row 1.
     buf.scroll(1, 0x00);
 
-    for (u32 x = 0; x < 4; ++x) {
-        ASSERT_EQ(data[1 * 4 + x], 0xDDu);
+    // Draw at the new bottom row (row 3).
+    buf.drawPixel(0, 3, 0xEE);
+
+    // Verify logical row 1 still has the marker.
+    // Row 1 wraps to physical row (1+1)%4 = 2, which has the 0xDD data.
+    u32 physRow = (1 + buf.getScrollOffset()) % 4;
+    ASSERT_EQ(data[physRow * 4 + 0], 0xDDu);
+
+    // Verify the new bottom row has our pixel.
+    u32 physBottom = (3 + buf.getScrollOffset()) % 4;
+    ASSERT_EQ(data[physBottom * 4 + 0], 0xEEu);
+}
+
+TEST(gfx_scroll_clears_new_rows) {
+    u32 data[4 * 4];
+    PixelBuffer buf(data, 4, 4, 4 * sizeof(u32));
+
+    // Fill everything with 0xFF.
+    buf.fillRect(0, 0, 4, 4, 0xFF);
+
+    // Scroll by 2 -- bottom 2 rows should be cleared.
+    buf.scroll(2, 0xAA);
+
+    // Read the bottom 2 logical rows via physical mapping.
+    for (u32 row = 2; row < 4; ++row) {
+        u32 physRow = (row + buf.getScrollOffset()) % 4;
+        for (u32 x = 0; x < 4; ++x) {
+            ASSERT_EQ(data[physRow * 4 + x], 0xAAu);
+        }
     }
 
-    for (u32 x = 0; x < 4; ++x) {
-        ASSERT_EQ(data[3 * 4 + x], 0u);
+    // Top 2 rows should retain original data.
+    for (u32 row = 0; row < 2; ++row) {
+        u32 physRow = (row + buf.getScrollOffset()) % 4;
+        for (u32 x = 0; x < 4; ++x) {
+            ASSERT_EQ(data[physRow * 4 + x], 0xFFu);
+        }
     }
 }
 
@@ -185,6 +228,26 @@ TEST(gfx_scroll_full_height_clears) {
     for (u32 i = 0; i < 16; ++i) {
         ASSERT_EQ(data[i], 0xAAu);
     }
+    // Full scroll resets offset.
+    ASSERT_EQ(buf.getScrollOffset(), 0u);
+}
+
+TEST(gfx_scroll_wraps_around) {
+    u32 data[4 * 4];
+    mem::set(data, 0, sizeof(data));
+    PixelBuffer buf(data, 4, 4, 4 * sizeof(u32));
+
+    // Scroll 3 times by 2 rows (total 6 in a height-4 buffer).
+    buf.scroll(2, 0x00);
+    buf.scroll(2, 0x00);
+    buf.scroll(2, 0x00);
+
+    // Offset should wrap: (2+2+2) % 4 = 2.
+    ASSERT_EQ(buf.getScrollOffset(), 2u);
+
+    // Drawing at logical (0,0) should hit physical row 2.
+    buf.drawPixel(0, 0, 0x77);
+    ASSERT_EQ(data[2 * 4 + 0], 0x77u);
 }
 
 TEST(gfx_blit_copies_region) {
@@ -239,4 +302,5 @@ TEST(gfx_getters) {
     ASSERT_EQ(buf.getHeight(), 4u);
     ASSERT_EQ(buf.getPitch(), 32u);
     ASSERT(buf.getData() == data);
+    ASSERT_EQ(buf.getScrollOffset(), 0u);
 }

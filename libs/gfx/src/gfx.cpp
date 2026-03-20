@@ -8,27 +8,40 @@
  */
 
 #include <std/gfx.hpp>
-
 #include <std/mem.hpp>
 
 using namespace std;
 using namespace std::gfx;
 
 PixelBuffer::PixelBuffer(u32* data, u32 width, u32 height, u32 pitch)
-    : data(data), width(width), height(height), pitch(pitch) {}
+    : data(data), width(width), height(height), pitch(pitch), scrollOffset(0) {}
+
+u32 PixelBuffer::wrap(u32 y) const {
+    return height > 0 ? (y + scrollOffset) % height : 0;
+}
 
 u32* PixelBuffer::pixelAt(u32 x, u32 y) {
-    return reinterpret_cast<u32*>(reinterpret_cast<u8*>(data) + y * pitch) + x;
+    u32 wy = wrap(y);
+    return reinterpret_cast<u32*>(reinterpret_cast<u8*>(data) + wy * pitch) + x;
 }
 
 const u32* PixelBuffer::pixelAt(u32 x, u32 y) const {
-    return reinterpret_cast<const u32*>(reinterpret_cast<const u8*>(data) + y * pitch) + x;
+    u32 wy = wrap(y);
+    return reinterpret_cast<const u32*>(reinterpret_cast<const u8*>(data) + wy * pitch) + x;
 }
 
-u32 PixelBuffer::getWidth() const { return width; }
-u32 PixelBuffer::getHeight() const { return height; }
-u32 PixelBuffer::getPitch() const { return pitch; }
-u32* PixelBuffer::getData() const { return data; }
+u32 PixelBuffer::getWidth() const {
+    return width;
+}
+u32 PixelBuffer::getHeight() const {
+    return height;
+}
+u32 PixelBuffer::getPitch() const {
+    return pitch;
+}
+u32* PixelBuffer::getData() const {
+    return data;
+}
 
 void PixelBuffer::drawPixel(u32 x, u32 y, Color color) {
     if (x < width && y < height) {
@@ -93,22 +106,38 @@ void PixelBuffer::drawText(u32 x, u32 y, str::StringView text, Color fg, Color b
     }
 }
 
+u32 PixelBuffer::getScrollOffset() const {
+    return scrollOffset;
+}
+
 void PixelBuffer::scroll(u32 pixels, Color color) {
-    if (pixels == 0) {
+    if (pixels == 0 || height == 0) {
         return;
     }
     if (pixels >= height) {
-        fillRect(0, 0, width, height, color);
+        scrollOffset = 0;
+        // Fill the entire buffer directly (no wrapping needed after reset).
+        for (u32 row = 0; row < height; ++row) {
+            u32* dst = reinterpret_cast<u32*>(reinterpret_cast<u8*>(data) + row * pitch);
+            for (u32 col = 0; col < width; ++col) {
+                dst[col] = color;
+            }
+        }
         return;
     }
 
-    for (u32 row = 0; row < height - pixels; ++row) {
-        u8* dst = reinterpret_cast<u8*>(data) + row * pitch;
-        const u8* src = reinterpret_cast<const u8*>(data) + (row + pixels) * pitch;
-        mem::copy(dst, src, width * sizeof(u32));
+    // Clear the rows about to become the new bottom.
+    // These are at the current scrollOffset (old top of ring).
+    for (u32 row = 0; row < pixels; ++row) {
+        u32 clearRow = (scrollOffset + row) % height;
+        u32* dst = reinterpret_cast<u32*>(reinterpret_cast<u8*>(data) + clearRow * pitch);
+        for (u32 col = 0; col < width; ++col) {
+            dst[col] = color;
+        }
     }
 
-    fillRect(0, height - pixels, width, pixels, color);
+    // Advance offset -- O(1), no data movement.
+    scrollOffset = (scrollOffset + pixels) % height;
 }
 
 void PixelBuffer::blit(u32 dx, u32 dy, const PixelBuffer& src, u32 sx, u32 sy, u32 w, u32 h) {

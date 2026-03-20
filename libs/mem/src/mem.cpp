@@ -12,15 +12,26 @@
 using namespace std;
 
 void* mem::copy(void* dst, const void* src, usize n) {
-    // Copy 4 bytes at a time, then handle remainder.
-    u32* d32 = static_cast<u32*>(dst);
-    const u32* s32 = static_cast<const u32*>(src);
+    u8* d = static_cast<u8*>(dst);
+    const u8* s = static_cast<const u8*>(src);
+
+    // Align dst to a 4-byte boundary.
+    while (n > 0 && (reinterpret_cast<usize>(d) & 3) != 0) {
+        *d++ = *s++;
+        n--;
+    }
+
+    // Copy 4 bytes at a time.
+    u32* d32 = reinterpret_cast<u32*>(d);
+    const u32* s32 = reinterpret_cast<const u32*>(s);
     usize words = n / 4;
     for (usize i = 0; i < words; i++) {
         d32[i] = s32[i];
     }
-    u8* d = reinterpret_cast<u8*>(d32 + words);
-    const u8* s = reinterpret_cast<const u8*>(s32 + words);
+
+    // Copy remaining bytes.
+    d = reinterpret_cast<u8*>(d32 + words);
+    s = reinterpret_cast<const u8*>(s32 + words);
     for (usize i = 0; i < n % 4; i++) {
         d[i] = s[i];
     }
@@ -33,8 +44,27 @@ void* mem::move(void* dst, const void* src, usize n) {
     if (d < s) {
         mem::copy(dst, src, n);
     } else if (d > s) {
-        for (usize i = n; i > 0; i--) {
-            d[i - 1] = s[i - 1];
+        // Copy backwards. Align the END of dst to a 4-byte boundary.
+        u8* de = d + n;
+        const u8* se = s + n;
+        while (n > 0 && (reinterpret_cast<usize>(de) & 3) != 0) {
+            *--de = *--se;
+            n--;
+        }
+
+        // Copy 4 bytes at a time backwards.
+        usize words = n / 4;
+        u32* d32 = reinterpret_cast<u32*>(de) - words;
+        const u32* s32 = reinterpret_cast<const u32*>(se) - words;
+        for (usize i = 0; i < words; i++) {
+            d32[i] = s32[i];
+        }
+
+        // Copy remaining leading bytes.
+        de = reinterpret_cast<u8*>(d32);
+        se = reinterpret_cast<const u8*>(s32);
+        for (usize i = n % 4; i > 0; i--) {
+            *--de = *--se;
         }
     }
     return dst;
@@ -42,14 +72,25 @@ void* mem::move(void* dst, const void* src, usize n) {
 
 void* mem::set(void* dst, int val, usize n) {
     u8 v = static_cast<u8>(val);
+    u8* d = static_cast<u8*>(dst);
+
+    // Align dst to a 4-byte boundary.
+    while (n > 0 && (reinterpret_cast<usize>(d) & 3) != 0) {
+        *d++ = v;
+        n--;
+    }
+
+    // Set 4 bytes at a time.
     u32 v32 = static_cast<u32>(v) | (static_cast<u32>(v) << 8) | (static_cast<u32>(v) << 16) |
               (static_cast<u32>(v) << 24);
-    u32* d32 = static_cast<u32*>(dst);
+    u32* d32 = reinterpret_cast<u32*>(d);
     usize words = n / 4;
     for (usize i = 0; i < words; i++) {
         d32[i] = v32;
     }
-    u8* d = reinterpret_cast<u8*>(d32 + words);
+
+    // Set remaining bytes.
+    d = reinterpret_cast<u8*>(d32 + words);
     for (usize i = 0; i < n % 4; i++) {
         d[i] = v;
     }

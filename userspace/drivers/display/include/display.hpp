@@ -42,18 +42,8 @@ public:
 
 private:
     std::u32* framebuffer;
-    std::u32* backData;
-    std::u32 width;
-    std::u32 pitch;
-    std::u32 height;
-    std::u32 scrollOffset; ///< Ring buffer offset in pixels (rows).
+    std::gfx::PixelBuffer backBuf;
     bool dirty;
-
-    /// Translate a screen Y coordinate to the wrapped back buffer Y.
-    std::u32 wrap(std::u32 y) const;
-
-    /// Get a pointer to pixel (x, wrappedY) in the back buffer.
-    std::u32* pixelAt(std::u32 x, std::u32 wrappedY);
 };
 
 } // namespace cassio
