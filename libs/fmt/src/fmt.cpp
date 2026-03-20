@@ -115,11 +115,11 @@ static Spec parseSpec(const char* fmt, usize& i) {
     return s;
 }
 
-// -- Padded numeric output --
+// -- Padded output --
 
-static usize putPadded(char* buf, usize size, usize pos, const char* tmp, usize len,
+static usize putPadded(char* buf, usize size, usize pos, const char* data, usize len,
                        const Spec& s, char sign = 0) {
-    char padChar = s.zeroPad ? '0' : ' ';
+    char padChar = (s.zeroPad && !s.leftAlign) ? '0' : ' ';
     usize total = len + (sign ? 1 : 0);
     u32 padding = (s.width > total) ? s.width - total : 0;
 
@@ -136,7 +136,7 @@ static usize putPadded(char* buf, usize size, usize pos, const char* tmp, usize 
     }
 
     for (usize j = 0; j < len; ++j) {
-        pos = put(buf, size, pos, tmp[j]);
+        pos = put(buf, size, pos, data[j]);
     }
 
     if (s.leftAlign) {
@@ -176,19 +176,15 @@ static usize fmtStr(char* buf, usize size, usize pos, const char* value, const S
     while (value[len] != '\0') {
         ++len;
     }
+    return putPadded(buf, size, pos, value, len, s);
+}
 
-    u32 padding = (s.width > len) ? s.width - len : 0;
-
-    if (!s.leftAlign) {
-        pos = putPad(buf, size, pos, ' ', padding);
+static usize fmtSView(char* buf, usize size, usize pos, const char* data, usize len,
+                       const Spec& s) {
+    if (data == nullptr) {
+        return fmtStr(buf, size, pos, nullptr, s);
     }
-    for (usize j = 0; j < len; ++j) {
-        pos = put(buf, size, pos, value[j]);
-    }
-    if (s.leftAlign) {
-        pos = putPad(buf, size, pos, ' ', padding);
-    }
-    return pos;
+    return putPadded(buf, size, pos, data, len, s);
 }
 
 // -- Type dispatch --
@@ -203,6 +199,8 @@ static usize formatArg(char* buf, usize size, usize pos, const fmt::Arg& arg, co
         return fmtStr(buf, size, pos, arg.asStr, s);
     case fmt::Arg::Char:
         return put(buf, size, pos, arg.asChar);
+    case fmt::Arg::SView:
+        return fmtSView(buf, size, pos, arg.asSView.ptr, arg.asSView.len, s);
     }
     return pos;
 }
@@ -212,16 +210,17 @@ static usize formatArg(char* buf, usize size, usize pos, const fmt::Arg& arg, co
 usize fmt::formatImpl(char* buf, usize size, const char* fmt, const Arg* args, usize argCount) {
     usize pos = 0;
     usize argIdx = 0;
+    usize i = 0;
 
-    for (usize i = 0; fmt[i] != '\0'; ++i) {
+    while (fmt[i] != '\0') {
         if (fmt[i] == '{' && fmt[i + 1] == '{') {
             pos = put(buf, size, pos, '{');
-            ++i;
+            i += 2;
             continue;
         }
         if (fmt[i] == '}' && fmt[i + 1] == '}') {
             pos = put(buf, size, pos, '}');
-            ++i;
+            i += 2;
             continue;
         }
 
@@ -230,11 +229,12 @@ usize fmt::formatImpl(char* buf, usize size, const char* fmt, const Arg* args, u
             Spec s = parseSpec(fmt, i);
             pos = formatArg(buf, size, pos, args[argIdx], s);
             ++argIdx;
-            --i; // the for loop will increment
+            // parseSpec already advanced i past '}'
             continue;
         }
 
         pos = put(buf, size, pos, fmt[i]);
+        ++i;
     }
 
     if (pos < size) {

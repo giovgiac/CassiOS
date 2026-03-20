@@ -25,7 +25,7 @@ namespace fmt {
  *
  */
 struct Arg {
-    enum Type : u8 { I32, U32, Str, Char };
+    enum Type : u8 { I32, U32, Str, Char, SView };
 
     Type type;
     union {
@@ -33,13 +33,20 @@ struct Arg {
         u32 asU32;
         const char* asStr;
         char asChar;
+        struct {
+            const char* ptr;
+            usize len;
+        } asSView;
     };
 
     Arg(i32 v) : type(I32), asI32(v) {}
     Arg(u32 v) : type(U32), asU32(v) {}
     Arg(const char* v) : type(Str), asStr(v) {}
     Arg(char v) : type(Char), asChar(v) {}
-    Arg(const str::StringView& v) : type(Str), asStr(v.data()) {}
+    Arg(const str::StringView& v) : type(SView) {
+        asSView.ptr = v.data();
+        asSView.len = v.length();
+    }
 };
 
 // Core formatter -- implemented in fmt.cpp.
