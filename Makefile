@@ -27,7 +27,7 @@ LIBSTD_MEM = lib/libstd_mem.a
 LIBSTD_STR = lib/libstd_str.a
 LIBSTD_ALLOC = lib/libstd_alloc.a
 LIBSTD_HEAP = lib/libstd_heap.a
-LIBSTD_FMT = lib/libstd_fmt.a
+
 LIBSTD_TEST = lib/libstd_test.a
 LIBSTD_OS = lib/libstd_os.a
 LIBSTD_IPC = lib/libstd_ipc.a
@@ -84,9 +84,6 @@ $(LIBSTD_ALLOC): FORCE
 $(LIBSTD_HEAP): FORCE
 	$(MAKE) -C libs/heap
 
-$(LIBSTD_FMT): FORCE
-	$(MAKE) -C libs/fmt
-
 $(LIBSTD_TEST): FORCE
 	$(MAKE) -C libs/test
 
@@ -116,9 +113,9 @@ $(LIBSTD_MOUSE): FORCE
 
 FORCE:
 
-kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
+kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(NAMESERVER): $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
 	$(MAKE) -C userspace/core/ns
@@ -153,18 +150,18 @@ obj/libs/%.o: libs/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
 
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_TEST)
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_TEST)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 # Compile userspace test files (runner + service tests + service impls).
 obj/userspace/usertest/%.o: userspace/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
 
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_MOUSE) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_ATA) $(LIBSTD_FMT) $(LIBSTD_TEST)
+$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_MOUSE) $(LIBSTD_VGA) $(LIBSTD_VFS) $(LIBSTD_ATA) $(LIBSTD_TEST)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_MOUSE) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBSTD_TEST) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_VGA) $(LIBSTD_MOUSE) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
 $(DISK): $(disk_files) $(HELLO)
