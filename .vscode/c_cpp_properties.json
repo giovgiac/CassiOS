@@ -8,6 +8,7 @@
                 "${workspaceFolder}/libs/alloc/include",
                 "${workspaceFolder}/libs/ata/include",
                 "${workspaceFolder}/libs/collections/include",
+                "${workspaceFolder}/libs/display/include",
                 "${workspaceFolder}/libs/fmt/include",
                 "${workspaceFolder}/libs/gfx/include",
                 "${workspaceFolder}/libs/heap/include",

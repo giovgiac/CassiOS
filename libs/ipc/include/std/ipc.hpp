@@ -64,6 +64,14 @@ constexpr u32 AtaWrite = 19;
 
 // Nameserver (extended).
 constexpr u32 NsListAll = 20;
+
+// Display.
+constexpr u32 DisplayFillRect = 21;
+constexpr u32 DisplayDrawRect = 22;
+constexpr u32 DisplayBlit = 23;
+constexpr u32 DisplayScroll = 24;
+constexpr u32 DisplayFlush = 25;
+constexpr u32 DisplayGetInfo = 26;
 } // namespace MessageType
 
 /**
