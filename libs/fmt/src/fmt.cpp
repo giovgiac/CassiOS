@@ -1,5 +1,5 @@
 /**
- * fmt.cpp -- Standard string formatting
+ * fmt.cpp -- Format engine: spec parsing, type dispatch, output
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -11,7 +11,18 @@
 
 using namespace std;
 
-// Put a single character into the buffer if there is room.
+// -- Format spec parsed from {:...} --
+
+struct Spec {
+    u32 width;
+    bool leftAlign;
+    bool zeroPad;
+    bool hex;
+    bool upperHex;
+};
+
+// -- Output helpers --
+
 static usize put(char* buf, usize size, usize pos, char c) {
     if (pos < size - 1) {
         buf[pos] = c;
@@ -19,16 +30,16 @@ static usize put(char* buf, usize size, usize pos, char c) {
     return pos + 1;
 }
 
-// Write count copies of a padding character.
-static usize put_pad(char* buf, usize size, usize pos, char c, u32 count) {
+static usize putPad(char* buf, usize size, usize pos, char c, u32 count) {
     for (u32 p = 0; p < count; ++p) {
         pos = put(buf, size, pos, c);
     }
     return pos;
 }
 
-// Format an unsigned 32-bit value as decimal into tmp, return length.
-static usize fmt_dec(char* tmp, u32 value) {
+// -- Number-to-string helpers --
+
+static usize fmtDec(char* tmp, u32 value) {
     if (value == 0) {
         tmp[0] = '0';
         return 1;
@@ -45,8 +56,7 @@ static usize fmt_dec(char* tmp, u32 value) {
     return count;
 }
 
-// Format an unsigned 32-bit value as hex into tmp, return length.
-static usize fmt_hex(char* tmp, u32 value, bool upper) {
+static usize fmtHex(char* tmp, u32 value, bool upper) {
     if (value == 0) {
         tmp[0] = '0';
         return 1;
@@ -64,18 +74,61 @@ static usize fmt_hex(char* tmp, u32 value, bool upper) {
     return count;
 }
 
-// Write a formatted value with padding and optional sign.
-static usize put_padded(char* buf, usize size, usize pos, const char* tmp, usize len, u32 width,
-                        bool left_align, char pad_char, char sign = 0) {
-    usize total = len + (sign ? 1 : 0);
-    u32 padding = (width > total) ? width - total : 0;
+static Spec parseSpec(const char* fmt, usize& i) {
+    Spec s = {0, false, false, false, false};
 
-    if (!left_align) {
-        if (pad_char == '0' && sign) {
+    if (fmt[i] == ':') {
+        ++i;
+    }
+
+    if (fmt[i] == '<') {
+        s.leftAlign = true;
+        ++i;
+    }
+    if (fmt[i] == '0') {
+        s.zeroPad = true;
+        ++i;
+    }
+
+    while (fmt[i] >= '0' && fmt[i] <= '9') {
+        s.width = s.width * 10 + (fmt[i] - '0');
+        ++i;
+    }
+
+    if (fmt[i] == 'x') {
+        s.hex = true;
+        ++i;
+    } else if (fmt[i] == 'X') {
+        s.hex = true;
+        s.upperHex = true;
+        ++i;
+    }
+
+    if (fmt[i] == '}') {
+        ++i;
+    }
+
+    if (s.leftAlign) {
+        s.zeroPad = false;
+    }
+
+    return s;
+}
+
+// -- Padded output --
+
+static usize putPadded(char* buf, usize size, usize pos, const char* data, usize len,
+                       const Spec& s, char sign = 0) {
+    char padChar = (s.zeroPad && !s.leftAlign) ? '0' : ' ';
+    usize total = len + (sign ? 1 : 0);
+    u32 padding = (s.width > total) ? s.width - total : 0;
+
+    if (!s.leftAlign) {
+        if (padChar == '0' && sign) {
             pos = put(buf, size, pos, sign);
             sign = 0;
         }
-        pos = put_pad(buf, size, pos, pad_char, padding);
+        pos = putPad(buf, size, pos, padChar, padding);
     }
 
     if (sign) {
@@ -83,144 +136,106 @@ static usize put_padded(char* buf, usize size, usize pos, const char* tmp, usize
     }
 
     for (usize j = 0; j < len; ++j) {
-        pos = put(buf, size, pos, tmp[j]);
+        pos = put(buf, size, pos, data[j]);
     }
 
-    if (left_align) {
-        pos = put_pad(buf, size, pos, ' ', padding);
+    if (s.leftAlign) {
+        pos = putPad(buf, size, pos, ' ', padding);
     }
 
     return pos;
 }
 
-// Write a string with padding.
-static usize put_str_padded(char* buf, usize size, usize pos, const char* s, u32 width,
-                            bool left_align) {
-    if (s == nullptr)
-        s = "(null)";
+// -- Type-specific formatters --
 
+static usize fmtU32(char* buf, usize size, usize pos, u32 value, const Spec& s) {
+    char tmp[12];
+    usize len = s.hex ? fmtHex(tmp, value, s.upperHex) : fmtDec(tmp, value);
+    return putPadded(buf, size, pos, tmp, len, s);
+}
+
+static usize fmtI32(char* buf, usize size, usize pos, i32 value, const Spec& s) {
+    char tmp[12];
+    char sign = 0;
+    u32 absVal;
+    if (value < 0) {
+        sign = '-';
+        absVal = static_cast<u32>(-value);
+    } else {
+        absVal = static_cast<u32>(value);
+    }
+    usize len = s.hex ? fmtHex(tmp, absVal, s.upperHex) : fmtDec(tmp, absVal);
+    return putPadded(buf, size, pos, tmp, len, s, sign);
+}
+
+static usize fmtStr(char* buf, usize size, usize pos, const char* value, const Spec& s) {
+    if (value == nullptr) {
+        value = "(null)";
+    }
     usize len = 0;
-    while (s[len] != '\0')
+    while (value[len] != '\0') {
         ++len;
-
-    u32 padding = (width > len) ? width - len : 0;
-
-    if (!left_align) {
-        pos = put_pad(buf, size, pos, ' ', padding);
     }
+    return putPadded(buf, size, pos, value, len, s);
+}
 
-    for (usize j = 0; j < len; ++j) {
-        pos = put(buf, size, pos, s[j]);
+static usize fmtSView(char* buf, usize size, usize pos, const char* data, usize len,
+                       const Spec& s) {
+    if (data == nullptr) {
+        return fmtStr(buf, size, pos, nullptr, s);
     }
+    return putPadded(buf, size, pos, data, len, s);
+}
 
-    if (left_align) {
-        pos = put_pad(buf, size, pos, ' ', padding);
+// -- Type dispatch --
+
+static usize formatArg(char* buf, usize size, usize pos, const fmt::Arg& arg, const Spec& s) {
+    switch (arg.type) {
+    case fmt::Arg::I32:
+        return fmtI32(buf, size, pos, arg.asI32, s);
+    case fmt::Arg::U32:
+        return fmtU32(buf, size, pos, arg.asU32, s);
+    case fmt::Arg::Str:
+        return fmtStr(buf, size, pos, arg.asStr, s);
+    case fmt::Arg::Char:
+        return put(buf, size, pos, arg.asChar);
+    case fmt::Arg::SView:
+        return fmtSView(buf, size, pos, arg.asSView.ptr, arg.asSView.len, s);
     }
-
     return pos;
 }
 
-usize fmt::format(char* buf, usize size, const char* fmt, ...) {
-    if (size == 0)
-        return 0;
+// -- Core formatter --
 
-    __builtin_va_list args;
-    __builtin_va_start(args, fmt);
-
+usize fmt::formatImpl(char* buf, usize size, const char* fmt, const Arg* args, usize argCount) {
     usize pos = 0;
+    usize argIdx = 0;
+    usize i = 0;
 
-    for (usize i = 0; fmt[i] != '\0'; ++i) {
-        if (fmt[i] != '%') {
-            pos = put(buf, size, pos, fmt[i]);
+    while (fmt[i] != '\0') {
+        if (fmt[i] == '{' && fmt[i + 1] == '{') {
+            pos = put(buf, size, pos, '{');
+            i += 2;
+            continue;
+        }
+        if (fmt[i] == '}' && fmt[i + 1] == '}') {
+            pos = put(buf, size, pos, '}');
+            i += 2;
             continue;
         }
 
+        if (fmt[i] == '{' && argIdx < argCount) {
+            ++i; // skip '{'
+            Spec s = parseSpec(fmt, i);
+            pos = formatArg(buf, size, pos, args[argIdx], s);
+            ++argIdx;
+            // parseSpec already advanced i past '}'
+            continue;
+        }
+
+        pos = put(buf, size, pos, fmt[i]);
         ++i;
-        if (fmt[i] == '\0')
-            break;
-
-        // Parse flags.
-        bool left_align = false;
-        bool zero_pad = false;
-        while (fmt[i] == '-' || fmt[i] == '0') {
-            if (fmt[i] == '-')
-                left_align = true;
-            if (fmt[i] == '0')
-                zero_pad = true;
-            ++i;
-        }
-
-        // Parse width.
-        u32 width = 0;
-        while (fmt[i] >= '0' && fmt[i] <= '9') {
-            width = width * 10 + (fmt[i] - '0');
-            ++i;
-        }
-
-        if (fmt[i] == '\0')
-            break;
-
-        // Left-align overrides zero-pad.
-        char pad_char = (zero_pad && !left_align) ? '0' : ' ';
-
-        char tmp[12];
-
-        switch (fmt[i]) {
-        case 'd': {
-            i32 val = __builtin_va_arg(args, i32);
-            char sign = 0;
-            u32 abs_val;
-            if (val < 0) {
-                sign = '-';
-                abs_val = static_cast<u32>(-val);
-            } else {
-                abs_val = static_cast<u32>(val);
-            }
-            usize len = fmt_dec(tmp, abs_val);
-            pos = put_padded(buf, size, pos, tmp, len, width, left_align, pad_char, sign);
-            break;
-        }
-        case 'u': {
-            u32 val = __builtin_va_arg(args, u32);
-            usize len = fmt_dec(tmp, val);
-            pos = put_padded(buf, size, pos, tmp, len, width, left_align, pad_char);
-            break;
-        }
-        case 'x': {
-            u32 val = __builtin_va_arg(args, u32);
-            usize len = fmt_hex(tmp, val, false);
-            pos = put_padded(buf, size, pos, tmp, len, width, left_align, pad_char);
-            break;
-        }
-        case 'X': {
-            u32 val = __builtin_va_arg(args, u32);
-            usize len = fmt_hex(tmp, val, true);
-            pos = put_padded(buf, size, pos, tmp, len, width, left_align, pad_char);
-            break;
-        }
-        case 's': {
-            const char* val = __builtin_va_arg(args, const char*);
-            pos = put_str_padded(buf, size, pos, val, width, left_align);
-            break;
-        }
-        case 'c': {
-            char val = static_cast<char>(__builtin_va_arg(args, int));
-            pos = put(buf, size, pos, val);
-            break;
-        }
-        case '%': {
-            pos = put(buf, size, pos, '%');
-            break;
-        }
-        default: {
-            pos = put(buf, size, pos, '%');
-            pos = put(buf, size, pos, fmt[i]);
-            break;
-        }
-        }
     }
-
-    __builtin_va_end(args);
 
     if (pos < size) {
         buf[pos] = '\0';

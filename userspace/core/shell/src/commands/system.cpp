@@ -58,11 +58,11 @@ void Shell::cmdMem() {
 
     char buf[48];
     print("Physical memory:\n");
-    fmt::format(buf, sizeof(buf), "  Total: %u KiB (%u frames)\n", total * 4, total);
+    fmt::format(buf, sizeof(buf), "  Total: {} KiB ({} frames)\n", total * 4, total);
     print(buf);
-    fmt::format(buf, sizeof(buf), "  Used:  %u KiB (%u frames)\n", used * 4, used);
+    fmt::format(buf, sizeof(buf), "  Used:  {} KiB ({} frames)\n", used * 4, used);
     print(buf);
-    fmt::format(buf, sizeof(buf), "  Free:  %u KiB (%u frames)\n", free * 4, free);
+    fmt::format(buf, sizeof(buf), "  Free:  {} KiB ({} frames)\n", free * 4, free);
     print(buf);
 }
 
@@ -103,7 +103,7 @@ void Shell::cmdPs() {
         }
 
         char line[64];
-        fmt::format(line, sizeof(line), "%3u  %-9s  %-14s  %u KB\n", procs[i].pid, name,
+        fmt::format(line, sizeof(line), "{:3}  {:<9}  {:<14}  {} KB\n", procs[i].pid, name,
                     stateStr(procs[i].state), procs[i].heapSize / 1024);
         print(line);
     }
@@ -116,7 +116,7 @@ void Shell::cmdUptime() {
     u32 ms = total_ms % 1000;
 
     char buf[32];
-    fmt::format(buf, sizeof(buf), "Up %u.%03us\n", seconds, ms);
+    fmt::format(buf, sizeof(buf), "Up {}.{:03}s\n", seconds, ms);
     print(buf);
 }
 
