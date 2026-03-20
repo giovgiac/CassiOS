@@ -37,6 +37,7 @@ LIBSTD_VFS = lib/libstd_vfs.a
 LIBSTD_ATA = lib/libstd_ata.a
 LIBSTD_KBD = lib/libstd_kbd.a
 LIBSTD_MOUSE = lib/libstd_mouse.a
+LIBSTD_GFX = lib/libstd_gfx.a
 
 
 # Discover all source files automatically.
@@ -114,6 +115,9 @@ $(LIBSTD_KBD): FORCE
 $(LIBSTD_MOUSE): FORCE
 	$(MAKE) -C libs/mouse
 
+$(LIBSTD_GFX): FORCE
+	$(MAKE) -C libs/gfx
+
 FORCE:
 
 kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
@@ -153,9 +157,9 @@ obj/libs/%.o: libs/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
 
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_TEST)
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_GFX) $(LIBSTD_TEST)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_GFX) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 # Compile userspace test files (runner + service tests + service impls).
 obj/userspace/usertest/%.o: userspace/%.cpp
