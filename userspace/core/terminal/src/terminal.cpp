@@ -35,6 +35,10 @@ void Terminal::clearCell(u32 col, u32 row) {
 }
 
 void Terminal::putchar(char ch) {
+    if (cols == 0 || rows == 0) {
+        return;
+    }
+
     switch (ch) {
     case '\n':
         y += 1;

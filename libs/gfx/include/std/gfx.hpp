@@ -5,9 +5,9 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
- * Pure pixel manipulation on a caller-provided buffer. PixelBuffer is
- * a non-owning wrapper (like StringView) -- it holds a pointer and
- * dimensions but does not allocate or free the underlying memory.
+ * PixelBuffer wraps a caller-provided pixel buffer with drawing
+ * methods. Non-owning -- does not allocate or free the memory.
+ * Supports O(1) scrolling via an internal ring buffer offset.
  * All drawing methods clip to buffer bounds.
  *
  */

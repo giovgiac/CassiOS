@@ -15,24 +15,29 @@ void* mem::copy(void* dst, const void* src, usize n) {
     u8* d = static_cast<u8*>(dst);
     const u8* s = static_cast<const u8*>(src);
 
-    // Align dst to a 4-byte boundary.
-    while (n > 0 && (reinterpret_cast<usize>(d) & 3) != 0) {
-        *d++ = *s++;
-        n--;
+    // Use u32 fast path only when src and dst have the same alignment.
+    if ((reinterpret_cast<usize>(d) & 3) == (reinterpret_cast<usize>(s) & 3)) {
+        // Align both to a 4-byte boundary.
+        while (n > 0 && (reinterpret_cast<usize>(d) & 3) != 0) {
+            *d++ = *s++;
+            n--;
+        }
+
+        // Copy 4 bytes at a time.
+        u32* d32 = reinterpret_cast<u32*>(d);
+        const u32* s32 = reinterpret_cast<const u32*>(s);
+        usize words = n / 4;
+        for (usize i = 0; i < words; i++) {
+            d32[i] = s32[i];
+        }
+
+        // Copy remaining bytes.
+        d = reinterpret_cast<u8*>(d32 + words);
+        s = reinterpret_cast<const u8*>(s32 + words);
+        n %= 4;
     }
 
-    // Copy 4 bytes at a time.
-    u32* d32 = reinterpret_cast<u32*>(d);
-    const u32* s32 = reinterpret_cast<const u32*>(s);
-    usize words = n / 4;
-    for (usize i = 0; i < words; i++) {
-        d32[i] = s32[i];
-    }
-
-    // Copy remaining bytes.
-    d = reinterpret_cast<u8*>(d32 + words);
-    s = reinterpret_cast<const u8*>(s32 + words);
-    for (usize i = 0; i < n % 4; i++) {
+    for (usize i = 0; i < n; i++) {
         d[i] = s[i];
     }
     return dst;
@@ -44,27 +49,37 @@ void* mem::move(void* dst, const void* src, usize n) {
     if (d < s) {
         mem::copy(dst, src, n);
     } else if (d > s) {
-        // Copy backwards. Align the END of dst to a 4-byte boundary.
-        u8* de = d + n;
-        const u8* se = s + n;
-        while (n > 0 && (reinterpret_cast<usize>(de) & 3) != 0) {
-            *--de = *--se;
-            n--;
-        }
+        bool aligned =
+            (reinterpret_cast<usize>(d + n) & 3) == (reinterpret_cast<usize>(s + n) & 3);
 
-        // Copy 4 bytes at a time backwards.
-        usize words = n / 4;
-        u32* d32 = reinterpret_cast<u32*>(de) - words;
-        const u32* s32 = reinterpret_cast<const u32*>(se) - words;
-        for (usize i = 0; i < words; i++) {
-            d32[i] = s32[i];
-        }
+        if (aligned) {
+            // Align the END of both to a 4-byte boundary.
+            u8* de = d + n;
+            const u8* se = s + n;
+            while (n > 0 && (reinterpret_cast<usize>(de) & 3) != 0) {
+                *--de = *--se;
+                n--;
+            }
 
-        // Copy remaining leading bytes.
-        de = reinterpret_cast<u8*>(d32);
-        se = reinterpret_cast<const u8*>(s32);
-        for (usize i = n % 4; i > 0; i--) {
-            *--de = *--se;
+            // Copy 4 bytes at a time backwards.
+            usize words = n / 4;
+            u32* d32 = reinterpret_cast<u32*>(de) - words;
+            const u32* s32 = reinterpret_cast<const u32*>(se) - words;
+            for (usize i = words; i > 0; i--) {
+                d32[i - 1] = s32[i - 1];
+            }
+
+            // Copy remaining leading bytes.
+            de = reinterpret_cast<u8*>(d32);
+            se = reinterpret_cast<const u8*>(s32);
+            n %= 4;
+            for (usize i = n; i > 0; i--) {
+                *--de = *--se;
+            }
+        } else {
+            for (usize i = n; i > 0; i--) {
+                d[i - 1] = s[i - 1];
+            }
         }
     }
     return dst;

@@ -84,3 +84,48 @@ TEST(terminal_ipc_write) {
     i32 result = ipc::notify(pid, &msg, text, 4);
     ASSERT_EQ(result, 0);
 }
+
+TEST(terminal_set_get_cursor_roundtrip) {
+    u32 pid = ns::lookup("terminal");
+    ASSERT(pid > 0);
+
+    // Set to a known position.
+    ipc::Message setMsg = {};
+    setMsg.type = ipc::MessageType::TerminalSetCursor;
+    setMsg.arg1 = 10;
+    setMsg.arg2 = 7;
+    ipc::send(pid, &setMsg);
+
+    // Read it back.
+    ipc::Message getMsg = {};
+    getMsg.type = ipc::MessageType::TerminalGetCursor;
+    ipc::send(pid, &getMsg);
+
+    ASSERT_EQ(getMsg.arg1, 10u);
+    ASSERT_EQ(getMsg.arg2, 7u);
+}
+
+TEST(terminal_clear_resets_cursor) {
+    u32 pid = ns::lookup("terminal");
+    ASSERT(pid > 0);
+
+    // Move cursor away from origin.
+    ipc::Message setMsg = {};
+    setMsg.type = ipc::MessageType::TerminalSetCursor;
+    setMsg.arg1 = 10;
+    setMsg.arg2 = 5;
+    ipc::send(pid, &setMsg);
+
+    // Clear.
+    ipc::Message clearMsg = {};
+    clearMsg.type = ipc::MessageType::TerminalClear;
+    ipc::send(pid, &clearMsg);
+
+    // Cursor should be at origin.
+    ipc::Message getMsg = {};
+    getMsg.type = ipc::MessageType::TerminalGetCursor;
+    ipc::send(pid, &getMsg);
+
+    ASSERT_EQ(getMsg.arg1, 0u);
+    ASSERT_EQ(getMsg.arg2, 0u);
+}
