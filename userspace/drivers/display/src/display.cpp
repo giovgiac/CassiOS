@@ -54,9 +54,17 @@ void Display::drawChar(u32 x, u32 y, char ch, gfx::Color fg, gfx::Color bg) {
 
 void Display::scroll(u32 pixels, gfx::Color color) {
     backBuf.scroll(pixels, color);
-    // Scroll affects the entire buffer.
-    dirtyTop = 0;
-    dirtyBottom = backBuf.getHeight();
+
+    // Apply the same scroll to the framebuffer so we don't have to
+    // flush the entire buffer. Only the new bottom rows are dirty.
+    u32 height = backBuf.getHeight();
+    u32 pitch = backBuf.getPitch();
+    if (pixels < height) {
+        u32 copyRows = height - pixels;
+        mem::copy(framebuffer, reinterpret_cast<u8*>(framebuffer) + pixels * pitch,
+                  copyRows * pitch);
+    }
+    markDirty(height - pixels, pixels);
 }
 
 void Display::flush() {
@@ -67,7 +75,7 @@ void Display::flush() {
     u32 pitch = backBuf.getPitch();
     u8* dst = reinterpret_cast<u8*>(framebuffer) + dirtyTop * pitch;
     const u8* src = reinterpret_cast<const u8*>(backBuf.getData()) + dirtyTop * pitch;
-    u32 bytes = (dirtyBottom - dirtyTop) * pitch;
+    u32 bytes = rows * pitch;
     mem::copy(dst, src, bytes);
 
     // Reset dirty region.
