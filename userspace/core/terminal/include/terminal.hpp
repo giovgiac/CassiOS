@@ -51,6 +51,7 @@ private:
     void flushScroll();
     void drawGlyph(char ch, std::u32 col, std::u32 row);
     void clearCell(std::u32 col, std::u32 row);
+    void renderCursor(std::gfx::Color color);
 };
 
 } // namespace cassio

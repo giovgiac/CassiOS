@@ -11,9 +11,9 @@
 #define USERSPACE_SHELL_SHELL_HPP_
 
 #include <std/kbd.hpp>
+#include <std/terminal.hpp>
 #include <std/types.hpp>
 #include <std/vfs.hpp>
-#include <std/terminal.hpp>
 
 namespace cassio {
 
@@ -35,7 +35,7 @@ private:
 
     char cwd[SHELL_MAX_PATH];
 
-    // VGA helpers (use blocking send for ordering).
+    // Terminal helpers.
     void print(const char* str);
     void putchar(char ch);
 

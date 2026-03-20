@@ -39,13 +39,6 @@ constexpr u32 NsLookup = 3;
 // Keyboard.
 constexpr u32 KbdRead = 4;
 
-// VGA.
-constexpr u32 VgaPutchar = 5;
-constexpr u32 VgaWrite = 6;
-constexpr u32 VgaClear = 7;
-constexpr u32 VgaSetCursor = 8;
-constexpr u32 VgaGetCursor = 9;
-
 // VFS.
 constexpr u32 VfsMkdir = 10;
 constexpr u32 VfsRemove = 11;
@@ -72,15 +65,15 @@ constexpr u32 DisplayBlit = 23;
 constexpr u32 DisplayScroll = 24;
 constexpr u32 DisplayFlush = 25;
 constexpr u32 DisplayGetInfo = 26;
-constexpr u32 DisplayDrawChar = 32;
+constexpr u32 DisplayDrawChar = 27;
 
 // Terminal.
-constexpr u32 TerminalPutchar = 27;
-constexpr u32 TerminalWrite = 28;
-constexpr u32 TerminalClear = 29;
-constexpr u32 TerminalSetCursor = 30;
-constexpr u32 TerminalGetCursor = 31;
-constexpr u32 TerminalFlush = 34;
+constexpr u32 TerminalPutchar = 28;
+constexpr u32 TerminalWrite = 29;
+constexpr u32 TerminalClear = 30;
+constexpr u32 TerminalSetCursor = 31;
+constexpr u32 TerminalGetCursor = 32;
+constexpr u32 TerminalFlush = 33;
 } // namespace MessageType
 
 /**

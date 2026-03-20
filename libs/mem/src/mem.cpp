@@ -31,18 +31,7 @@ void* mem::move(void* dst, const void* src, usize n) {
     u8* d = static_cast<u8*>(dst);
     const u8* s = static_cast<const u8*>(src);
     if (d < s) {
-        // Forward copy (same as mem::copy but for memmove contract).
-        u32* d32 = reinterpret_cast<u32*>(d);
-        const u32* s32 = reinterpret_cast<const u32*>(s);
-        usize words = n / 4;
-        for (usize i = 0; i < words; i++) {
-            d32[i] = s32[i];
-        }
-        u8* dt = reinterpret_cast<u8*>(d32 + words);
-        const u8* st = reinterpret_cast<const u8*>(s32 + words);
-        for (usize i = 0; i < n % 4; i++) {
-            dt[i] = st[i];
-        }
+        mem::copy(dst, src, n);
     } else if (d > s) {
         for (usize i = n; i > 0; i--) {
             d[i - 1] = s[i - 1];

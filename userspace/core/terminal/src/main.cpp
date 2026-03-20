@@ -82,6 +82,7 @@ extern "C" void _start() {
         if (sender > 0) {
             terminal.drawCursor();
             display.flush();
+            terminal.eraseCursor();
 
             ipc::Message reply = {};
             reply.arg1 = terminal.getCursorX();

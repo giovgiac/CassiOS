@@ -91,18 +91,19 @@ void Terminal::clear() {
     y = 0;
 }
 
-void Terminal::drawCursor() {
+void Terminal::renderCursor(gfx::Color color) {
     flushScroll();
     u32 px = x * FONT_WIDTH;
     u32 py = y * FONT_HEIGHT + FONT_HEIGHT - 2;
-    display.fillRect(px, py, FONT_WIDTH, 2, fg);
+    display.fillRect(px, py, FONT_WIDTH, 2, color);
+}
+
+void Terminal::drawCursor() {
+    renderCursor(fg);
 }
 
 void Terminal::eraseCursor() {
-    flushScroll();
-    u32 px = x * FONT_WIDTH;
-    u32 py = y * FONT_HEIGHT + FONT_HEIGHT - 2;
-    display.fillRect(px, py, FONT_WIDTH, 2, bg);
+    renderCursor(bg);
 }
 
 void Terminal::setCursor(u8 col, u8 row) {
@@ -110,7 +111,15 @@ void Terminal::setCursor(u8 col, u8 row) {
     y = row;
 }
 
-u8 Terminal::getCursorX() const { return x; }
-u8 Terminal::getCursorY() const { return y; }
-u32 Terminal::getCols() const { return cols; }
-u32 Terminal::getRows() const { return rows; }
+u8 Terminal::getCursorX() const {
+    return x;
+}
+u8 Terminal::getCursorY() const {
+    return y;
+}
+u32 Terminal::getCols() const {
+    return cols;
+}
+u32 Terminal::getRows() const {
+    return rows;
+}
