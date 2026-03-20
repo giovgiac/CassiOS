@@ -43,7 +43,7 @@ u32 test::run() {
     }
 
     char buf[32];
-    fmt::format(buf, sizeof(buf), "[DONE] %u passed, %u failed\n", passed, failed);
+    fmt::format(buf, sizeof(buf), "[DONE] {} passed, {} failed\n", passed, failed);
     puts(buf);
 
     return failed;
@@ -51,14 +51,14 @@ u32 test::run() {
 
 void test::fail(const char* name, const char* expr, const char* file, int line) {
     char buf[128];
-    fmt::format(buf, sizeof(buf), "[FAIL] %s: assertion failed: \"%s\" at %s:%d\n", name, expr,
+    fmt::format(buf, sizeof(buf), "[FAIL] {}: assertion failed: \"{}\" at {}:{}\n", name, expr,
                 file, line);
     puts(buf);
 }
 
 void test::fail_eq(const char* name, u32 expected, u32 got, const char* file, int line) {
     char buf[128];
-    fmt::format(buf, sizeof(buf), "[FAIL] %s: expected 0x%X, got 0x%X at %s:%d\n", name, expected,
-                got, file, line);
+    fmt::format(buf, sizeof(buf), "[FAIL] {}: expected 0x{:X}, got 0x{:X} at {}:{}\n", name,
+                expected, got, file, line);
     puts(buf);
 }
