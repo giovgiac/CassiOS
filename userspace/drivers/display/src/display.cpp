@@ -53,6 +53,10 @@ void Display::drawChar(u32 x, u32 y, char ch, gfx::Color fg, gfx::Color bg) {
 }
 
 void Display::scroll(u32 pixels, gfx::Color color) {
+    // Flush pending changes so the framebuffer is up-to-date before
+    // we scroll it. Without this, the scroll shifts stale content.
+    flush();
+
     backBuf.scroll(pixels, color);
 
     // Apply the same scroll to the framebuffer so we don't have to
