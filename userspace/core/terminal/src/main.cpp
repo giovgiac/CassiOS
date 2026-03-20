@@ -69,6 +69,12 @@ extern "C" void _start() {
         case ipc::MessageType::TerminalGetCursor:
             break;
 
+        case ipc::MessageType::TerminalFlush:
+            terminal.drawCursor();
+            display.flush();
+            terminal.eraseCursor();
+            break;
+
         default:
             break;
         }

@@ -24,7 +24,7 @@ void terminal::Terminal::putchar(char c) {
     ipc::Message msg = {};
     msg.type = ipc::MessageType::TerminalPutchar;
     msg.arg1 = static_cast<u8>(c);
-    ipc::send(pid, &msg);
+    ipc::notify(pid, &msg);
 }
 
 void terminal::Terminal::write(const char* str) {
@@ -45,6 +45,12 @@ void terminal::Terminal::clear() {
     ipc::Message msg = {};
     msg.type = ipc::MessageType::TerminalClear;
     ipc::send(pid, &msg);
+}
+
+void terminal::Terminal::flush() {
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::TerminalFlush;
+    ipc::notify(pid, &msg);
 }
 
 void terminal::Terminal::setCursor(u8 col, u8 row) {

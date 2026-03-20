@@ -80,6 +80,7 @@ constexpr u32 TerminalWrite = 28;
 constexpr u32 TerminalClear = 29;
 constexpr u32 TerminalSetCursor = 30;
 constexpr u32 TerminalGetCursor = 31;
+constexpr u32 TerminalFlush = 34;
 } // namespace MessageType
 
 /**

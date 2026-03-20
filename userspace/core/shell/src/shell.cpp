@@ -152,10 +152,10 @@ void Shell::run() {
                 --length;
                 --cursor;
                 if (cursor == length) {
-                    // Deleting at end: backspace, clear, backspace.
                     putchar('\b');
                     putchar(' ');
                     putchar('\b');
+                    terminal.flush();
                 } else {
                     redrawLine();
                 }
@@ -198,8 +198,8 @@ void Shell::run() {
             ++length;
             ++cursor;
             if (cursor == length) {
-                // Appended at end: just print the one character.
                 putchar(static_cast<char>(key));
+                terminal.flush();
             } else {
                 redrawLine();
             }

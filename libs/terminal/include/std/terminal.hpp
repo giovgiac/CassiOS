@@ -28,6 +28,7 @@ public:
     void write(const char* str);
     void write(const char* buf, u32 len);
     void clear();
+    void flush();
     void setCursor(u8 col, u8 row);
     void getCursor(u8& col, u8& row);
 
