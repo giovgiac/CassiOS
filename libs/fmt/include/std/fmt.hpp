@@ -1,17 +1,11 @@
-// fmt.hpp -- Type-safe string formatting with {} placeholders
-//
-// Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
-//
-// Format syntax:
-//   {}              default (decimal for integers, string for char*/StringView)
-//   {:x}  {:X}     hex (lower/upper)
-//   {:5}           right-align, width 5
-//   {:<5}          left-align, width 5
-//   {:05}          zero-pad, width 5
-//   {:08x}         zero-pad hex, width 8
-//   {{  }}          literal '{' or '}'
+/**
+ * fmt.hpp -- Type-safe string formatting with {} placeholders
+ *
+ * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
+ * Use of this source code is governed by a MIT-style
+ * license that can be found in the LICENSE file.
+ *
+ */
 
 #ifndef STD_FMT_HPP
 #define STD_FMT_HPP
@@ -51,7 +45,19 @@ struct Arg {
 // Core formatter -- implemented in fmt.cpp.
 usize formatImpl(char* buf, usize size, const char* fmt, const Arg* args, usize argCount);
 
-// Public API -- thin template that builds the Arg array.
+/// Format a string into buf using {} placeholders.
+///
+/// Syntax: {:[flags][width][type]}
+///   {}              default (decimal for integers, string for char*/StringView)
+///   {:x}  {:X}     hex (lower/upper)
+///   {:5}           right-align, width 5
+///   {:<5}          left-align, width 5
+///   {:05}          zero-pad, width 5
+///   {:08x}         zero-pad hex, width 8
+///   {{  }}          literal '{' or '}'
+///
+/// Returns the number of characters written, excluding the null terminator.
+/// Always null-terminates the output if size > 0.
 template <typename... Args>
 usize format(char* buf, usize size, const char* fmt, const Args&... args) {
     if (size == 0) {
