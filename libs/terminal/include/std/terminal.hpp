@@ -15,6 +15,7 @@
 #ifndef STD_TERMINAL_HPP
 #define STD_TERMINAL_HPP
 
+#include <std/str.hpp>
 #include <std/types.hpp>
 
 namespace std {
@@ -25,8 +26,7 @@ public:
     Terminal();
 
     void putchar(char c);
-    void write(const char* str);
-    void write(const char* buf, u32 len);
+    void write(str::StringView text);
     void clear();
     void flush();
     void setCursor(u8 col, u8 row);

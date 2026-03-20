@@ -12,9 +12,16 @@
 using namespace std;
 
 void* mem::copy(void* dst, const void* src, usize n) {
-    u8* d = static_cast<u8*>(dst);
-    const u8* s = static_cast<const u8*>(src);
-    for (usize i = 0; i < n; i++) {
+    // Copy 4 bytes at a time, then handle remainder.
+    u32* d32 = static_cast<u32*>(dst);
+    const u32* s32 = static_cast<const u32*>(src);
+    usize words = n / 4;
+    for (usize i = 0; i < words; i++) {
+        d32[i] = s32[i];
+    }
+    u8* d = reinterpret_cast<u8*>(d32 + words);
+    const u8* s = reinterpret_cast<const u8*>(s32 + words);
+    for (usize i = 0; i < n % 4; i++) {
         d[i] = s[i];
     }
     return dst;
@@ -24,8 +31,17 @@ void* mem::move(void* dst, const void* src, usize n) {
     u8* d = static_cast<u8*>(dst);
     const u8* s = static_cast<const u8*>(src);
     if (d < s) {
-        for (usize i = 0; i < n; i++) {
-            d[i] = s[i];
+        // Forward copy (same as mem::copy but for memmove contract).
+        u32* d32 = reinterpret_cast<u32*>(d);
+        const u32* s32 = reinterpret_cast<const u32*>(s);
+        usize words = n / 4;
+        for (usize i = 0; i < words; i++) {
+            d32[i] = s32[i];
+        }
+        u8* dt = reinterpret_cast<u8*>(d32 + words);
+        const u8* st = reinterpret_cast<const u8*>(s32 + words);
+        for (usize i = 0; i < n % 4; i++) {
+            dt[i] = st[i];
         }
     } else if (d > s) {
         for (usize i = n; i > 0; i--) {
@@ -36,9 +52,16 @@ void* mem::move(void* dst, const void* src, usize n) {
 }
 
 void* mem::set(void* dst, int val, usize n) {
-    u8* d = static_cast<u8*>(dst);
     u8 v = static_cast<u8>(val);
-    for (usize i = 0; i < n; i++) {
+    u32 v32 = static_cast<u32>(v) | (static_cast<u32>(v) << 8) | (static_cast<u32>(v) << 16) |
+              (static_cast<u32>(v) << 24);
+    u32* d32 = static_cast<u32*>(dst);
+    usize words = n / 4;
+    for (usize i = 0; i < words; i++) {
+        d32[i] = v32;
+    }
+    u8* d = reinterpret_cast<u8*>(d32 + words);
+    for (usize i = 0; i < n % 4; i++) {
         d[i] = v;
     }
     return dst;

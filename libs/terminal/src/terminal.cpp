@@ -27,18 +27,11 @@ void terminal::Terminal::putchar(char c) {
     ipc::notify(pid, &msg);
 }
 
-void terminal::Terminal::write(const char* str) {
-    u32 len = 0;
-    while (str[len] != '\0')
-        len++;
-    write(str, len);
-}
-
-void terminal::Terminal::write(const char* buf, u32 len) {
+void terminal::Terminal::write(str::StringView text) {
     ipc::Message msg = {};
     msg.type = ipc::MessageType::TerminalWrite;
-    msg.arg1 = len;
-    ipc::notify(pid, &msg, buf, len);
+    msg.arg1 = text.length();
+    ipc::notify(pid, &msg, text.data(), text.length());
 }
 
 void terminal::Terminal::clear() {

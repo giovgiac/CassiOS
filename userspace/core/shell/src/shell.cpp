@@ -52,7 +52,7 @@ void Shell::redrawLine() {
 
     // Write the entire buffer.
     if (length > 0) {
-        terminal.write(buffer, length);
+        terminal.write(str::StringView(buffer, length));
     }
 
     // Clear any leftover character from a previous longer line.

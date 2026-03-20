@@ -105,7 +105,7 @@ void Shell::cmdCat(const char** args, u8 argc) {
         i32 n = vfs.read(handle, offset, reinterpret_cast<u8*>(buf), sizeof(buf));
         if (n <= 0)
             break;
-        terminal.write(buf, static_cast<u32>(n));
+        terminal.write(str::StringView(buf, static_cast<usize>(n)));
         offset += static_cast<u32>(n);
     }
     putchar('\n');
