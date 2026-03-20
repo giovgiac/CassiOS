@@ -143,7 +143,7 @@ enum class KeyCode : u8 {
 };
 
 class Kbd {
-  public:
+public:
     /// Construct a keyboard client. Blocks until the "kbd" service is
     /// registered with the nameserver.
     Kbd();
@@ -155,7 +155,7 @@ class Kbd {
     Kbd(const Kbd&) = delete;
     Kbd& operator=(const Kbd&) = delete;
 
-  private:
+private:
     u32 pid;
 };
 

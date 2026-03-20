@@ -39,18 +39,18 @@ constexpr std::u8 PIT_CMD_CHANNEL0_MODE2 = 0x34;
  *
  */
 class PitTimer {
-  private:
+private:
     std::io::Port<std::u8> channel0;
     std::io::Port<std::u8> command;
     volatile std::u32 ticks;
 
     static PitTimer instance;
 
-  private:
+private:
     PitTimer();
     ~PitTimer() = default;
 
-  public:
+public:
     /**
      * @brief Returns the PitTimer singleton instance.
      *

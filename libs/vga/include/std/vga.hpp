@@ -20,7 +20,7 @@ namespace std {
 namespace vga {
 
 class Vga {
-  public:
+public:
     /// Construct a VGA client. Blocks until the "vga" service is
     /// registered with the nameserver.
     Vga();
@@ -46,7 +46,7 @@ class Vga {
     Vga(const Vga&) = delete;
     Vga& operator=(const Vga&) = delete;
 
-  private:
+private:
     u32 pid;
 };
 

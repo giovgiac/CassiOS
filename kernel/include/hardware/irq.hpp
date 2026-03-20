@@ -35,7 +35,7 @@ typedef std::u32 (*IrqHandler)(std::u32 esp);
  *
  */
 class IrqManager final {
-  private:
+private:
     IrqHandler handlers[16];
     std::u32 forwardPid[16];
     bool pendingIrq[16];
@@ -47,11 +47,11 @@ class IrqManager final {
 
     static IrqManager instance;
 
-  private:
+private:
     IrqManager();
     ~IrqManager() = default;
 
-  public:
+public:
     /**
      * @brief Returns the singleton IrqManager instance.
      *

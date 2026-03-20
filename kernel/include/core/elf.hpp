@@ -76,7 +76,7 @@ struct ElfLoadResult {
  *
  */
 class ElfLoader {
-  public:
+public:
     static ElfLoadResult load(std::u32 pdPhysical, const std::u8* elfData, std::u32 elfSize);
 };
 

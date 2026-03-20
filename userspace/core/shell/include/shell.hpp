@@ -22,7 +22,7 @@ constexpr std::u8 SHELL_MAX_ARGS = 16;
 constexpr std::u32 SHELL_MAX_PATH = 64;
 
 class Shell {
-  private:
+private:
     std::kbd::Kbd kbd;
     std::vga::Vga vga;
     std::vfs::Vfs vfs;
@@ -63,7 +63,7 @@ class Shell {
     void cmdWrite(const char** args, std::u8 argc);
     void cmdExec(const char** args, std::u8 argc);
 
-  public:
+public:
     Shell();
     void run();
 

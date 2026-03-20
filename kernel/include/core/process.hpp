@@ -89,7 +89,7 @@ struct Process {
  *
  */
 class ProcessManager {
-  public:
+public:
     inline static ProcessManager& getManager() { return instance; }
 
     /**
@@ -153,7 +153,7 @@ class ProcessManager {
     ProcessManager& operator=(const ProcessManager&) = delete;
     ProcessManager& operator=(ProcessManager&&) = delete;
 
-  private:
+private:
     ProcessManager();
 
     static ProcessManager instance;

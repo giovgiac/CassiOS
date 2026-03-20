@@ -20,7 +20,7 @@ namespace std {
 namespace ptr {
 
 template <typename T> class Rc {
-  public:
+public:
     // No public constructor from raw pointer -- use Rc::make().
 
     ~Rc() { release(); }
@@ -67,7 +67,7 @@ template <typename T> class Rc {
         return Rc(cb);
     }
 
-  private:
+private:
     struct ControlBlock {
         u32 refCount;
         T object;

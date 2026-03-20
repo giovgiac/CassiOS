@@ -56,7 +56,7 @@ enum class PortType : u16 {
  * instruction selected at compile time via if constexpr.
  */
 template <typename T> class Port {
-  public:
+public:
     Port(PortType type) : number(static_cast<u16>(type)) {}
 
     T read() {
@@ -84,7 +84,7 @@ template <typename T> class Port {
         asm volatile("outb %0, %1\njmp 1f\n1: jmp 1f\n1:" : : "a"(data), "Nd"(number));
     }
 
-  private:
+private:
     u16 number;
 };
 

@@ -23,7 +23,7 @@ namespace kernel {
  *
  */
 class GlobalDescriptorTable {
-  public:
+public:
     /**
      * @brief An 8-byte packed entry describing a memory segment in the GDT.
      *
@@ -32,7 +32,7 @@ class GlobalDescriptorTable {
      *
      */
     class __attribute__((packed)) SegmentDescriptor {
-      private:
+    private:
         std::u16 limit_low;
         std::u16 base_low;
         std::u8 base_high;
@@ -40,7 +40,7 @@ class GlobalDescriptorTable {
         std::u8 limit_high;
         std::u8 base_very_high;
 
-      public:
+    public:
         /**
          * @brief Constructs a segment descriptor with the given base, limit, and access flags.
          *
@@ -97,7 +97,7 @@ class GlobalDescriptorTable {
         std::u16 iomap_base;
     };
 
-  public:
+public:
     /**
      * @brief Builds the GDT with null, kernel, user, and TSS segments,
      *        then loads it via lgdt and the TSS via ltr.
@@ -153,7 +153,7 @@ class GlobalDescriptorTable {
     GlobalDescriptorTable& operator=(const GlobalDescriptorTable&) = delete;
     GlobalDescriptorTable& operator=(GlobalDescriptorTable&&) = delete;
 
-  private:
+private:
     SegmentDescriptor nullSegment;
     SegmentDescriptor codeSegment;
     SegmentDescriptor dataSegment;

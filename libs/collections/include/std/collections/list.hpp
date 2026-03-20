@@ -22,7 +22,7 @@ namespace collections {
  * pointers and a count; callers handle node allocation and deallocation.
  */
 template <typename T> class LinkedList {
-  public:
+public:
     LinkedList() : head(nullptr), tail(nullptr), count(0) {}
 
     void pushBack(T* node) {
@@ -85,7 +85,7 @@ template <typename T> class LinkedList {
     u32 getCount() const { return count; }
     bool isEmpty() const { return head == nullptr; }
 
-  private:
+private:
     T* head;
     T* tail;
     u32 count;

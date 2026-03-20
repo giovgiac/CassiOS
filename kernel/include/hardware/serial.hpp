@@ -11,7 +11,7 @@ using std::io::Port;
 using std::io::PortType;
 
 class Serial {
-  private:
+private:
     Port<std::u8> data;
     Port<std::u8> interrupt_enable;
     Port<std::u8> fifo_control;
@@ -19,7 +19,7 @@ class Serial {
     Port<std::u8> modem_control;
     Port<std::u8> line_status;
 
-  public:
+public:
     Serial(PortType data, PortType interrupt_enable, PortType fifo_control, PortType line_control,
            PortType modem_control, PortType line_status);
     ~Serial() = default;
@@ -34,12 +34,12 @@ class Serial {
 };
 
 class COM1 final {
-  private:
+private:
     static Serial instance;
 
     COM1() = delete;
 
-  public:
+public:
     inline static Serial& getSerial() { return instance; }
 };
 

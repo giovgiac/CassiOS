@@ -34,7 +34,7 @@ enum InterruptFlags : std::u8 {
  *
  */
 class InterruptManager final {
-  private:
+private:
     /**
      * @brief An 8-byte packed IDT entry pointing to an interrupt handler.
      *
@@ -56,13 +56,13 @@ class InterruptManager final {
         std::u32 base;
     };
 
-  private:
+private:
     GateDescriptor idt[256];
     std::u16 code_offset;
 
     static InterruptManager instance;
 
-  private:
+private:
     /**
      * @brief Constructs the manager.
      *
@@ -82,7 +82,7 @@ class InterruptManager final {
     void setInterrupt(std::u8 number, std::u16 code_offset, void (*handler)(), std::u8 access,
                       std::u8 flags);
 
-  public:
+public:
     /**
      * @brief Returns the singleton InterruptManager instance.
      *

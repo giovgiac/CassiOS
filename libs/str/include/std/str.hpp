@@ -23,7 +23,7 @@ namespace str {
  *
  */
 class StringView {
-  public:
+public:
     StringView() : ptr(nullptr), len(0) {}
     StringView(const char* s);
     StringView(const char* s, usize length) : ptr(s), len(length) {}
@@ -49,7 +49,7 @@ class StringView {
 
     template <typename T> T to() const;
 
-  private:
+private:
     const char* ptr;
     usize len;
 };

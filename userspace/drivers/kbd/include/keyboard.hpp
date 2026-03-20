@@ -102,7 +102,7 @@ static constexpr std::u16 KEYBOARD_BUFFER_SIZE = 256;
  *
  */
 class Keyboard {
-  public:
+public:
     Keyboard();
 
     void handleScancode(std::u8 raw);
@@ -111,7 +111,7 @@ class Keyboard {
 
     static KeyCode resolveShift(KeyCode key);
 
-  private:
+private:
     static const KeyCode scancode_table[0x59];
 
     bool shift_held;
@@ -124,7 +124,7 @@ class Keyboard {
     std::u16 ring_head;
     std::u16 ring_tail;
 
-  public:
+public:
     Keyboard(const Keyboard&) = delete;
     Keyboard(Keyboard&&) = delete;
     Keyboard& operator=(const Keyboard&) = delete;

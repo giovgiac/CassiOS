@@ -17,7 +17,7 @@
 namespace cassio {
 
 class NsTable {
-  public:
+public:
     static constexpr std::u32 MAX_NAME_LEN = 16;
 
     struct Entry {
@@ -38,7 +38,7 @@ class NsTable {
     NsTable& operator=(const NsTable&) = delete;
     NsTable& operator=(NsTable&&) = delete;
 
-  private:
+private:
     std::collections::LinkedList<Entry> entries;
 };
 

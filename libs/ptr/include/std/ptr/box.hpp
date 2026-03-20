@@ -29,7 +29,7 @@ template <typename T> T&& move(T& t) {
 // ============================================================
 
 template <typename T> class Box {
-  public:
+public:
     explicit Box(T* raw = nullptr) : ptr(raw) {}
 
     ~Box() { delete ptr; }
@@ -64,7 +64,7 @@ template <typename T> class Box {
 
     template <typename... Args> static Box make(Args&&... args) { return Box(new T(args...)); }
 
-  private:
+private:
     T* ptr;
 };
 
@@ -73,7 +73,7 @@ template <typename T> class Box {
 // ============================================================
 
 template <typename T> class Box<T[]> {
-  public:
+public:
     explicit Box(T* raw = nullptr) : ptr(raw) {}
 
     ~Box() { delete[] ptr; }
@@ -105,7 +105,7 @@ template <typename T> class Box<T[]> {
 
     explicit operator bool() const { return ptr != nullptr; }
 
-  private:
+private:
     T* ptr;
 };
 

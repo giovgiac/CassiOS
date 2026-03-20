@@ -21,7 +21,7 @@ static constexpr std::u32 FRAME_SIZE = 4096;
 static constexpr std::u32 BITMAP_SIZE = 131072;
 
 class PhysicalMemoryManager {
-  public:
+public:
     inline static PhysicalMemoryManager& getManager() { return instance; }
 
     void init(MultibootInfo* multibootInfo);
@@ -39,7 +39,7 @@ class PhysicalMemoryManager {
     PhysicalMemoryManager& operator=(const PhysicalMemoryManager&) = delete;
     PhysicalMemoryManager& operator=(PhysicalMemoryManager&&) = delete;
 
-  private:
+private:
     PhysicalMemoryManager();
 
     void markRegionUsed(std::u32 base, std::u32 length);

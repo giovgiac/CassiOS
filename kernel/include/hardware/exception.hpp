@@ -23,14 +23,14 @@ namespace hardware {
  *
  */
 class ExceptionHandler final {
-  private:
+private:
     static ExceptionHandler instance;
 
-  private:
+private:
     ExceptionHandler();
     ~ExceptionHandler() = default;
 
-  public:
+public:
     /**
      * @brief Returns the singleton ExceptionHandler instance.
      *

@@ -34,7 +34,7 @@ struct FileHandle {
 };
 
 class Fat32Filesystem {
-  private:
+private:
     std::ptr::Box<std::ata::Ata> ata;
 
     // BPB-derived layout.
@@ -105,7 +105,7 @@ class Fat32Filesystem {
     // Cluster chain helpers.
     std::u32 clusterAtOffset(std::u32 startCluster, std::u32 byteOffset);
 
-  public:
+public:
     Fat32Filesystem() = default;
 
     bool mount();

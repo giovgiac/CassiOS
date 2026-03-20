@@ -22,7 +22,7 @@ static constexpr std::u16 PAGE_READWRITE = 0x02;
 static constexpr std::u16 PAGE_USER = 0x04;
 
 class PagingManager {
-  public:
+public:
     inline static PagingManager& getManager() { return instance; }
 
     void init(MultibootInfo* multibootInfo);
@@ -61,7 +61,7 @@ class PagingManager {
     PagingManager& operator=(const PagingManager&) = delete;
     PagingManager& operator=(PagingManager&&) = delete;
 
-  private:
+private:
     PagingManager();
 
     static PagingManager instance;

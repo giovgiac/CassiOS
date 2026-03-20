@@ -35,7 +35,7 @@ constexpr std::u32 SECTOR_SIZE = 512;
 constexpr std::u8 MASTER_LBA = 0xE0;
 
 class Ata {
-  private:
+private:
     std::io::Port<std::u16> data{std::io::PortType::PrimaryAtaData};
     std::io::Port<std::u8> error{std::io::PortType::PrimaryAtaError};
     std::io::Port<std::u8> sectorCount{std::io::PortType::PrimaryAtaSectorCount};
@@ -60,7 +60,7 @@ class Ata {
     bool readSectorInternal(std::u32 lba);
     bool writeSectorInternal(std::u32 lba);
 
-  public:
+public:
     Ata() = default;
 
     void init();

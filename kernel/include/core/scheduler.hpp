@@ -28,7 +28,7 @@ namespace kernel {
  *
  */
 class Scheduler {
-  public:
+public:
     static constexpr std::u32 DEFAULT_TIME_SLICE = 10;
 
     inline static Scheduler& getScheduler() { return instance; }
@@ -80,7 +80,7 @@ class Scheduler {
     Scheduler& operator=(const Scheduler&) = delete;
     Scheduler& operator=(Scheduler&&) = delete;
 
-  private:
+private:
     Scheduler();
 
     Process* findNextReady(Process* current);

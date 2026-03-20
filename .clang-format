@@ -15,6 +15,9 @@ AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 
+# Access modifiers (public/private/protected) flush with class keyword
+AccessModifierOffset: -4
+
 # Pointers and references
 PointerAlignment: Left
 

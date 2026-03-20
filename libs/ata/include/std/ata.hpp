@@ -23,7 +23,7 @@ namespace ata {
 constexpr u32 SECTOR_SIZE = 512;
 
 class Ata {
-  public:
+public:
     /// Construct an ATA client. Blocks until the "ata" service is
     /// registered with the nameserver.
     Ata();
@@ -39,7 +39,7 @@ class Ata {
     Ata(const Ata&) = delete;
     Ata& operator=(const Ata&) = delete;
 
-  private:
+private:
     u32 pid;
 };
 

@@ -27,7 +27,7 @@ struct BlockHeader {
 };
 
 class HeapAllocator {
-  public:
+public:
     HeapAllocator(void* base, u32 size);
 
     void* allocate(usize size);
@@ -46,7 +46,7 @@ class HeapAllocator {
     HeapAllocator& operator=(const HeapAllocator&) = delete;
     HeapAllocator& operator=(HeapAllocator&&) = delete;
 
-  private:
+private:
     BlockHeader* head;
     u8* regionStart;
     u8* regionEnd;

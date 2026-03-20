@@ -41,10 +41,10 @@ struct SyscallFrame {
  *
  */
 class SyscallHandler {
-  private:
+private:
     static SyscallHandler instance;
 
-  private:
+private:
     SyscallHandler();
     ~SyscallHandler() = default;
 
@@ -58,7 +58,7 @@ class SyscallHandler {
     std::u32 exec(std::u32 elfPtr, std::u32 elfSize);
     std::i32 waitpid(std::u32 pid);
 
-  public:
+public:
     /**
      * @brief Returns the singleton SyscallHandler instance.
      *

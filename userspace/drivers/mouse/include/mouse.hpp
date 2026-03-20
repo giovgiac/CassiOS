@@ -15,14 +15,14 @@
 namespace cassio {
 
 class Mouse {
-  private:
+private:
     std::u8 buffer[3];
     std::u8 offset;
     std::u8 buttons;
     std::i32 dx;
     std::i32 dy;
 
-  public:
+public:
     Mouse() = default;
 
     void init();
