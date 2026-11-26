@@ -3,6 +3,13 @@
 version = 4
 
 [[package]]
+name = "ata"
+version = "0.1.0"
+dependencies = [
+ "cassio",
+]
+
+[[package]]
 name = "cassio"
 version = "0.1.0"
 

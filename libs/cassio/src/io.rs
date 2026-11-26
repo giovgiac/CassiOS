@@ -64,6 +64,18 @@ mod imp {
         }
     }
 
+    impl PortValue for u16 {
+        unsafe fn read_from(port: u16) -> Self {
+            let value: u16;
+            unsafe { asm!("in ax, dx", out("ax") value, in("dx") port, options(nostack)) };
+            value
+        }
+
+        unsafe fn write_to(port: u16, value: Self) {
+            unsafe { asm!("out dx, ax", in("dx") port, in("ax") value, options(nostack)) };
+        }
+    }
+
     /// An I/O port carrying values of type `T`.
     pub struct Port<T: PortValue> {
         number: u16,
@@ -96,5 +108,28 @@ mod imp {
         pub unsafe fn write(&self, value: T) {
             unsafe { T::write_to(self.number, value) }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PortType;
+
+    #[test]
+    fn ata_ports() {
+        let ports = [
+            PortType::PrimaryAtaData,
+            PortType::PrimaryAtaError,
+            PortType::PrimaryAtaSectorCount,
+            PortType::PrimaryAtaLbaLow,
+            PortType::PrimaryAtaLbaMid,
+            PortType::PrimaryAtaLbaHigh,
+            PortType::PrimaryAtaDriveSelect,
+            PortType::PrimaryAtaCommandStatus,
+        ];
+        for (offset, port) in ports.into_iter().enumerate() {
+            assert_eq!(port as u16, 0x1F0 + offset as u16);
+        }
+        assert_eq!(PortType::PrimaryAtaDeviceControl as u16, 0x3F6);
     }
 }

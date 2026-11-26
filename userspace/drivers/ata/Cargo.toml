@@ -1,0 +1,12 @@
+[package]
+name = "ata"
+edition.workspace = true
+version.workspace = true
+autobins = false
+
+[lib]
+path = "src/main.rs"
+crate-type = ["staticlib"]
+
+[dependencies]
+cassio = { path = "../../../libs/cassio" }
