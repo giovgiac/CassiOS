@@ -7,16 +7,22 @@
 use alloc::vec::Vec;
 
 /// `input` as an absolute path: as is if it starts with '/', otherwise
-/// relative to the directory `cwd`.
+/// relative to the directory `cwd`. Trailing slashes are dropped, so
+/// "docs/" names the same directory as "docs".
 pub fn resolve(cwd: &[u8], input: &[u8]) -> Vec<u8> {
-    if input.first() == Some(&b'/') {
-        return input.to_vec();
+    let mut out = if input.first() == Some(&b'/') {
+        input.to_vec()
+    } else {
+        let mut out = cwd.to_vec();
+        if cwd != b"/" {
+            out.push(b'/');
+        }
+        out.extend_from_slice(input);
+        out
+    };
+    while out.len() > 1 && out.ends_with(b"/") {
+        out.pop();
     }
-    let mut out = cwd.to_vec();
-    if cwd != b"/" {
-        out.push(b'/');
-    }
-    out.extend_from_slice(input);
     out
 }
 
@@ -45,6 +51,17 @@ mod tests {
     fn relative_paths() {
         assert_eq!(resolve(b"/", b"foo"), b"/foo");
         assert_eq!(resolve(b"/home", b"foo"), b"/home/foo");
+    }
+
+    #[test]
+    fn trailing_slashes_are_dropped() {
+        assert_eq!(resolve(b"/", b"docs/"), b"/docs");
+        assert_eq!(resolve(b"/home", b"docs//"), b"/home/docs");
+        assert_eq!(resolve(b"/home", b"/"), b"/");
+        assert_eq!(resolve(b"/home", b"//"), b"/");
+        let mut cwd = resolve(b"/", b"docs/");
+        parent(&mut cwd);
+        assert_eq!(cwd, b"/");
     }
 
     #[test]
