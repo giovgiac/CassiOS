@@ -1,0 +1,4 @@
+[package]
+name = "cassio-std"
+edition.workspace = true
+version.workspace = true

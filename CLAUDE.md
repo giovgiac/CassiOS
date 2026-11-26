@@ -29,6 +29,16 @@ CassiOS is a microkernel. The kernel contains only: GDT/TSS, interrupt subsystem
 - **Singletons** for kernel managers: `InterruptManager`, `IrqManager`, `PitTimer`, `COM1`, etc. (private constructors, static `instance`, accessed via getter)
 - **Serial**: `Serial` is a general class taking `PortType` values; `COM1` is a singleton wrapping it for COM1 ports. Used by the test framework for output.
 
+## Rust (migration in progress)
+
+CassiOS is being ported to Rust phase by phase (issue #188, integration branch `refactor/188-rust-migration`). Rust and C++ components coexist until the port is done.
+
+- Toolchain pinned in `rust-toolchain.toml`; components target `i586-unknown-linux-gnu` as `#![no_std]` with `panic = "abort"` (no SSE). No external crates.
+- Each binary is a `staticlib` linked with the existing `ld` command and linker script (which must collect `.rodata*`, `.data*`, `.bss*`). Its Makefile runs `cargo build` and writes the same output path as before.
+- Shared userspace library: `libs/rust/cassio-std` (`os`, `ipc`, `ns`, `heap`, panic handler). Syscall wrappers are only compiled for `target_arch = "x86"` so pure logic runs as host tests.
+- `make test-rust` (part of `make test`) runs `cargo test` on the host. Put unit tests in `#[cfg(test)]` modules next to the code; keep the C++ `tests/test_ipc.cpp` black-box tests for ported services.
+- Format with `cargo fmt`. Copyright header as `//` comments. `main.rs` holds only the entry point and receive loop.
+
 ## Pull Request Policy
 
 Never merge a pull request without explicit user approval. After opening a PR, stop and wait for the user to review and test it. Only merge when the user gives the go-ahead.

@@ -1,0 +1,12 @@
+[package]
+name = "ns"
+edition.workspace = true
+version.workspace = true
+autobins = false
+
+[lib]
+path = "src/main.rs"
+crate-type = ["staticlib"]
+
+[dependencies]
+cassio-std = { path = "../../../libs/rust/cassio-std" }

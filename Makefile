@@ -129,7 +129,7 @@ kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALL
 	@mkdir -p bin
 	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
-$(NAMESERVER): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(NAMESERVER): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/core/ns
 
 $(KBD): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
@@ -194,7 +194,11 @@ $(DISK): $(disk_files) $(HELLO)
 	    done; \
 	fi
 
-test: test-kernel test-userspace
+test: test-rust test-kernel test-userspace
+
+# Host unit tests for the Rust crates.
+test-rust:
+	@cargo test --quiet --workspace --target x86_64-unknown-linux-gnu
 
 test-kernel:
 	@$(MAKE) --no-print-directory $(TEST_KERNEL) > /tmp/cassio-build.log 2>&1 \
@@ -271,6 +275,6 @@ run: $(ISO) $(DISK)
 -include $(lib_test_objects:.o=.d)
 -include $(usertest_objects:.o=.d)
 
-.PHONY: kernel clean run test test-kernel test-userspace
+.PHONY: kernel clean run test test-rust test-kernel test-userspace
 clean:
-	rm -rf obj/ bin/ lib/
+	rm -rf obj/ bin/ lib/ target/

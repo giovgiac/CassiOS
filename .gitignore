@@ -11,3 +11,6 @@
 bin/
 obj/
 lib/
+
+# Ignore Cargo Build Output
+target/

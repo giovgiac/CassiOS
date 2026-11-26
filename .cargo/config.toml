@@ -1,0 +1,4 @@
+# CassiOS binaries are freestanding i586 code linked with ld. Static
+# relocations avoid a GOT, and i586 keeps SSE out of generated code.
+[target.i586-unknown-linux-gnu]
+rustflags = ["-C", "relocation-model=static", "-C", "target-cpu=i586"]
