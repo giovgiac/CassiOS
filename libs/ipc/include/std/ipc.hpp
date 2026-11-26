@@ -74,6 +74,9 @@ constexpr u32 TerminalClear = 25;
 constexpr u32 TerminalSetCursor = 26;
 constexpr u32 TerminalGetCursor = 27;
 constexpr u32 TerminalFlush = 28;
+
+// VFS (extended).
+constexpr u32 VfsClose = 29;
 } // namespace MessageType
 
 /**

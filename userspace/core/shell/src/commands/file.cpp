@@ -62,7 +62,9 @@ void Shell::cmdTouch(const char** args, u8 argc) {
         print("touch: cannot create file: ");
         print(args[1]);
         putchar('\n');
+        return;
     }
+    vfs.close(handle);
 }
 
 void Shell::cmdRm(const char** args, u8 argc) {
@@ -108,6 +110,7 @@ void Shell::cmdCat(const char** args, u8 argc) {
         terminal.write(str::StringView(buf, static_cast<usize>(n)));
         offset += static_cast<u32>(n);
     }
+    vfs.close(handle);
     putchar('\n');
 }
 
@@ -141,4 +144,5 @@ void Shell::cmdWrite(const char** args, u8 argc) {
     }
 
     vfs.write(handle, text, pos);
+    vfs.close(handle);
 }

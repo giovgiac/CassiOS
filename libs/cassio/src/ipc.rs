@@ -70,6 +70,9 @@ pub mod message_type {
     pub const TERMINAL_SET_CURSOR: u32 = 26;
     pub const TERMINAL_GET_CURSOR: u32 = 27;
     pub const TERMINAL_FLUSH: u32 = 28;
+
+    // VFS (extended).
+    pub const VFS_CLOSE: u32 = 29;
 }
 
 #[cfg(target_arch = "x86")]
@@ -86,6 +89,12 @@ mod imp {
     /// overwrites `msg`. Returns negative on error.
     pub fn send(pid: u32, msg: &mut Message, data: &[u8]) -> i32 {
         transfer(syscall::SEND, pid, msg, data.as_ptr(), data.len())
+    }
+
+    /// Like `send`, but the reply's data lands in `buf`, which also carries
+    /// the request's data.
+    pub fn send_into(pid: u32, msg: &mut Message, buf: &mut [u8]) -> i32 {
+        transfer(syscall::SEND, pid, msg, buf.as_mut_ptr(), buf.len())
     }
 
     /// Reply to a blocked sender, unblocking it.

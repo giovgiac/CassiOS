@@ -152,6 +152,7 @@ void Shell::cmdExec(const char** args, u8 argc) {
     static constexpr u32 MAX_ELF_SIZE = 65536;
     u8* elfBuf = static_cast<u8*>(heap::alloc(MAX_ELF_SIZE));
     if (!elfBuf) {
+        vfs.close(handle);
         print("exec: out of memory\n");
         return;
     }
@@ -163,6 +164,7 @@ void Shell::cmdExec(const char** args, u8 argc) {
             break;
         total += static_cast<u32>(n);
     }
+    vfs.close(handle);
 
     if (total == 0) {
         print("exec: empty file\n");
