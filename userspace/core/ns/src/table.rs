@@ -33,10 +33,11 @@ impl NsTable {
     }
 
     /// Register `name` (truncated to MAX_NAME_LEN bytes) for `pid`.
-    /// Returns 1 on success, 0 if the name is already registered.
+    /// Returns 1 on success, 0 if the name is already registered or memory
+    /// is exhausted.
     pub fn register(&mut self, name: &[u8], pid: u32) -> u32 {
         let name = &name[..name.len().min(MAX_NAME_LEN)];
-        if self.lookup(name) != 0 {
+        if self.lookup(name) != 0 || self.records.try_reserve(1).is_err() {
             return 0;
         }
         let mut record = Record {

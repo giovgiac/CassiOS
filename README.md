@@ -15,7 +15,7 @@ A microkernel operating system targeting i386 (32-bit x86), written in C++ and a
 - **Physical memory manager**, kernel heap with `new`/`delete`, paging
 - **Persistent FAT32 filesystem** -- 32 MiB disk image, on-demand FAT via LRU sector cache, directories, LFN, case-sensitive
 - **Modular standard library** -- 17 modules under `libs/` (`std::` namespace), from core types/mem/str to service clients (`std::vga`, `std::vfs`, `std::kbd`, etc.)
-- **Two-tier test framework** -- 247 kernel unit tests + 97 userspace integration tests, run headlessly via QEMU
+- **Three-tier test framework** -- Rust host unit tests, then kernel unit tests and userspace integration tests run headlessly via QEMU
 
 ## Prerequisites
 

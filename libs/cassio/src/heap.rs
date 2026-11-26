@@ -116,24 +116,25 @@ impl FreeList {
         if additional <= HEADER || self.head.is_null() {
             return;
         }
-        let mut last = unsafe { &mut *self.head };
-        while let Some(next) = unsafe { last.next.as_mut() } {
-            last = next;
-        }
+        // Raw pointers throughout: the new block lies beyond the last
+        // header, outside what a reference to that header may access.
+        let mut last = self.head;
+        unsafe {
+            while !(*last).next.is_null() {
+                last = (*last).next;
+            }
 
-        if last.free {
-            last.size += additional;
-        } else {
-            let end = unsafe { (last as *mut BlockHeader as *mut u8).add(HEADER + last.size) };
-            let block = end as *mut BlockHeader;
-            unsafe {
+            if (*last).free {
+                (*last).size += additional;
+            } else {
+                let block = (last as *mut u8).add(HEADER + (*last).size) as *mut BlockHeader;
                 block.write(BlockHeader {
                     size: additional - HEADER,
                     free: true,
                     next: null_mut(),
-                })
-            };
-            last.next = block;
+                });
+                (*last).next = block;
+            }
         }
     }
 }
@@ -202,7 +203,7 @@ unsafe impl GlobalAlloc for Heap {
         if raw.is_null() {
             return raw;
         }
-        let aligned = ((raw as usize + layout.align()) & !(layout.align() - 1)) as *mut u8;
+        let aligned = unsafe { raw.add(layout.align() - (raw as usize & (layout.align() - 1))) };
         unsafe { (aligned as *mut *mut u8).sub(1).write(raw) };
         aligned
     }
