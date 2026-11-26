@@ -41,7 +41,11 @@ void SyscallHandler::setFramebufferInfo(const os::FramebufferInfo& info) {
 
 void SyscallHandler::load() {
     InterruptManager& im = InterruptManager::getManager();
-    im.setTrapGate(0x80, &syscallEntry, 3);
+    // An interrupt gate: syscalls run with interrupts disabled, so the
+    // timer cannot switch to another process half-way through one (for
+    // example while a notify is queued). Blocking syscalls switch stacks
+    // and the iret restores the next process's interrupt flag.
+    im.setInterruptGate(0x80, &syscallEntry, 3);
 }
 
 static void copyMessage(const ipc::Message* src, ipc::Message* dst) {
@@ -333,8 +337,13 @@ i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
 }
 
 i32 SyscallHandler::sleep(u32 ms) {
+    // The only syscall that waits in the kernel: it needs the timer, so it
+    // runs with interrupts enabled and may be switched out while waiting.
+    // It touches no shared state, so that is safe.
     PitTimer& pit = PitTimer::getTimer();
+    asm volatile("sti");
     pit.sleep(ms);
+    asm volatile("cli");
     return 0;
 }
 

@@ -22,11 +22,7 @@ namespace hardware {
  * @brief Flag constants used when building IDT gate descriptors.
  *
  */
-enum InterruptFlags : std::u8 {
-    IDT_DESCRIPTOR_PRESENT = 0x80,
-    IDT_INTERRUPT_GATE = 0xE,
-    IDT_TRAP_GATE = 0xF
-};
+enum InterruptFlags : std::u8 { IDT_DESCRIPTOR_PRESENT = 0x80, IDT_INTERRUPT_GATE = 0xE };
 
 /**
  * @brief Singleton that owns the IDT. Delegates to ExceptionHandler, IrqManager, and
@@ -104,16 +100,11 @@ public:
     void deactivate();
 
     /**
-     * @brief Sets an interrupt gate (DPL=0) at the given vector.
+     * @brief Sets an interrupt gate at the given vector. Interrupts are
+     * disabled while its handler runs. DPL 3 lets user mode raise it.
      *
      */
-    void setInterruptGate(std::u8 vector, void (*handler)());
-
-    /**
-     * @brief Sets a trap gate at the given vector with the specified DPL.
-     *
-     */
-    void setTrapGate(std::u8 vector, void (*handler)(), std::u8 dpl);
+    void setInterruptGate(std::u8 vector, void (*handler)(), std::u8 dpl = 0);
 
     /**
      * @brief Populates the IDT, delegates to sub-managers, and loads the IDT via lidt.
