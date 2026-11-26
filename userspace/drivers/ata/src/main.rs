@@ -20,16 +20,12 @@ pub extern "C" fn _start() -> ! {
 
     use drive::{Drive, SECTOR_SIZE};
 
-    const ATA_IRQ: u32 = 14;
-
     let mut drive = Drive::new();
 
-    // Failures are logged and the service keeps running, answering every
-    // request (with an error status if there is no drive). The name is
-    // registered last, so no client waits on detection.
-    if os::irq_register(ATA_IRQ) < 0 {
-        os::write(2, b"ata: IRQ 14 is already registered\n");
-    }
+    // A missing drive is logged and the service keeps running, answering
+    // every request with an error status. The name is registered last, so
+    // no client waits on detection. The drive is polled with its interrupt
+    // disabled, so no IRQ is registered.
     if !drive.identify() {
         os::write(2, b"ata: no ATA drive on the primary master\n");
     }
@@ -45,8 +41,6 @@ pub extern "C" fn _start() -> ! {
         // arg1 of the reply is 0 on success, 1 on failure.
         let mut reply = Message::default();
         match msg.kind {
-            // IRQ notifications come from the kernel, with sender 0.
-            message_type::IRQ_NOTIFY if sender == 0 => drive.ack_irq(),
             message_type::ATA_READ if sender > 0 => {
                 let ok = drive.read_sector(msg.arg1, &mut buf);
                 reply.arg1 = !ok as u32;
