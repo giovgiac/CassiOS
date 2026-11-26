@@ -132,9 +132,16 @@ mod imp {
         }
 
         fn try_identify(&self) -> Option<u32> {
+            unsafe { self.drive_select.write(MASTER_LBA) };
+            self.delay();
+            // A floating bus reads 0xFF, which also looks busy; otherwise let
+            // a drive still spinning up finish, as it ignores commands
+            // while busy.
+            if self.status() == 0xFF {
+                return None;
+            }
+            self.wait_not_busy()?;
             unsafe {
-                self.drive_select.write(MASTER_LBA);
-                self.delay();
                 // Polling only: keep the drive from raising IRQ 14.
                 self.control.write(CONTROL_NIEN);
                 self.sector_count.write(0);
