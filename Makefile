@@ -198,7 +198,7 @@ test: test-rust test-kernel test-userspace
 
 # Host unit tests for the Rust crates.
 test-rust:
-	@cargo test --quiet --workspace
+	@cargo test --workspace --lib
 
 test-kernel:
 	@$(MAKE) --no-print-directory $(TEST_KERNEL) > /tmp/cassio-build.log 2>&1 \
