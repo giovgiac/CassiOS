@@ -24,8 +24,10 @@ impl Device {
         }
     }
 
-    /// Enable the keyboard interface, its IRQ, and scanning. Returns false
-    /// if the controller or the keyboard does not respond.
+    /// Configure the controller for both devices (keyboard and auxiliary
+    /// interfaces and their IRQs) and enable keyboard scanning. The mouse
+    /// driver relies on this and only enables its own reporting. Returns
+    /// false if the controller or the keyboard does not respond.
     pub fn activate(&self) -> bool {
         self.try_activate().is_some()
     }
@@ -44,8 +46,10 @@ impl Device {
         // Discard stale bytes so the replies below are ours.
         self.ps2.flush();
         self.ps2.send_command(ps2::ENABLE_KBD)?;
-        self.ps2
-            .update_config(|config| (config | ps2::CONFIG_KBD_IRQ) & !ps2::CONFIG_KBD_DISABLED)?;
+        self.ps2.send_command(ps2::ENABLE_AUX)?;
+        self.ps2.update_config(|config| {
+            (config | ps2::CONFIG_KBD_IRQ | ps2::CONFIG_AUX_IRQ) & !ps2::CONFIG_KBD_DISABLED
+        })?;
 
         self.ps2.write_data(ps2::ENABLE_DEVICE)?;
         (self.ps2.read_data(KBD_BYTE_MASK, KBD_BYTE)? == ps2::ACK).then_some(())

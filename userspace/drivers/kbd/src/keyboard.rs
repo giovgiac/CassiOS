@@ -71,10 +71,14 @@ impl Keyboard {
     }
 
     /// Queue `pid` for the next key, then serve whoever can be served.
-    /// `reply` sends a key to a reader and returns whether it arrived.
-    pub fn request(&mut self, pid: u32, reply: impl FnMut(u32, u8) -> bool) {
+    /// `reply` sends a key to a reader and returns whether it arrived. A
+    /// reader that cannot be queued (out of memory) gets 0 at once rather
+    /// than waiting forever.
+    pub fn request(&mut self, pid: u32, mut reply: impl FnMut(u32, u8) -> bool) {
         if self.readers.try_reserve(1).is_ok() {
             self.readers.push_back(pid);
+        } else {
+            reply(pid, 0);
         }
         self.serve(reply);
     }

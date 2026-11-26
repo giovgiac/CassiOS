@@ -20,8 +20,10 @@ impl Device {
         }
     }
 
-    /// Enable the auxiliary device, its IRQ, and mouse data reporting.
-    /// Returns false if the controller or the mouse does not respond.
+    /// Enable mouse data reporting. The keyboard driver has already enabled
+    /// the auxiliary interface and its IRQ, so the mouse never reads the
+    /// controller configuration while the keyboard is live. Returns false
+    /// if the mouse does not respond.
     pub fn activate(&self) -> bool {
         self.try_activate().is_some()
     }
@@ -36,12 +38,6 @@ impl Device {
     }
 
     fn try_activate(&self) -> Option<()> {
-        // Discard stale bytes so the replies below are ours.
-        self.ps2.flush();
-        self.ps2.send_command(ps2::ENABLE_AUX)?;
-        self.ps2
-            .update_config(|config| config | ps2::CONFIG_AUX_IRQ)?;
-
         self.ps2.send_command(ps2::WRITE_AUX)?;
         self.ps2.write_data(ps2::ENABLE_DEVICE)?;
         let mouse_byte = ps2::OUTPUT_FULL | ps2::AUX_DATA;

@@ -32,13 +32,13 @@ pub extern "C" fn _start() -> ! {
     let mut mouse = Mouse::new();
 
     // Failures are logged and the service keeps answering MouseRead, so
-    // clients never block on a missing or unresponsive mouse.
-    ns::register_name(b"mouse");
+    // clients never block on a missing or unresponsive mouse. The name is
+    // registered last, so no client waits on the activation below.
     if os::irq_register(MOUSE_IRQ) < 0 {
         os::write(2, b"mouse: IRQ 12 is already registered\n");
     }
     // The keyboard driver registers once it has configured the shared PS/2
-    // controller; activating only after that keeps the two sequences apart.
+    // controller for both devices; only then can mouse reporting be enabled.
     for _ in 0..KBD_WAIT_TRIES {
         if ns::lookup(b"kbd") != 0 {
             break;
@@ -48,6 +48,7 @@ pub extern "C" fn _start() -> ! {
     if !device.activate() {
         os::write(2, b"mouse: PS/2 mouse did not respond\n");
     }
+    ns::register_name(b"mouse");
 
     loop {
         let mut msg = Message::default();
