@@ -7,6 +7,8 @@
 // They run against the test disk: an empty FAT32 volume with the files
 // under disk/ copied in (README.TXT and bin/hello.elf).
 
+use alloc::format;
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use cassio::vfs::{Stat, Vfs};
@@ -42,6 +44,35 @@ fn names(vfs: &Vfs, path: &[u8]) -> Vec<Vec<u8>> {
     out
 }
 
+/// An open file, closed when dropped, so a failing check cannot leave the
+/// service's handle table (16 entries) filling up.
+struct File<'a> {
+    vfs: &'a Vfs,
+    handle: u32,
+}
+
+impl File<'_> {
+    /// Close now and report whether the service accepted it.
+    fn close(self) -> bool {
+        let closed = self.vfs.close(self.handle);
+        core::mem::forget(self);
+        closed
+    }
+}
+
+impl Drop for File<'_> {
+    fn drop(&mut self) {
+        self.vfs.close(self.handle);
+    }
+}
+
+fn open<'a>(vfs: &'a Vfs, path: &[u8], create: bool) -> Result<File<'a>, String> {
+    match vfs.open(path, create) {
+        Some(handle) => Ok(File { vfs, handle }),
+        None => Err(format!("cannot open {}", String::from_utf8_lossy(path))),
+    }
+}
+
 /// The whole file at `path`, or None if it cannot be opened.
 fn read_file(vfs: &Vfs, path: &[u8]) -> Option<Vec<u8>> {
     let handle = vfs.open(path, false)?;
@@ -61,22 +92,18 @@ fn vfs_mkdir_and_list() -> Outcome {
 
 fn vfs_open_write_read() -> Outcome {
     let vfs = Vfs::connect();
-    let Some(handle) = vfs.open(b"/hello", true) else {
-        return Err("open failed".into());
-    };
-    check!(vfs.write(handle, b"hello"));
+    let file = open(&vfs, b"/hello", true)?;
+    check!(vfs.write(file.handle, b"hello"));
     let mut buf = [0u8; 256];
-    check_eq!(vfs.read(handle, 0, &mut buf), 5);
+    check_eq!(vfs.read(file.handle, 0, &mut buf), 5);
     check_eq!(&buf[..5], b"hello");
-    check!(vfs.close(handle));
+    check!(file.close());
     Ok(())
 }
 
 fn vfs_remove_file() -> Outcome {
     let vfs = Vfs::connect();
-    if let Some(handle) = vfs.open(b"/delme", true) {
-        vfs.close(handle);
-    }
+    drop(open(&vfs, b"/delme", true)?);
     check!(vfs.remove(b"/delme"));
     check!(!names(&vfs, b"/").iter().any(|n| n == b"delme"));
     Ok(())
@@ -94,25 +121,20 @@ fn vfs_long_path() -> Outcome {
     let vfs = Vfs::connect();
     check!(vfs.mkdir(b"/longdir"));
     check!(vfs.mkdir(b"/longdir/subdir"));
-    let handle = vfs.open(b"/longdir/subdir/file", true);
-    check!(handle.is_some());
-    handle.map(|h| vfs.close(h));
+    drop(open(&vfs, b"/longdir/subdir/file", true)?);
     check_eq!(names(&vfs, b"/longdir/subdir"), [b"file".to_vec()]);
     Ok(())
 }
 
 fn vfs_large_write_read() -> Outcome {
     let vfs = Vfs::connect();
-    let Some(handle) = vfs.open(b"/bigfile", true) else {
-        return Err("open failed".into());
-    };
+    let file = open(&vfs, b"/bigfile", true)?;
     // Several sectors' worth, in one request.
     let data: Vec<u8> = (0..3000).map(|i| (i % 251) as u8).collect();
-    check!(vfs.write(handle, &data));
+    check!(vfs.write(file.handle, &data));
     let mut buf = alloc::vec![0u8; 4096];
-    check_eq!(vfs.read(handle, 0, &mut buf), data.len());
+    check_eq!(vfs.read(file.handle, 0, &mut buf), data.len());
     check!(buf[..data.len()] == data[..]);
-    vfs.close(handle);
     Ok(())
 }
 
@@ -131,44 +153,34 @@ fn vfs_duplicate_name_fails() -> Outcome {
 fn vfs_remove_nonempty_dir_fails() -> Outcome {
     let vfs = Vfs::connect();
     vfs.mkdir(b"/nonempty");
-    if let Some(handle) = vfs.open(b"/nonempty/child", true) {
-        vfs.close(handle);
-    }
+    drop(open(&vfs, b"/nonempty/child", true)?);
     check!(!vfs.remove(b"/nonempty"));
     Ok(())
 }
 
 fn vfs_read_with_offset() -> Outcome {
     let vfs = Vfs::connect();
-    let Some(handle) = vfs.open(b"/offtest", true) else {
-        return Err("open failed".into());
-    };
-    vfs.write(handle, b"abcd");
+    let file = open(&vfs, b"/offtest", true)?;
+    check!(vfs.write(file.handle, b"abcd"));
     let mut buf = [0u8; 256];
-    check_eq!(vfs.read(handle, 2, &mut buf), 2);
+    check_eq!(vfs.read(file.handle, 2, &mut buf), 2);
     check_eq!(&buf[..2], b"cd");
-    check_eq!(vfs.read(handle, 4, &mut buf), 0);
-    vfs.close(handle);
+    check_eq!(vfs.read(file.handle, 4, &mut buf), 0);
     Ok(())
 }
 
 fn vfs_empty_file_in_subdir() -> Outcome {
     let vfs = Vfs::connect();
     vfs.mkdir(b"/subtest");
-    let h1 = vfs.open(b"/subtest/file.txt", true);
-    check!(h1.is_some());
+    let _created = open(&vfs, b"/subtest/file.txt", true)?;
     // Opening the same empty file without create must find it.
-    let Some(h2) = vfs.open(b"/subtest/file.txt", false) else {
-        return Err("reopen failed".into());
-    };
-    check!(vfs.write(h2, b"OK"));
+    let file = open(&vfs, b"/subtest/file.txt", false)?;
+    check!(vfs.write(file.handle, b"OK"));
     let mut buf = [0u8; 32];
-    check_eq!(vfs.read(h2, 0, &mut buf), 2);
+    check_eq!(vfs.read(file.handle, 0, &mut buf), 2);
     check_eq!(&buf[..2], b"OK");
     // One entry, not two.
     check_eq!(names(&vfs, b"/subtest"), [b"file.txt".to_vec()]);
-    h1.map(|h| vfs.close(h));
-    vfs.close(h2);
     Ok(())
 }
 
@@ -209,10 +221,9 @@ fn vfs_close_releases_handles() -> Outcome {
     let vfs = Vfs::connect();
     // More opens than the service has handles: each close frees one.
     for _ in 0..40 {
-        let Some(handle) = vfs.open(b"/README.TXT", false) else {
-            return Err("open failed".into());
-        };
-        check!(vfs.close(handle));
+        let file = open(&vfs, b"/README.TXT", false)?;
+        let handle = file.handle;
+        check!(file.close());
         check!(!vfs.close(handle));
     }
     check!(!vfs.close(0));

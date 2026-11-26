@@ -5,8 +5,8 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
- * Shared between kernel and userspace tests. Output is routed through
- * a write callback set via test::init() at the start of each runner.
+ * Used by the kernel tests. Output is routed through a write callback set
+ * via test::init() before the tests run.
  *
  */
 

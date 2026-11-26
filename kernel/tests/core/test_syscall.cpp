@@ -29,7 +29,7 @@ TEST(syscall_sleep_returns_zero) {
     // Sleep and the serial write enable interrupts while they wait, which the
     // test kernel never does (a timer tick would run the scheduler with the
     // processes earlier tests left). Sleep is tested through PitTimer here;
-    // both syscalls are tested from user mode in userspace/test.cpp.
+    // both syscalls are tested from user mode in userspace/tests/src/system.rs.
     PitTimer& pit = PitTimer::getTimer();
 
     u32 before = pit.getTicks();

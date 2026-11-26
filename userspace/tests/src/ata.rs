@@ -31,12 +31,14 @@ fn ata_write_then_read_sector() -> Outcome {
     for (i, byte) in pattern.iter_mut().enumerate() {
         *byte = i as u8;
     }
-    check!(ata.write_sector(TEST_LBA, &pattern));
+    let written = ata.write_sector(TEST_LBA, &pattern);
     let mut read = [0u8; SECTOR_SIZE];
-    check!(ata.read_sector(TEST_LBA, &mut read));
-    let matches = read == pattern;
+    let read_back = ata.read_sector(TEST_LBA, &mut read);
 
+    // Put the original back before checking anything.
     check!(ata.write_sector(TEST_LBA, &original));
-    check!(matches);
+    check!(written);
+    check!(read_back);
+    check!(read == pattern);
     Ok(())
 }
