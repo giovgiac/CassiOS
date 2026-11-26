@@ -6,14 +6,10 @@
 
 use alloc::vec::Vec;
 
-/// Most words a command line is split into; later ones are dropped.
-pub const MAX_ARGS: usize = 16;
-
 /// Split `line` into words separated by spaces.
 pub fn parse(line: &[u8]) -> Vec<&[u8]> {
     line.split(|&c| c == b' ')
         .filter(|word| !word.is_empty())
-        .take(MAX_ARGS)
         .collect()
 }
 
@@ -45,10 +41,10 @@ mod tests {
     }
 
     #[test]
-    fn at_most_max_args() {
+    fn every_word_is_kept() {
         let line = b"a b c d e f g h i j k l m n o p q r s";
         let args = parse(line);
-        assert_eq!(args.len(), MAX_ARGS);
-        assert_eq!(args[MAX_ARGS - 1], b"p");
+        assert_eq!(args.len(), 19);
+        assert_eq!(args[18], b"s");
     }
 }

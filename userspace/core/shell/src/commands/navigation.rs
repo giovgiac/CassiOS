@@ -32,10 +32,6 @@ mod imp {
                 self.cwd = b"/".to_vec();
                 return;
             };
-            if input == b".." {
-                crate::path::parent(&mut self.cwd);
-                return;
-            }
             let path = self.path(input);
             if self.vfs.stat(&path) != Stat::Directory {
                 return self.fail(b"cd: no such directory: ", input);

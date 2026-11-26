@@ -289,10 +289,15 @@ i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
     const char* str = reinterpret_cast<const char*>(buf);
 
     if (fd == 2) {
+        // Polling the UART takes about 0.26 ms per character at 38400
+        // baud, so the timer keeps running meanwhile, as in sleep. Only the
+        // UART is touched.
         Serial& serial = COM1::getSerial();
+        asm volatile("sti");
         for (u32 i = 0; i < len; ++i) {
             serial.putchar(str[i]);
         }
+        asm volatile("cli");
         return static_cast<i32>(len);
     }
 

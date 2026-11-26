@@ -41,7 +41,12 @@ impl Shell {
         self.terminal.write(text);
     }
 
+    /// Print the prompt at the start of a row, so the line always has the
+    /// room MAX_INPUT assumes.
     pub fn prompt(&mut self) {
+        if self.terminal.cursor().0 != 0 {
+            self.terminal.putchar(b'\n');
+        }
         self.print(b"$ ");
         self.terminal.flush();
         self.prompt = self.terminal.cursor();

@@ -6,35 +6,38 @@
 
 use alloc::vec::Vec;
 
-/// `input` as an absolute path: as is if it starts with '/', otherwise
-/// relative to the directory `cwd`. Trailing slashes are dropped, so
-/// "docs/" names the same directory as "docs".
+/// `input` as a normalized absolute path: taken as is if it starts with
+/// '/', otherwise relative to the directory `cwd`. "." components and
+/// empty ones (repeated or trailing slashes) are dropped, and ".." removes
+/// the component before it, stopping at the root.
 pub fn resolve(cwd: &[u8], input: &[u8]) -> Vec<u8> {
-    let mut out = if input.first() == Some(&b'/') {
-        input.to_vec()
+    let base: &[u8] = if input.first() == Some(&b'/') {
+        b""
     } else {
-        let mut out = cwd.to_vec();
-        if cwd != b"/" {
-            out.push(b'/');
-        }
-        out.extend_from_slice(input);
-        out
+        cwd
     };
-    while out.len() > 1 && out.ends_with(b"/") {
-        out.pop();
+    let mut parts: Vec<&[u8]> = Vec::new();
+    for part in base
+        .split(|&c| c == b'/')
+        .chain(input.split(|&c| c == b'/'))
+    {
+        match part {
+            b"" | b"." => {}
+            b".." => {
+                parts.pop();
+            }
+            _ => parts.push(part),
+        }
+    }
+    let mut out = Vec::new();
+    for part in parts {
+        out.push(b'/');
+        out.extend_from_slice(part);
+    }
+    if out.is_empty() {
+        out.push(b'/');
     }
     out
-}
-
-/// Remove the last component of the absolute path `path` ("/" stays).
-pub fn parent(path: &mut Vec<u8>) {
-    match path.iter().rposition(|&c| c == b'/') {
-        Some(0) | None => {
-            path.clear();
-            path.push(b'/');
-        }
-        Some(last) => path.truncate(last),
-    }
 }
 
 #[cfg(test)]
@@ -54,14 +57,21 @@ mod tests {
     }
 
     #[test]
-    fn trailing_slashes_are_dropped() {
+    fn slashes_are_collapsed() {
         assert_eq!(resolve(b"/", b"docs/"), b"/docs");
-        assert_eq!(resolve(b"/home", b"docs//"), b"/home/docs");
+        assert_eq!(resolve(b"/home", b"docs//x/"), b"/home/docs/x");
         assert_eq!(resolve(b"/home", b"/"), b"/");
         assert_eq!(resolve(b"/home", b"//"), b"/");
-        let mut cwd = resolve(b"/", b"docs/");
-        parent(&mut cwd);
-        assert_eq!(cwd, b"/");
+    }
+
+    #[test]
+    fn dots_are_resolved() {
+        assert_eq!(resolve(b"/", b".."), b"/");
+        assert_eq!(resolve(b"/home", b".."), b"/");
+        assert_eq!(resolve(b"/home/user", b".."), b"/home");
+        assert_eq!(resolve(b"/", b"docs/.."), b"/");
+        assert_eq!(resolve(b"/home", b"./a/../b/."), b"/home/b");
+        assert_eq!(resolve(b"/home", b"../../../etc"), b"/etc");
     }
 
     #[test]
@@ -69,18 +79,5 @@ mod tests {
         let name = [b'n'; 200];
         let path = resolve(b"/dir", &name);
         assert_eq!(path.len(), 5 + 200);
-    }
-
-    #[test]
-    fn parents() {
-        let mut path = b"/".to_vec();
-        parent(&mut path);
-        assert_eq!(path, b"/");
-        let mut path = b"/home".to_vec();
-        parent(&mut path);
-        assert_eq!(path, b"/");
-        let mut path = b"/home/user".to_vec();
-        parent(&mut path);
-        assert_eq!(path, b"/home");
     }
 }
