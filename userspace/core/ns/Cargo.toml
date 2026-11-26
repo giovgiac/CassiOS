@@ -9,4 +9,4 @@ path = "src/main.rs"
 crate-type = ["staticlib"]
 
 [dependencies]
-cassio-std = { path = "../../../libs/rust/cassio-std" }
+cassio = { path = "../../../libs/cassio" }

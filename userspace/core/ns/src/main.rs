@@ -19,8 +19,8 @@ pub extern "C" fn _start() -> ! {
     use core::mem::size_of;
     use core::slice;
 
-    use cassio_std::ipc::{self, Message, message_type};
-    use cassio_std::ns::{self, Entry, MAX_NAME_LEN};
+    use cassio::ipc::{self, Message, message_type};
+    use cassio::ns::{self, Entry, MAX_NAME_LEN};
 
     use table::NsTable;
 

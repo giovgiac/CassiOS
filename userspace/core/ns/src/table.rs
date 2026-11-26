@@ -6,7 +6,7 @@
 
 use alloc::vec::Vec;
 
-use cassio_std::ns::{Entry, MAX_NAME_LEN};
+use cassio::ns::{Entry, MAX_NAME_LEN};
 
 struct Record {
     name: [u8; MAX_NAME_LEN],
