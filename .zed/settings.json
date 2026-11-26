@@ -7,6 +7,9 @@
         },
         "cfg": {
           "setTest": false
+        },
+        "check": {
+          "allTargets": false
         }
       }
     }

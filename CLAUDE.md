@@ -5,7 +5,7 @@ A microkernel operating system targeting i386 (32-bit x86), written in C++ and a
 ## Technical Details
 
 - Toolchain: `g++` (with `-m32`), `as` (with `--32`), `ld` (with `-melf_i386`)
-- Two-tier test framework: `make test` runs kernel unit tests then userspace integration tests in QEMU
+- Three-tier test framework: `make test` runs Rust host unit tests, then kernel unit tests and userspace integration tests in QEMU
 - Modular standard library under `libs/` with `std::` namespace -- modules from types to service clients, plus `StringView`, `Box<T>`, `Rc<T>` (see `docs/plans/2026-03-19-std-library-design.md`)
 - Custom fixed-width types defined in `libs/types/include/std/types.hpp`: `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `usize`, `isize`
 - Code formatted with `.clang-format` -- run clang-format or use editor format-on-save

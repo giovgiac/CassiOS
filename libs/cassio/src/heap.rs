@@ -313,6 +313,9 @@ mod tests {
             aligned.write_bytes(0xBB, 100);
             heap.dealloc(aligned, layout);
 
+            // The freed block is reused, so the back-pointer was right.
+            assert_eq!(heap.alloc(layout), aligned);
+
             // Exhausting the fake break fails cleanly.
             assert!(
                 heap.alloc(Layout::from_size_align(5 * PAGE, 4).unwrap())
