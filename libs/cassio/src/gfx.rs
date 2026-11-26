@@ -77,8 +77,9 @@ impl PixelBuffer {
         self.fill_rect(x, y, w, 1, color);
         self.fill_rect(x, y.saturating_add(h - 1), w, 1, color);
         if h > 2 {
-            self.fill_rect(x, y + 1, 1, h - 2, color);
-            self.fill_rect(x.saturating_add(w - 1), y + 1, 1, h - 2, color);
+            let y = y.saturating_add(1);
+            self.fill_rect(x, y, 1, h - 2, color);
+            self.fill_rect(x.saturating_add(w - 1), y, 1, h - 2, color);
         }
     }
 
@@ -201,6 +202,14 @@ mod tests {
         assert_eq!(row(&buf, 1), [0xCC, 0, 0, 0xCC, 0]);
         assert_eq!(row(&buf, 2), [0xCC, 0xCC, 0xCC, 0xCC, 0]);
         assert_eq!(row(&buf, 3), [0; 5]);
+    }
+
+    #[test]
+    fn draw_rect_far_off_screen_draws_nothing() {
+        let mut buf = buffer(4, 4);
+        buf.draw_rect(0, u32::MAX, 4, 5, 0xCC);
+        buf.draw_rect(u32::MAX, 0, 5, 4, 0xCC);
+        assert!((0..4).all(|y| row(&buf, y) == [0; 4]));
     }
 
     #[test]

@@ -9,6 +9,12 @@ use cassio::gfx::{Color, PixelBuffer};
 /// Bits per pixel the display draws with.
 pub const BPP: u32 = 32;
 
+/// Whether a framebuffer with this format can be drawn: 32 bits per pixel,
+/// with scanlines at least `width` pixels long.
+pub fn supports(bpp: u32, width: u32, pitch: u32) -> bool {
+    bpp == BPP && pitch / 4 >= width
+}
+
 /// Draws into a back buffer and copies it to the framebuffer on `flush`,
 /// so clients control when the screen updates.
 pub struct Display<'a> {
@@ -185,6 +191,15 @@ mod tests {
             fb,
             [0x55, 0x55, 0x55, 0x55, 0, 0, 0x55, 0x55, 0x55, 0x55, 0, 0]
         );
+    }
+
+    #[test]
+    fn supported_formats() {
+        assert!(supports(32, 1024, 4096));
+        assert!(supports(32, 1000, 4096));
+        assert!(!supports(24, 1024, 3072));
+        assert!(!supports(16, 1024, 2048));
+        assert!(!supports(32, 1024, 3072));
     }
 
     #[test]

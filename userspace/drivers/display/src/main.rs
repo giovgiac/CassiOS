@@ -31,21 +31,32 @@ pub extern "C" fn _start() -> ! {
     // Largest DisplayBlit, in pixels: two 8x16 glyph cells.
     const BLIT_MAX: usize = 256;
 
+    // Without a usable framebuffer (none from the boot loader, a format
+    // the driver cannot draw, a failed mapping) or memory for the back
+    // buffer, run as a 0x0 display so clients still get replies.
     let fb = os::framebuffer_info();
     let fb_bytes = fb.pitch * fb.height;
-    os::map_device(fb.address, FB_VIRT, fb_bytes.div_ceil(PAGE_SIZE));
-    let framebuffer =
-        unsafe { slice::from_raw_parts_mut(FB_VIRT as *mut u32, (fb_bytes / 4) as usize) };
+    let mapped = fb.address != 0
+        && display::supports(fb.bpp, fb.width, fb.pitch)
+        && os::map_device(fb.address, FB_VIRT, fb_bytes.div_ceil(PAGE_SIZE)) == 0;
+    if fb.address != 0 && !mapped {
+        os::write(2, b"display: framebuffer unsupported or not mappable\n");
+    }
+    let (framebuffer, width, height, pitch): (&mut [u32], _, _, _) = if mapped {
+        let pixels = (fb_bytes / 4) as usize;
+        let framebuffer = unsafe { slice::from_raw_parts_mut(FB_VIRT as *mut u32, pixels) };
+        (framebuffer, fb.width, fb.height, fb.pitch)
+    } else {
+        (&mut [], 0, 0, 0)
+    };
 
-    // Without memory for the back buffer, run as a 0x0 display so clients
-    // still get replies.
-    let mut display = Display::new(framebuffer, fb.width, fb.height, fb.pitch)
+    let mut display = Display::new(framebuffer, width, height, pitch)
         .or_else(|| {
             os::write(2, b"display: no memory for the back buffer\n");
             Display::new(&mut [], 0, 0, 0)
         })
         .unwrap();
-    display.fill_rect(0, 0, fb.width, fb.height, 0x000000);
+    display.fill_rect(0, 0, width, height, 0x000000);
     display.flush();
     ns::register_name(b"display");
 
