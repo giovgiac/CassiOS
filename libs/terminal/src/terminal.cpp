@@ -7,10 +7,9 @@
  *
  */
 
-#include <std/terminal.hpp>
-
 #include <std/ipc.hpp>
 #include <std/ns.hpp>
+#include <std/terminal.hpp>
 
 using namespace std;
 
@@ -28,10 +27,16 @@ void terminal::Terminal::putchar(char c) {
 }
 
 void terminal::Terminal::write(str::StringView text) {
-    ipc::Message msg = {};
-    msg.type = ipc::MessageType::TerminalWrite;
-    msg.arg1 = text.length();
-    ipc::notify(pid, &msg, text.data(), text.length());
+    for (u32 offset = 0; offset < text.length(); offset += WRITE_MAX) {
+        u32 len = text.length() - offset;
+        if (len > WRITE_MAX) {
+            len = WRITE_MAX;
+        }
+        ipc::Message msg = {};
+        msg.type = ipc::MessageType::TerminalWrite;
+        msg.arg1 = len;
+        ipc::notify(pid, &msg, text.data() + offset, len);
+    }
 }
 
 void terminal::Terminal::clear() {
@@ -46,7 +51,7 @@ void terminal::Terminal::flush() {
     ipc::notify(pid, &msg);
 }
 
-void terminal::Terminal::setCursor(u8 col, u8 row) {
+void terminal::Terminal::setCursor(u32 col, u32 row) {
     ipc::Message msg = {};
     msg.type = ipc::MessageType::TerminalSetCursor;
     msg.arg1 = col;
@@ -54,10 +59,10 @@ void terminal::Terminal::setCursor(u8 col, u8 row) {
     ipc::send(pid, &msg);
 }
 
-void terminal::Terminal::getCursor(u8& col, u8& row) {
+void terminal::Terminal::getCursor(u32& col, u32& row) {
     ipc::Message msg = {};
     msg.type = ipc::MessageType::TerminalGetCursor;
     ipc::send(pid, &msg);
-    col = static_cast<u8>(msg.arg1);
-    row = static_cast<u8>(msg.arg2);
+    col = msg.arg1;
+    row = msg.arg2;
 }

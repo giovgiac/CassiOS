@@ -30,8 +30,8 @@ private:
     char buffer[SHELL_MAX_INPUT + 1]; // +1 for null terminator in execute()
     std::u8 length;
     std::u8 cursor;
-    std::u8 promptCol;
-    std::u8 promptRow;
+    std::u32 promptCol;
+    std::u32 promptRow;
 
     char cwd[SHELL_MAX_PATH];
 
