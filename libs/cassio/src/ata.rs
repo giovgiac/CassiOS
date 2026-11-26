@@ -5,7 +5,7 @@
 // license that can be found in the LICENSE file.
 
 use crate::ipc::{self, Message, message_type};
-use crate::{ns, os};
+use crate::ns;
 
 pub const SECTOR_SIZE: usize = 512;
 
@@ -19,17 +19,9 @@ impl Ata {
     /// times (500 tries, sleeping 10 ms between them) while it starts.
     /// Without it, every sector request fails.
     pub fn connect() -> Self {
-        const TRIES: u32 = 500;
-        const WAIT_MS: u32 = 10;
-        for _ in 0..TRIES {
-            let pid = ns::lookup(b"ata");
-            if pid != 0 {
-                return Self { pid };
-            }
-            os::sleep(WAIT_MS);
+        Self {
+            pid: ns::connect(b"ata"),
         }
-        os::write(2, b"ata: service not found\n");
-        Self { pid: 0 }
     }
 
     /// Read sector `lba` into `buf`.

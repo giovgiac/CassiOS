@@ -25,6 +25,28 @@ pub mod syscall {
     pub const FRAMEBUFFER_INFO: u32 = 17;
 }
 
+/// Timer ticks per second, as counted by `uptime`.
+pub const TICK_FREQUENCY: u32 = 1000;
+
+/// A process as reported by `proc_list`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ProcEntry {
+    pub pid: u32,
+    /// 1 Ready, 2 Running, 3 SendBlocked, 4 ReceiveBlocked, 5 WaitBlocked.
+    pub state: u32,
+    /// Heap size in bytes (0 without a heap).
+    pub heap_size: u32,
+}
+
+/// Physical memory in 4 KiB frames, as reported by `mem_info`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MemInfo {
+    pub total: u32,
+    pub used: u32,
+    pub free: u32,
+}
+
 /// VESA framebuffer details reported by the boot loader.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct FramebufferInfo {
@@ -44,7 +66,7 @@ pub use imp::*;
 mod imp {
     use core::arch::asm;
 
-    use super::{FramebufferInfo, syscall};
+    use super::{FramebufferInfo, MemInfo, ProcEntry, syscall};
 
     /// Write bytes to a file descriptor (fd 2 = serial). Returns the
     /// number of bytes written, or negative on error.
@@ -137,6 +159,76 @@ mod imp {
         }
     }
 
+    /// Timer ticks since boot (TICK_FREQUENCY per second).
+    pub fn uptime() -> u32 {
+        let ret: u32;
+        unsafe { asm!("int 0x80", inlateout("eax") syscall::UPTIME => ret) };
+        ret
+    }
+
+    pub fn reboot() {
+        unsafe { asm!("int 0x80", inlateout("eax") syscall::REBOOT => _) };
+    }
+
+    pub fn shutdown() {
+        unsafe { asm!("int 0x80", inlateout("eax") syscall::SHUTDOWN => _) };
+    }
+
+    pub fn mem_info() -> MemInfo {
+        let (total, used, free): (u32, u32, u32);
+        unsafe {
+            asm!(
+                "int 0x80",
+                inlateout("eax") syscall::MEM_INFO => total,
+                lateout("ebx") used,
+                lateout("ecx") free,
+            )
+        };
+        MemInfo { total, used, free }
+    }
+
+    /// Fill `out` with the running processes; returns how many it holds.
+    pub fn proc_list(out: &mut [ProcEntry]) -> usize {
+        let ret: u32;
+        unsafe {
+            asm!(
+                "int 0x80",
+                inlateout("eax") syscall::PROC_LIST => ret,
+                in("ebx") out.as_mut_ptr(),
+                in("ecx") out.len(),
+            )
+        };
+        (ret as usize).min(out.len())
+    }
+
+    /// Start a process from the ELF image `elf`. Returns its PID, or 0 if
+    /// it cannot be loaded.
+    pub fn exec(elf: &[u8]) -> u32 {
+        let ret: u32;
+        unsafe {
+            asm!(
+                "int 0x80",
+                inlateout("eax") syscall::EXEC => ret,
+                in("ebx") elf.as_ptr(),
+                in("ecx") elf.len(),
+            )
+        };
+        ret
+    }
+
+    /// Block until process `pid` exits.
+    pub fn waitpid(pid: u32) -> i32 {
+        let ret: i32;
+        unsafe {
+            asm!(
+                "int 0x80",
+                inlateout("eax") syscall::WAIT_PID => ret,
+                in("ebx") pid,
+            )
+        };
+        ret
+    }
+
     /// Grow the heap by `increment` bytes. Returns the old break, or null
     /// on failure.
     pub fn sbrk(increment: u32) -> *mut u8 {
@@ -149,5 +241,15 @@ mod imp {
             )
         };
         ret as *mut u8
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn proc_entry_layout_matches_the_kernel() {
+        assert_eq!(core::mem::size_of::<ProcEntry>(), 12);
     }
 }

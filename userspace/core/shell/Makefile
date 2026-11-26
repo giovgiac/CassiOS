@@ -1,38 +1,22 @@
 SERVICE = shell
-SOURCES = main.cpp shell.cpp commands/system.cpp commands/navigation.cpp commands/file.cpp
 
 ROOT     := $(dir $(lastword $(MAKEFILE_LIST)))../../..
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-exceptions -fno-rtti -fno-leading-underscore -fno-stack-protector -Iinclude/ $(foreach dir,$(wildcard $(ROOT)/libs/*/include),-I$(dir)) -MMD -MP
-LDFLAGS  = -melf_i386
+TARGET   = i586-unknown-linux-gnu
+LDFLAGS  = -melf_i386 --gc-sections --strip-debug -u _start
 
-OBJDIR   = $(ROOT)/obj/userspace/$(SERVICE)
 BINDIR   = $(ROOT)/bin
 OUTPUT   = $(BINDIR)/$(SERVICE).elf
-LIBSTD_MEM  = $(ROOT)/lib/libstd_mem.a
-LIBSTD_STR  = $(ROOT)/lib/libstd_str.a
-LIBSTD_ALLOC = $(ROOT)/lib/libstd_alloc.a
-LIBSTD_HEAP = $(ROOT)/lib/libstd_heap.a
-LIBSTD_OS = $(ROOT)/lib/libstd_os.a
-LIBSTD_IPC = $(ROOT)/lib/libstd_ipc.a
-LIBSTD_NS = $(ROOT)/lib/libstd_ns.a
-LIBSTD_KBD = $(ROOT)/lib/libstd_kbd.a
-LIBSTD_TERMINAL = $(ROOT)/lib/libstd_terminal.a
-LIBSTD_VFS = $(ROOT)/lib/libstd_vfs.a
-LIBSTD_FMT  = $(ROOT)/lib/libstd_fmt.a
+STATICLIB = $(ROOT)/target/$(TARGET)/release/lib$(SERVICE).a
+LIBSTD_MEM = $(ROOT)/lib/libstd_mem.a
 
-OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
-
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_TERMINAL) $(LIBSTD_VFS) $(LIBSTD_FMT)
+$(OUTPUT): FORCE linker.ld $(LIBSTD_MEM)
+	cargo build --release --target $(TARGET) --target-dir $(ROOT)/target -p $(SERVICE)
 	@mkdir -p $(BINDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_FMT) $(LIBSTD_VFS) $(LIBSTD_TERMINAL) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(STATICLIB) $(LIBSTD_MEM)
 
-$(OBJDIR)/%.o: src/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $<
+FORCE:
 
 clean:
-	rm -rf $(OBJDIR) $(OUTPUT)
+	rm -f $(OUTPUT)
 
--include $(OBJECTS:.o=.d)
-
-.PHONY: clean
+.PHONY: clean FORCE
