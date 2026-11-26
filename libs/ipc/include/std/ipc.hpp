@@ -5,9 +5,8 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
- * IPC message format, message type constants, and userspace
- * communication primitives: synchronous send/receive/reply
- * and fire-and-forget notify.
+ * IPC message format and message type constants, shared by the kernel
+ * and the kernel tests. Userspace programs use libs/cassio.
  *
  */
 
@@ -74,32 +73,6 @@ constexpr u32 TerminalSetCursor = 27;
 constexpr u32 TerminalGetCursor = 28;
 constexpr u32 TerminalFlush = 29;
 } // namespace MessageType
-
-/**
- * Send a message to process @p pid and block until it replies.
- * The reply overwrites @p msg in place.
- * Returns the sender PID on success, negative on error.
- */
-i32 send(u32 pid, Message* msg, const void* data = nullptr, u32 dataLen = 0);
-
-/**
- * Block until a message arrives. The message is written into @p msg.
- * Optional @p data buffer receives bulk data (up to @p dataCapacity bytes).
- * Returns the sender PID, or negative on error.
- */
-i32 receive(Message* msg, void* data = nullptr, u32 dataCapacity = 0);
-
-/**
- * Reply to a blocked sender at @p pid. Unblocks the sender.
- * Returns 0 on success, negative on error.
- */
-i32 reply(u32 pid, Message* msg, const void* data = nullptr, u32 dataLen = 0);
-
-/**
- * Fire-and-forget: enqueue a message to @p pid without blocking.
- * Returns 0 on success, negative if the queue is full.
- */
-i32 notify(u32 pid, Message* msg, const void* data = nullptr, u32 dataLen = 0);
 
 } // namespace ipc
 } // namespace std
