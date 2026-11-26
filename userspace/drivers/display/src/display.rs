@@ -71,6 +71,42 @@ impl<'a> Display<'a> {
         }
     }
 
+    /// A display over the boot loader's framebuffer, mapped into this
+    /// process. Without a usable framebuffer (none, a format the driver
+    /// cannot draw, a failed mapping) or memory for the back buffer, this
+    /// is a 0x0 display, so clients still get replies.
+    #[cfg(target_arch = "x86")]
+    pub fn from_boot_framebuffer() -> Display<'static> {
+        use cassio::os;
+
+        // Userspace address the framebuffer is mapped at.
+        const FB_VIRT: u32 = 0x1000_0000;
+        const PAGE_SIZE: u32 = 4096;
+
+        let fb = os::framebuffer_info();
+        let fb_bytes = fb.pitch * fb.height;
+        let mapped = fb.address != 0
+            && supports(fb.bpp, fb.width, fb.pitch)
+            && os::map_device(fb.address, FB_VIRT, fb_bytes.div_ceil(PAGE_SIZE)) == 0;
+        if fb.address != 0 && !mapped {
+            os::write(2, b"display: framebuffer unsupported or not mappable\n");
+        }
+        let (framebuffer, width, height, pitch): (&'static mut [u32], _, _, _) = if mapped {
+            let pixels = (fb_bytes / 4) as usize;
+            // The mapping lives as long as the process.
+            let framebuffer =
+                unsafe { core::slice::from_raw_parts_mut(FB_VIRT as *mut u32, pixels) };
+            (framebuffer, fb.width, fb.height, fb.pitch)
+        } else {
+            (&mut [], 0, 0, 0)
+        };
+
+        Display::new(framebuffer, width, height, pitch).unwrap_or_else(|| {
+            os::write(2, b"display: no memory for the back buffer\n");
+            Display::new(&mut [], 0, 0, 0).unwrap()
+        })
+    }
+
     /// Width, height, pitch (bytes) and bits per pixel.
     pub fn info(&self) -> (u32, u32, u32, u32) {
         (self.back.width(), self.back.height(), self.pitch, BPP)
