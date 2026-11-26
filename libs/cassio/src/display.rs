@@ -18,15 +18,22 @@ pub struct Display {
 }
 
 impl Display {
-    /// Connect to the display service, waiting until it has registered.
+    /// Connect to the display service, retrying the lookup a bounded
+    /// number of times (500 tries, sleeping 10 ms between them) while it
+    /// starts. Without it, requests go nowhere and `size` is 0x0, so
+    /// callers keep working.
     pub fn connect() -> Self {
-        loop {
+        const TRIES: u32 = 500;
+        const WAIT_MS: u32 = 10;
+        for _ in 0..TRIES {
             let pid = ns::lookup(b"display");
             if pid != 0 {
                 return Self { pid };
             }
-            os::sleep(1);
+            os::sleep(WAIT_MS);
         }
+        os::write(2, b"display: service not found\n");
+        Self { pid: 0 }
     }
 
     /// Width and height in pixels.

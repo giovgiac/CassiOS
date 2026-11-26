@@ -23,7 +23,7 @@ pub extern "C" fn _start() -> ! {
 
     use terminal::Terminal;
 
-    // Largest TerminalWrite, in bytes.
+    // Largest TerminalWrite, in bytes; clients split longer text.
     const WRITE_MAX: usize = 256;
 
     // Registered first, as clients look the terminal up once and early;
@@ -52,9 +52,7 @@ pub extern "C" fn _start() -> ! {
                 text[..len].iter().for_each(|&ch| terminal.putchar(ch));
             }
             message_type::TERMINAL_CLEAR => terminal.clear(),
-            message_type::TERMINAL_SET_CURSOR => {
-                terminal.set_cursor(msg.arg1 & 0xFF, msg.arg2 & 0xFF)
-            }
+            message_type::TERMINAL_SET_CURSOR => terminal.set_cursor(msg.arg1, msg.arg2),
             message_type::TERMINAL_FLUSH => terminal.present(),
             _ => {}
         }

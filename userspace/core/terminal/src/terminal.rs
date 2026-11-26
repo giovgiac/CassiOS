@@ -84,7 +84,9 @@ impl<S: Screen> Terminal<S> {
         (self.x, self.y)
     }
 
-    /// Move the cursor without drawing.
+    /// Move the cursor without drawing. A position outside the grid is
+    /// kept as is (clients read it back) and pulled onto the grid by the
+    /// next `putchar`.
     pub fn set_cursor(&mut self, col: u32, row: u32) {
         self.x = col;
         self.y = row;
@@ -96,6 +98,10 @@ impl<S: Screen> Terminal<S> {
         if self.cols == 0 || self.rows == 0 {
             return;
         }
+        // A cursor moved off the grid writes at its edge; only real output
+        // scrolls.
+        self.x = self.x.min(self.cols - 1);
+        self.y = self.y.min(self.rows - 1);
         match ch {
             NEWLINE => {
                 self.y += 1;
@@ -397,6 +403,27 @@ mod tests {
         t.present();
         drop(t);
         assert_eq!(fake.0[0], Op::Scroll(FONT_HEIGHT));
+    }
+
+    #[test]
+    fn writing_with_the_cursor_below_the_grid_does_not_scroll() {
+        let mut fake = Fake::default();
+        let mut t = terminal(&mut fake);
+        t.set_cursor(1, 200);
+        assert_eq!(t.cursor(), (1, 200));
+        write(&mut t, b"x");
+        assert_eq!((t.cursor(), t.pending_scroll), ((2, 2), 0));
+        assert_eq!(&grid(&t)[8..], b" x  ");
+    }
+
+    #[test]
+    fn writing_with_the_cursor_right_of_the_grid_uses_the_last_column() {
+        let mut fake = Fake::default();
+        let mut t = terminal(&mut fake);
+        t.set_cursor(300, 0);
+        write(&mut t, b"x");
+        assert_eq!(t.cursor(), (0, 1));
+        assert_eq!(&grid(&t)[..4], b"   x");
     }
 
     #[test]

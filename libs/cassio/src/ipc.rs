@@ -62,7 +62,8 @@ pub mod message_type {
     pub const DISPLAY_GET_INFO: u32 = 21;
     pub const DISPLAY_DRAW_CHAR: u32 = 22;
 
-    // Terminal.
+    // Terminal. TerminalWrite carries at most 256 bytes of text; clients
+    // split longer text. Every send is answered with the cursor position.
     pub const TERMINAL_PUTCHAR: u32 = 23;
     pub const TERMINAL_WRITE: u32 = 24;
     pub const TERMINAL_CLEAR: u32 = 25;

@@ -21,6 +21,10 @@
 namespace std {
 namespace terminal {
 
+/// Most bytes the terminal service takes in one write; write() splits
+/// longer text.
+constexpr u32 WRITE_MAX = 256;
+
 class Terminal {
 public:
     Terminal();
@@ -29,8 +33,8 @@ public:
     void write(str::StringView text);
     void clear();
     void flush();
-    void setCursor(u8 col, u8 row);
-    void getCursor(u8& col, u8& row);
+    void setCursor(u32 col, u32 row);
+    void getCursor(u32& col, u32& row);
 
     Terminal(const Terminal&) = delete;
     Terminal& operator=(const Terminal&) = delete;
