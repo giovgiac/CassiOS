@@ -153,7 +153,7 @@ $(TERMINAL): FORCE $(LIBSTD_MEM)
 $(USERSHELL): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/core/shell
 
-$(HELLO): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_TERMINAL)
+$(HELLO): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/apps/hello
 
 # Compile test files from the kernel/tests/ directory.
