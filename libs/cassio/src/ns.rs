@@ -51,14 +51,24 @@ pub fn unpack_name<'a>(msg: &Message, out: &'a mut [u8; MAX_NAME_LEN + 1]) -> &'
 /// the name is already registered or the nameserver is unreachable.
 #[cfg(target_arch = "x86")]
 pub fn register_name(name: &[u8]) -> u32 {
-    use crate::ipc::{self, message_type};
+    request(crate::ipc::message_type::NS_REGISTER, name)
+}
 
+/// Look up the PID registered for `name`. Returns 0 if it is not
+/// registered or the nameserver is unreachable.
+#[cfg(target_arch = "x86")]
+pub fn lookup(name: &[u8]) -> u32 {
+    request(crate::ipc::message_type::NS_LOOKUP, name)
+}
+
+#[cfg(target_arch = "x86")]
+fn request(kind: u32, name: &[u8]) -> u32 {
     let mut msg = Message {
-        kind: message_type::NS_REGISTER,
+        kind,
         ..Message::default()
     };
     pack_name(name, &mut msg);
-    if ipc::send(PID, &mut msg, &[]) < 0 {
+    if crate::ipc::send(PID, &mut msg, &[]) < 0 {
         return 0;
     }
     msg.arg1

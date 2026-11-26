@@ -58,6 +58,17 @@ mod imp {
         loop {}
     }
 
+    /// Suspend the calling process for at least `ms` milliseconds.
+    pub fn sleep(ms: u32) {
+        unsafe {
+            asm!(
+                "int 0x80",
+                inlateout("eax") syscall::SLEEP => _,
+                in("ebx") ms,
+            )
+        };
+    }
+
     /// Receive IRQ `irq` as IrqNotify messages. Returns 0 on success,
     /// negative if the IRQ is already registered.
     pub fn irq_register(irq: u32) -> i32 {

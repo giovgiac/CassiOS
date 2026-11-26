@@ -31,7 +31,9 @@ impl Device {
     }
 
     /// Feed every pending keyboard byte to `keyboard`. Mouse bytes are left
-    /// for the mouse driver.
+    /// for the mouse driver. The controller raises IRQ 1 only while a
+    /// keyboard byte is at the head of its buffer, so keyboard bytes queued
+    /// behind a mouse byte wait for the mouse driver to read it.
     pub fn drain(&self, keyboard: &mut Keyboard) {
         while self.ps2.status_is(KBD_BYTE_MASK, KBD_BYTE) {
             keyboard.handle_scancode(self.ps2.read());

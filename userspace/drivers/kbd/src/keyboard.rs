@@ -1,4 +1,4 @@
-// keyboard.rs -- scancode set 1 decoder and key buffer
+// keyboard.rs -- scancode set 1 decoder, key buffer and waiting readers
 //
 // Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
 // Use of this source code is governed by a MIT-style
@@ -47,21 +47,46 @@ const SCANCODES: [u8; 0x59] = [
     kbd::F12,
 ];
 
-/// Decodes scancodes into key codes and buffers them for readers.
+/// Decodes scancodes into key codes, buffers them, and hands them to
+/// readers in the order they asked.
 pub struct Keyboard {
-    shift: bool,
+    left_shift: bool,
+    right_shift: bool,
     caps_lock: bool,
     extended: bool,
     keys: VecDeque<u8>,
+    readers: VecDeque<u32>,
 }
 
 impl Keyboard {
     pub const fn new() -> Self {
         Self {
-            shift: false,
+            left_shift: false,
+            right_shift: false,
             caps_lock: false,
             extended: false,
             keys: VecDeque::new(),
+            readers: VecDeque::new(),
+        }
+    }
+
+    /// Queue `pid` for the next key, then serve whoever can be served.
+    /// `reply` sends a key to a reader and returns whether it arrived.
+    pub fn request(&mut self, pid: u32, reply: impl FnMut(u32, u8) -> bool) {
+        if self.readers.try_reserve(1).is_ok() {
+            self.readers.push_back(pid);
+        }
+        self.serve(reply);
+    }
+
+    /// Give buffered keys to waiting readers, oldest first. A key stays
+    /// buffered if its reader is gone (the reply fails).
+    pub fn serve(&mut self, mut reply: impl FnMut(u32, u8) -> bool) {
+        while let (Some(&pid), Some(&key)) = (self.readers.front(), self.keys.front()) {
+            self.readers.pop_front();
+            if reply(pid, key) {
+                self.keys.pop_front();
+            }
         }
     }
 
@@ -89,16 +114,18 @@ impl Keyboard {
         }
 
         match scancode {
-            LEFT_SHIFT | RIGHT_SHIFT => self.shift = !released,
+            LEFT_SHIFT => self.left_shift = !released,
+            RIGHT_SHIFT => self.right_shift = !released,
             CAPS_LOCK if !released => self.caps_lock = !self.caps_lock,
             _ if released => {}
             _ => {
                 let key = SCANCODES.get(scancode as usize).copied().unwrap_or(0);
                 if key != 0 {
+                    let shift_held = self.left_shift || self.right_shift;
                     let shifted = if key.is_ascii_lowercase() {
-                        self.shift != self.caps_lock
+                        shift_held != self.caps_lock
                     } else {
-                        self.shift
+                        shift_held
                     };
                     self.push(if shifted { shift(key) } else { key });
                 }
@@ -106,13 +133,9 @@ impl Keyboard {
         }
     }
 
-    /// Take the oldest buffered key, if any.
-    pub fn read(&mut self) -> Option<u8> {
-        self.keys.pop_front()
-    }
-
+    /// Buffer a key, dropping it if the buffer is full or out of memory.
     fn push(&mut self, key: u8) {
-        if self.keys.len() < MAX_BUFFERED {
+        if self.keys.len() < MAX_BUFFERED && self.keys.try_reserve(1).is_ok() {
             self.keys.push_back(key);
         }
     }
@@ -151,12 +174,16 @@ fn shift(key: u8) -> u8 {
 mod tests {
     use super::*;
 
-    fn keys(scancodes: &[u8]) -> Vec<u8> {
-        let mut keyboard = Keyboard::new();
+    fn feed(keyboard: &mut Keyboard, scancodes: &[u8]) {
         for &raw in scancodes {
             keyboard.handle_scancode(raw);
         }
-        core::iter::from_fn(|| keyboard.read()).collect()
+    }
+
+    fn keys(scancodes: &[u8]) -> Vec<u8> {
+        let mut keyboard = Keyboard::new();
+        feed(&mut keyboard, scancodes);
+        keyboard.keys.into_iter().collect()
     }
 
     #[test]
@@ -234,8 +261,11 @@ mod tests {
     }
 
     #[test]
-    fn empty_buffer_reads_none() {
-        assert_eq!(Keyboard::new().read(), None);
+    fn releasing_one_shift_keeps_the_other() {
+        assert_eq!(
+            keys(&[LEFT_SHIFT, RIGHT_SHIFT, RIGHT_SHIFT | RELEASED, 0x1E]),
+            b"A"
+        );
     }
 
     #[test]
@@ -280,11 +310,69 @@ mod tests {
 
     #[test]
     fn full_buffer_drops_new_keys() {
+        let mut scancodes = vec![0x1E; MAX_BUFFERED];
+        scancodes.push(0x30);
+        assert_eq!(keys(&scancodes), [b'a'; MAX_BUFFERED]);
+    }
+
+    #[test]
+    fn reader_waits_for_a_key() {
         let mut keyboard = Keyboard::new();
-        for _ in 0..MAX_BUFFERED {
-            keyboard.handle_scancode(0x1E);
-        }
-        keyboard.handle_scancode(0x30);
-        assert!(core::iter::from_fn(|| keyboard.read()).all(|key| key == b'a'));
+        let mut sent = Vec::new();
+        keyboard.request(7, |pid, key| {
+            sent.push((pid, key));
+            true
+        });
+        assert!(sent.is_empty());
+
+        feed(&mut keyboard, &[0x1E]);
+        keyboard.serve(|pid, key| {
+            sent.push((pid, key));
+            true
+        });
+        assert_eq!(sent, [(7, b'a')]);
+        assert!(keyboard.keys.is_empty() && keyboard.readers.is_empty());
+    }
+
+    #[test]
+    fn buffered_key_goes_to_reader_at_once() {
+        let mut keyboard = Keyboard::new();
+        feed(&mut keyboard, &[0x1E]);
+        let mut sent = Vec::new();
+        keyboard.request(7, |pid, key| {
+            sent.push((pid, key));
+            true
+        });
+        assert_eq!(sent, [(7, b'a')]);
+    }
+
+    #[test]
+    fn readers_served_in_order() {
+        let mut keyboard = Keyboard::new();
+        let mut sent = Vec::new();
+        keyboard.request(7, |_, _| true);
+        keyboard.request(8, |_, _| true);
+        feed(&mut keyboard, &[0x23, 0x17]);
+        keyboard.serve(|pid, key| {
+            sent.push((pid, key));
+            true
+        });
+        assert_eq!(sent, [(7, b'h'), (8, b'i')]);
+    }
+
+    #[test]
+    fn failed_reply_keeps_the_key() {
+        let mut keyboard = Keyboard::new();
+        keyboard.request(7, |_, _| true);
+        keyboard.request(8, |_, _| true);
+        feed(&mut keyboard, &[0x1E]);
+        // Reader 7 has exited: its reply fails, so the key goes to 8.
+        let mut sent = Vec::new();
+        keyboard.serve(|pid, key| {
+            sent.push((pid, key));
+            pid != 7
+        });
+        assert_eq!(sent, [(7, b'a'), (8, b'a')]);
+        assert!(keyboard.keys.is_empty() && keyboard.readers.is_empty());
     }
 }

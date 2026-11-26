@@ -24,6 +24,9 @@ pub extern "C" fn _start() -> ! {
     use mouse::Mouse;
 
     const MOUSE_IRQ: u32 = 12;
+    // How long to wait for the keyboard driver before activating anyway.
+    const KBD_WAIT_TRIES: u32 = 100;
+    const KBD_WAIT_MS: u32 = 10;
 
     let device = Device::new();
     let mut mouse = Mouse::new();
@@ -33,6 +36,14 @@ pub extern "C" fn _start() -> ! {
     ns::register_name(b"mouse");
     if os::irq_register(MOUSE_IRQ) < 0 {
         os::write(2, b"mouse: IRQ 12 is already registered\n");
+    }
+    // The keyboard driver registers once it has configured the shared PS/2
+    // controller; activating only after that keeps the two sequences apart.
+    for _ in 0..KBD_WAIT_TRIES {
+        if ns::lookup(b"kbd") != 0 {
+            break;
+        }
+        os::sleep(KBD_WAIT_MS);
     }
     if !device.activate() {
         os::write(2, b"mouse: PS/2 mouse did not respond\n");
