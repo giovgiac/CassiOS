@@ -6,7 +6,7 @@ A microkernel operating system targeting i386 (32-bit x86), written in C++ and a
 
 - Toolchain: `g++` (with `-m32`), `as` (with `--32`), `ld` (with `-melf_i386`)
 - Three-tier test framework: `make test` runs Rust host unit tests, then kernel unit tests and userspace integration tests in QEMU
-- Modular standard library under `libs/` with `std::` namespace -- modules from types to service clients, plus `StringView`, `Box<T>`, `Rc<T>` (see `docs/plans/2026-03-19-std-library-design.md`)
+- Modular C++ standard library under `libs/` with `std::` namespace, used by the kernel -- modules from types to the IPC message format, plus `StringView`, `Box<T>`, `Rc<T>` (see `docs/plans/2026-03-19-std-library-design.md`). Userspace uses the Rust `libs/cassio` instead
 - Custom fixed-width types defined in `libs/types/include/std/types.hpp`: `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `usize`, `isize`
 - Code formatted with `.clang-format` -- run clang-format or use editor format-on-save
 - Headers use `#ifndef` include guards (not `#pragma once`)
@@ -23,7 +23,7 @@ CassiOS is a microkernel. The kernel contains only: GDT/TSS, interrupt subsystem
 - **Boot flow**: GRUB loads the kernel via Multiboot (`kernel/src/core/loader.s`), which sets up a 2MiB stack, calls `ctors()` for global constructors, then calls `start()` in `kernel.cpp`. `start()` initializes GDT, interrupts, memory, PIT, scheduler, loads userspace ELF modules, and enters an idle loop (`hlt`).
 - **Interrupt dispatch**: assembly stubs in `kernel/src/hardware/stub.s` bridge IRQs to `IrqManager::handleIrq()`. IRQs are either handled by in-kernel handlers (PIT) or forwarded to registered userspace processes via IPC.
 - **IPC**: synchronous message passing (send/receive/reply) plus fire-and-forget notify. Messages are 24 bytes (type + 5 args) with optional bulk data buffers for large transfers. The kernel copies messages between address spaces. `receive()` priority: IRQ notifications > notify queue > send queue.
-- **Userspace services**: each is a separate ELF binary loaded as a GRUB multiboot module. Services register with the nameserver and communicate via IPC. Drivers live under `userspace/drivers/`, core services under `userspace/core/` (ns, shell, vfs), and user programs under `userspace/apps/`. Service client libraries under `libs/` (e.g., `std::vga::Vga`, `std::vfs::Vfs`) auto-resolve PIDs from the nameserver on construction.
+- **Userspace services**: each is a separate ELF binary loaded as a GRUB multiboot module. Services register with the nameserver and communicate via IPC. Drivers live under `userspace/drivers/`, core services under `userspace/core/` (ns, shell, vfs), and user programs under `userspace/apps/`. Service clients in `libs/cassio` (e.g. `cassio::vfs::Vfs`) look up the service's PID in the nameserver when they connect.
 - **User program execution**: the shell `exec` command reads an ELF from the FAT32 filesystem, passes it to the `Exec` syscall which creates a new process, then blocks via `WaitPid` until the child exits. Programs under `userspace/apps/` are compiled to `disk/bin/` and included in the FAT32 image.
 - **FAT32 filesystem**: the VFS service parses FAT32 on-disk structures, reads FAT entries on demand via an LRU sector cache, supports long filenames (LFN), case-sensitive matching. The ATA driver provides full 512-byte sector transfers via IPC data buffers. The build system creates a 32 MiB FAT32 disk image with pre-seeded files using `mkfs.fat` and `mtools`.
 - **Singletons** for kernel managers: `InterruptManager`, `IrqManager`, `PitTimer`, `COM1`, etc. (private constructors, static `instance`, accessed via getter)
@@ -36,7 +36,7 @@ CassiOS is being ported to Rust phase by phase (issue #188, integration branch `
 - Toolchain pinned in `rust-toolchain.toml`; components target `i586-unknown-linux-gnu` as `#![no_std]` with `panic = "abort"` (no SSE). No external crates.
 - Each binary is a `staticlib` linked with the existing `ld` command and linker script (which must collect `.rodata*`, `.data*`, `.bss*`). Its Makefile runs `cargo build` and writes the same output path as before.
 - Shared userspace library: `libs/cassio`, crate `cassio` (`os`, `io`, `ipc`, `ns`, `ps2`, `gfx`, the `ata`, `display`, `kbd`, `terminal` and `vfs` clients, `heap`, panic handler; the kernel/userspace shared definitions will move to their own crate when the kernel is ported). Syscall wrappers are only compiled for `target_arch = "x86"` so pure logic runs as host tests.
-- `make test-rust` (part of `make test`) runs `cargo test` on the host. Put unit tests in `#[cfg(test)]` modules next to the code; keep the C++ `tests/test_ipc.cpp` black-box tests for ported services.
+- `make test-rust` (part of `make test`) runs `cargo test` on the host. Put unit tests in `#[cfg(test)]` modules next to the code. Black-box tests of a service go in the in-QEMU runner `userspace/tests` (crate `usertest`, run by `make test-userspace`): one module per service, each listing its tests with `tests!`.
 - Format with `cargo fmt`. Copyright header as `//` comments. `main.rs` holds only the entry point and receive loop.
 - Hardware in a Rust service is owned by that service alone: `_start` constructs its device type (e.g. the mouse `Device`) once and keeps it local. The singleton rule above applies to the kernel.
 
@@ -54,7 +54,7 @@ Never merge a pull request without explicit user approval. After opening a PR, s
 6. I/O port addresses go in the `PortType` enum in `std/io.hpp` -- no magic numbers. Do not add raw `u16` constructors to `Port`.
 7. Functions called from assembly (`ctors`, `start`) must be declared `extern "C"`.
 8. Tests are part of the implementation, not separate work items. Everything testable must be tested within the same issue. Only skip tests when something genuinely can't be tested or the effort is disproportionate -- but make every effort not to skip. Never create separate issues for testing.
-9. Userspace services must have proper structure: `include/`, `src/`, `tests/`. Split logic into classes -- `main.cpp` should only contain the entry point and receive loop. For complex services like the shell, split further (e.g., `src/commands/`).
+9. Userspace services must have proper structure: logic split into modules under `src/`, with `main.rs` holding only the entry point and receive loop. Unit tests sit next to the code; black-box tests go in `userspace/tests`. For complex services like the shell, split further (e.g., `src/commands/`).
 10. Use the kernel heap (`KernelHeap`, `operator new`) for dynamic data structures rather than defaulting to fixed-size arrays. Fixed arrays are appropriate only when the size is hardware-dictated (IDT, IRQ tables, page directories).
 
 ## Working Documentation

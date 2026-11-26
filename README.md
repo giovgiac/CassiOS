@@ -14,7 +14,7 @@ A microkernel operating system targeting i386 (32-bit x86), written in C++ and a
 - **Syscall interface** via `int 0x80` (IPC, memory, process control, system info)
 - **Physical memory manager**, kernel heap with `new`/`delete`, paging
 - **Persistent FAT32 filesystem** -- 32 MiB disk image, on-demand FAT via LRU sector cache, directories, LFN, case-sensitive
-- **Modular standard library** -- 17 modules under `libs/` (`std::` namespace), from core types/mem/str to service clients (`std::vga`, `std::vfs`, `std::kbd`, etc.)
+- **Standard libraries** -- the kernel's C++ modules under `libs/` (`std::` namespace: types, mem, str, fmt, collections, IPC message format), and `libs/cassio`, the Rust library userspace programs share (syscalls, IPC, heap, service clients)
 - **Three-tier test framework** -- Rust host unit tests, then kernel unit tests and userspace integration tests run headlessly via QEMU
 
 ## Prerequisites

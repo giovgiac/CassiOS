@@ -7,7 +7,6 @@ DISK_SIZE_MB ?= 32
 ASMFLAGS = --32
 STD_INCLUDES = $(foreach dir,$(wildcard libs/*/include),-I$(dir))
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
-COMMON_CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
 LDFLAGS = -melf_i386
 
 KERNEL = bin/cassio.bin
@@ -27,19 +26,8 @@ DISK = bin/disk.img
 LIBSTD_MEM = lib/libstd_mem.a
 LIBSTD_STR = lib/libstd_str.a
 LIBSTD_ALLOC = lib/libstd_alloc.a
-LIBSTD_HEAP = lib/libstd_heap.a
 LIBSTD_FMT = lib/libstd_fmt.a
 LIBSTD_TEST = lib/libstd_test.a
-LIBSTD_OS = lib/libstd_os.a
-LIBSTD_IPC = lib/libstd_ipc.a
-LIBSTD_NS = lib/libstd_ns.a
-LIBSTD_VFS = lib/libstd_vfs.a
-LIBSTD_ATA = lib/libstd_ata.a
-LIBSTD_KBD = lib/libstd_kbd.a
-LIBSTD_MOUSE = lib/libstd_mouse.a
-LIBSTD_GFX = lib/libstd_gfx.a
-LIBSTD_DISPLAY = lib/libstd_display.a
-LIBSTD_TERMINAL = lib/libstd_terminal.a
 
 
 # Discover all source files automatically.
@@ -56,14 +44,6 @@ test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
 lib_test_sources = $(shell find libs/ -path '*/tests/test_*.cpp' 2>/dev/null)
 lib_test_objects = $(patsubst libs/%.cpp, obj/libs/%.o, $(lib_test_sources))
 
-# Userspace test: runner + all service tests + all service impls (excluding main.cpp).
-usertest_sources = userspace/test.cpp \
-    $(shell find userspace/ -path '*/tests/test_*.cpp' 2>/dev/null) \
-    $(shell find userspace/ -path '*/src/*.cpp' -not -name 'main.cpp' 2>/dev/null)
-usertest_objects = $(patsubst userspace/%.cpp, obj/userspace/usertest/%.o, $(usertest_sources))
-USERTEST_CXXFLAGS = $(COMMON_CXXFLAGS) -fno-use-cxa-atexit \
-    $(STD_INCLUDES) \
-    $(foreach dir,$(shell find userspace/ -type d -name include),-I$(dir))
 
 # Compile C++ source files.
 obj/%.o: kernel/src/%.cpp
@@ -84,44 +64,11 @@ $(LIBSTD_STR): FORCE
 $(LIBSTD_ALLOC): FORCE
 	$(MAKE) -C libs/alloc
 
-$(LIBSTD_HEAP): FORCE
-	$(MAKE) -C libs/heap
-
 $(LIBSTD_FMT): FORCE
 	$(MAKE) -C libs/fmt
 
 $(LIBSTD_TEST): FORCE
 	$(MAKE) -C libs/test
-
-$(LIBSTD_OS): FORCE
-	$(MAKE) -C libs/os
-
-$(LIBSTD_IPC): FORCE
-	$(MAKE) -C libs/ipc
-
-$(LIBSTD_NS): FORCE
-	$(MAKE) -C libs/ns
-
-$(LIBSTD_VFS): FORCE
-	$(MAKE) -C libs/vfs
-
-$(LIBSTD_ATA): FORCE
-	$(MAKE) -C libs/ata
-
-$(LIBSTD_KBD): FORCE
-	$(MAKE) -C libs/kbd
-
-$(LIBSTD_MOUSE): FORCE
-	$(MAKE) -C libs/mouse
-
-$(LIBSTD_GFX): FORCE
-	$(MAKE) -C libs/gfx
-
-$(LIBSTD_DISPLAY): FORCE
-	$(MAKE) -C libs/display
-
-$(LIBSTD_TERMINAL): FORCE
-	$(MAKE) -C libs/terminal
 
 FORCE:
 
@@ -165,18 +112,12 @@ obj/libs/%.o: libs/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
 
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_GFX) $(LIBSTD_TEST)
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_TEST)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_GFX) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
-# Compile userspace test files (runner + service tests + service impls).
-obj/userspace/usertest/%.o: userspace/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
-
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_MOUSE) $(LIBSTD_TERMINAL) $(LIBSTD_VFS) $(LIBSTD_ATA) $(LIBSTD_DISPLAY) $(LIBSTD_GFX) $(LIBSTD_FMT) $(LIBSTD_TEST)
-	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_DISPLAY) $(LIBSTD_GFX) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_TERMINAL) $(LIBSTD_MOUSE) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+$(USERTEST): FORCE $(LIBSTD_MEM)
+	$(MAKE) -C userspace/tests
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
 $(DISK): $(disk_files) $(HELLO)
@@ -216,7 +157,7 @@ test-kernel:
 	[ $$EXIT_CODE -eq 1 ]
 
 test-userspace:
-	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VFS) $(MOUSE) $(ATA) $(DISPLAY) $(TERMINAL) $(USERTEST) \
+	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VFS) $(MOUSE) $(ATA) $(DISPLAY) $(TERMINAL) $(USERTEST) $(HELLO) \
 	    > /tmp/cassio-build.log 2>&1 || (cat /tmp/cassio-build.log; exit 1); \
 	dd if=/dev/zero of=/tmp/cassio-usertest-disk.img bs=1M count=32 2>/dev/null; \
 	mkfs.fat -F 32 /tmp/cassio-usertest-disk.img >/dev/null 2>&1; \
@@ -273,7 +214,6 @@ run: $(ISO) $(DISK)
 -include $(objects:.o=.d)
 -include $(test_objects:.o=.d)
 -include $(lib_test_objects:.o=.d)
--include $(usertest_objects:.o=.d)
 
 .PHONY: kernel clean run test test-rust test-kernel test-userspace
 clean:
