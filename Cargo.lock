@@ -14,6 +14,13 @@ name = "cassio"
 version = "0.1.0"
 
 [[package]]
+name = "display"
+version = "0.1.0"
+dependencies = [
+ "cassio",
+]
+
+[[package]]
 name = "kbd"
 version = "0.1.0"
 dependencies = [
