@@ -13,6 +13,8 @@
 
 extern crate alloc;
 
+#[cfg(target_arch = "x86")]
+pub mod display;
 pub mod gfx;
 pub mod heap;
 pub mod io;
