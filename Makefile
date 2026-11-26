@@ -138,7 +138,7 @@ $(KBD): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBST
 $(VFS): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_ATA)
 	$(MAKE) -C userspace/core/vfs
 
-$(MOUSE): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(MOUSE): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/drivers/mouse
 
 $(ATA): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
@@ -198,7 +198,7 @@ test: test-rust test-kernel test-userspace
 
 # Host unit tests for the Rust crates.
 test-rust:
-	@cargo test --quiet --workspace
+	@cargo test --workspace --tests
 
 test-kernel:
 	@$(MAKE) --no-print-directory $(TEST_KERNEL) > /tmp/cassio-build.log 2>&1 \

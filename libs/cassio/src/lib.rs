@@ -12,6 +12,7 @@
 #![no_std]
 
 pub mod heap;
+pub mod io;
 pub mod ipc;
 pub mod ns;
 pub mod os;

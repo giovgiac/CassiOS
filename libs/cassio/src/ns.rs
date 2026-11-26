@@ -47,6 +47,23 @@ pub fn unpack_name<'a>(msg: &Message, out: &'a mut [u8; MAX_NAME_LEN + 1]) -> &'
     &out[..len]
 }
 
+/// Register `name` for the calling process. Returns 1 on success, 0 if
+/// the name is already registered or the nameserver is unreachable.
+#[cfg(target_arch = "x86")]
+pub fn register_name(name: &[u8]) -> u32 {
+    use crate::ipc::{self, message_type};
+
+    let mut msg = Message {
+        kind: message_type::NS_REGISTER,
+        ..Message::default()
+    };
+    pack_name(name, &mut msg);
+    if ipc::send(PID, &mut msg, &[]) < 0 {
+        return 0;
+    }
+    msg.arg1
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

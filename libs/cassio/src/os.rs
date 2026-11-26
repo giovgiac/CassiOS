@@ -58,6 +58,20 @@ mod imp {
         loop {}
     }
 
+    /// Receive IRQ `irq` as IrqNotify messages. Returns 0 on success,
+    /// negative if the IRQ is already registered.
+    pub fn irq_register(irq: u32) -> i32 {
+        let ret: i32;
+        unsafe {
+            asm!(
+                "int 0x80",
+                inlateout("eax") syscall::IRQ_REGISTER => ret,
+                in("ebx") irq,
+            )
+        };
+        ret
+    }
+
     /// Grow the heap by `increment` bytes. Returns the old break, or null
     /// on failure.
     pub fn sbrk(increment: u32) -> *mut u8 {
