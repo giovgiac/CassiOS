@@ -16,12 +16,14 @@ LIBSTD_OS = $(ROOT)/lib/libstd_os.a
 LIBSTD_IPC = $(ROOT)/lib/libstd_ipc.a
 LIBSTD_NS = $(ROOT)/lib/libstd_ns.a
 LIBSTD_TERMINAL = $(ROOT)/lib/libstd_terminal.a
+LIBSTD_GFX = $(ROOT)/lib/libstd_gfx.a
+LIBSTD_DISPLAY = $(ROOT)/lib/libstd_display.a
 
 OBJECTS  = $(patsubst %.cpp, $(OBJDIR)/%.o, $(SOURCES))
 
-$(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_TERMINAL)
+$(OUTPUT): $(OBJECTS) linker.ld $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_TERMINAL) $(LIBSTD_GFX) $(LIBSTD_DISPLAY)
 	@mkdir -p $(DISKDIR)
-	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_TERMINAL) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T linker.ld -o $@ $(OBJECTS) $(LIBSTD_DISPLAY) $(LIBSTD_GFX) $(LIBSTD_TERMINAL) $(LIBSTD_NS) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
