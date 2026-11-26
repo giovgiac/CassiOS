@@ -35,13 +35,22 @@ tests!(
     vfs_close_releases_handles,
 );
 
+/// Most entries a test directory has; reaching it means listing never ends.
+const LIST_MAX: usize = 64;
+
 /// Every name in the directory at `path`.
-fn names(vfs: &Vfs, path: &[u8]) -> Vec<Vec<u8>> {
+fn names(vfs: &Vfs, path: &[u8]) -> Result<Vec<Vec<u8>>, String> {
     let mut out = Vec::new();
     while let Some(name) = vfs.list(path, out.len() as u32) {
         out.push(name);
+        if out.len() == LIST_MAX {
+            return Err(format!(
+                "listing {} did not end after {LIST_MAX} entries",
+                String::from_utf8_lossy(path)
+            ));
+        }
     }
-    out
+    Ok(out)
 }
 
 /// An open file, closed when dropped, so a failing check cannot leave the
@@ -86,7 +95,7 @@ fn read_file(vfs: &Vfs, path: &[u8]) -> Option<Vec<u8>> {
 fn vfs_mkdir_and_list() -> Outcome {
     let vfs = Vfs::connect();
     check!(vfs.mkdir(b"/testdir"));
-    check!(names(&vfs, b"/").iter().any(|n| n == b"testdir"));
+    check!(names(&vfs, b"/")?.iter().any(|n| n == b"testdir"));
     Ok(())
 }
 
@@ -105,7 +114,7 @@ fn vfs_remove_file() -> Outcome {
     let vfs = Vfs::connect();
     drop(open(&vfs, b"/delme", true)?);
     check!(vfs.remove(b"/delme"));
-    check!(!names(&vfs, b"/").iter().any(|n| n == b"delme"));
+    check!(!names(&vfs, b"/")?.iter().any(|n| n == b"delme"));
     Ok(())
 }
 
@@ -113,7 +122,7 @@ fn vfs_remove_directory() -> Outcome {
     let vfs = Vfs::connect();
     vfs.mkdir(b"/rmdir");
     check!(vfs.remove(b"/rmdir"));
-    check!(!names(&vfs, b"/").iter().any(|n| n == b"rmdir"));
+    check!(!names(&vfs, b"/")?.iter().any(|n| n == b"rmdir"));
     Ok(())
 }
 
@@ -122,7 +131,7 @@ fn vfs_long_path() -> Outcome {
     check!(vfs.mkdir(b"/longdir"));
     check!(vfs.mkdir(b"/longdir/subdir"));
     drop(open(&vfs, b"/longdir/subdir/file", true)?);
-    check_eq!(names(&vfs, b"/longdir/subdir"), [b"file".to_vec()]);
+    check_eq!(names(&vfs, b"/longdir/subdir")?, [b"file".to_vec()]);
     Ok(())
 }
 
@@ -180,7 +189,7 @@ fn vfs_empty_file_in_subdir() -> Outcome {
     check_eq!(vfs.read(file.handle, 0, &mut buf), 2);
     check_eq!(&buf[..2], b"OK");
     // One entry, not two.
-    check_eq!(names(&vfs, b"/subtest"), [b"file.txt".to_vec()]);
+    check_eq!(names(&vfs, b"/subtest")?, [b"file.txt".to_vec()]);
     Ok(())
 }
 
