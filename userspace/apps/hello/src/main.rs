@@ -9,8 +9,6 @@
 
 #![cfg_attr(not(test), no_std)]
 
-extern crate alloc;
-
 mod greeting;
 
 #[cfg(not(test))]
@@ -34,5 +32,6 @@ pub extern "C" fn _start() -> ! {
 
     os::sleep(5000);
     display.fill_rect(0, 0, width, height, BLACK);
+    display.flush();
     os::exit(0)
 }
