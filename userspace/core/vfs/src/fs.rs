@@ -231,7 +231,10 @@ impl<D: BlockDevice> Filesystem<D> {
     fn split_parent<'a>(&mut self, path: &'a [u8]) -> Option<(u32, &'a [u8])> {
         let slash = path.iter().rposition(|&c| c == b'/')?;
         let name = &path[slash + 1..];
-        if matches!(name, b"" | b"." | b"..") || name.len() > NAME_MAX {
+        if matches!(name, b"" | b"." | b"..")
+            || name.len() > NAME_MAX
+            || !dir::valid_long_name(name)
+        {
             return None;
         }
         let parent = if slash == 0 {
@@ -824,6 +827,18 @@ mod tests {
         }
         assert_eq!(names(&mut fs, b"/"), [b"a".to_vec()]);
         assert!(names(&mut fs, b"/a").is_empty());
+    }
+
+    #[test]
+    fn names_with_forbidden_characters_cannot_be_created() {
+        let mut fs = fs(1);
+        for path in [&b"/a*b"[..], b"/a:b", b"/a?b.txt", b"/a\tb"] {
+            assert!(!fs.mkdir(path));
+            assert_eq!(fs.open(path, true), 0);
+        }
+        assert!(names(&mut fs, b"/").is_empty());
+        write_file(&mut fs, b"/a+b", b"ok");
+        assert_eq!(read_file(&mut fs, b"/a+b"), b"ok");
     }
 
     #[test]

@@ -35,6 +35,12 @@ fn short_invalid(c: u8) -> bool {
     c < 0x20 || c == 0x7F || SHORT_INVALID.contains(&c)
 }
 
+/// Whether `name` may be stored as a long name: FAT forbids control
+/// characters and these printable ones even there.
+pub fn valid_long_name(name: &[u8]) -> bool {
+    !name.iter().any(|&c| c < 0x20 || b"\\:*?\"<>|".contains(&c))
+}
+
 /// Highest "~N" number `numbered_short_name` takes.
 pub const MAX_SHORT_NUMBER: u32 = 999_999;
 
@@ -204,15 +210,18 @@ pub fn short_name_text(entry: &Entry, out: &mut [u8; NAME_MAX]) -> usize {
     len
 }
 
-/// The 8.3 name stored for `name`: uppercased, truncated, characters that
-/// 8.3 forbids replaced by '_', and marked with "~N" when a long name is
-/// stored too and the base is long, has an extension or lost characters
-/// (N from the name length, as the C++ driver did; different names can
-/// collide). A plain upper-case 8.3 name is stored as is: it has
-/// no long name, so a "~N" would make it unreachable by its own name.
+/// The 8.3 name first tried for `name`: uppercased, truncated, characters
+/// that 8.3 forbids replaced by '_', and marked with "~N" when a long name
+/// is stored too and the base is long, has an extension or lost characters
+/// (N from the name length, as the C++ driver did). `create` numbers it
+/// further when another entry holds it. A plain upper-case 8.3 name is
+/// stored as is: it has no long name, so a "~N" would make it unreachable
+/// by its own name.
 pub fn short_name(name: &[u8]) -> [u8; 11] {
     let base_len = name.iter().rposition(|&c| c == b'.').unwrap_or(name.len());
-    let lossy = name.iter().any(|&c| short_invalid(c));
+    // Spaces and dots are dropped from the base.
+    let lossy = name.iter().any(|&c| short_invalid(c))
+        || name[..base_len].iter().any(|&c| c == b' ' || c == b'.');
     let tail = (base_len > 8 || base_len < name.len() || lossy) && needs_long_name(name);
     build_short_name(name, tail.then_some(name.len() as u32 % 9 + 1))
 }
@@ -396,6 +405,31 @@ mod tests {
         assert_eq!(&short_name(b"A+B"), b"A_B~4      ");
         assert_eq!(&short_name(b"X*Y.T;T"), b"X_Y~8   T_T");
         assert_eq!(&short_name(b"A\tB"), b"A_B~4      ");
+    }
+
+    #[test]
+    fn names_that_lose_characters_get_a_tail() {
+        assert_eq!(&short_name(b" "), b"~2         ");
+        assert_eq!(&short_name(b"a b"), b"AB~4       ");
+        assert_eq!(&short_name(b"MY FILE"), b"MYFILE~8   ");
+    }
+
+    #[test]
+    fn forbidden_long_name_characters() {
+        assert!(valid_long_name(b"a+b,c;d=e[f].txt"));
+        for name in [
+            &b"a\\b"[..],
+            b"a:b",
+            b"a*b",
+            b"a?b",
+            b"a\"b",
+            b"a<b",
+            b"a>b",
+            b"a|b",
+            b"a\tb",
+        ] {
+            assert!(!valid_long_name(name));
+        }
     }
 
     #[test]
