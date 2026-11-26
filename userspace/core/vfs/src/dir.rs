@@ -26,6 +26,9 @@ const LFN_LAST: u8 = 0x40;
 pub const LFN_CHARS: usize = 13;
 const LFN_OFFSETS: [usize; LFN_CHARS] = [1, 3, 5, 7, 9, 14, 16, 18, 20, 22, 24, 28, 30];
 
+/// Characters a short (8.3) name may not hold; '_' replaces them.
+const SHORT_INVALID: &[u8] = b"*?<>|\":+,;=[]\\";
+
 /// Longest name a path component may have.
 pub const NAME_MAX: usize = 255;
 
@@ -192,32 +195,41 @@ pub fn short_name_text(entry: &Entry, out: &mut [u8; NAME_MAX]) -> usize {
     len
 }
 
-/// The 8.3 name stored for `name`: uppercased, truncated, and marked with
-/// "~N" when a long name is stored too and the base is long or has an
-/// extension (N from the name length, as the C++ driver did; different
-/// names can collide). A plain upper-case 8.3 name is stored as is: it has
+/// The 8.3 name stored for `name`: uppercased, truncated, characters that
+/// 8.3 forbids replaced by '_', and marked with "~N" when a long name is
+/// stored too and the base is long, has an extension or lost characters
+/// (N from the name length, as the C++ driver did; different names can
+/// collide). A plain upper-case 8.3 name is stored as is: it has
 /// no long name, so a "~N" would make it unreachable by its own name.
 pub fn short_name(name: &[u8]) -> [u8; 11] {
     let mut short = [b' '; 11];
     let last_dot = name.iter().rposition(|&c| c == b'.');
     let base_len = last_dot.unwrap_or(name.len());
 
+    let short_char = |c: u8| {
+        if SHORT_INVALID.contains(&c) {
+            b'_'
+        } else {
+            c.to_ascii_uppercase()
+        }
+    };
     let mut j = 0;
     for &c in name[..base_len].iter().filter(|&&c| c != b' ' && c != b'.') {
         if j == 8 {
             break;
         }
-        short[j] = c.to_ascii_uppercase();
+        short[j] = short_char(c);
         j += 1;
     }
-    if (base_len > 8 || last_dot.is_some()) && needs_long_name(name) {
+    let lossy = name.iter().any(|c| SHORT_INVALID.contains(c));
+    if (base_len > 8 || last_dot.is_some() || lossy) && needs_long_name(name) {
         let j = j.min(6);
         short[j] = b'~';
         short[j + 1] = b'1' + (name.len() % 9) as u8;
     }
     if let Some(dot) = last_dot {
         for (k, &c) in name[dot + 1..].iter().take(3).enumerate() {
-            short[8 + k] = c.to_ascii_uppercase();
+            short[8 + k] = short_char(c);
         }
     }
     short
@@ -236,6 +248,7 @@ pub fn needs_long_name(name: &[u8]) -> bool {
             b'.' if dot.is_some() => return true,
             b'.' => dot = Some(i),
             b'a'..=b'z' | b' ' => return true,
+            _ if SHORT_INVALID.contains(&c) => return true,
             _ => {}
         }
     }
@@ -344,6 +357,12 @@ mod tests {
     }
 
     #[test]
+    fn invalid_short_name_characters_are_replaced() {
+        assert_eq!(&short_name(b"A+B"), b"A_B~4      ");
+        assert_eq!(&short_name(b"X*Y.T;T"), b"X_Y~8   T_T");
+    }
+
+    #[test]
     fn plain_upper_case_names_keep_their_short_name() {
         // The C++ driver stored README~2TXT with no long name here, so the
         // file read back as README~2.TXT.
@@ -362,6 +381,8 @@ mod tests {
         assert!(needs_long_name(b"MY FILE"));
         assert!(needs_long_name(b"NOTE."));
         assert!(needs_long_name(b".TXT"));
+        assert!(needs_long_name(b"A+B"));
+        assert!(needs_long_name(b"A.B[C"));
     }
 
     #[test]

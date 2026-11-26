@@ -517,14 +517,13 @@ impl<D: BlockDevice> Filesystem<D> {
     fn try_write(&mut self, handle: u32, data: &[u8]) -> Option<()> {
         let i = self.handle_index(handle)?;
         let h = self.handles[i].as_ref()?;
-        let (start, slot) = (h.cluster, h.slot);
+        let (old, slot) = (h.cluster, h.slot);
 
         let start = if data.is_empty() {
-            self.free_chain(start);
             0
-        } else if self.layout.is_data_cluster(start) {
-            self.write_chain(start, data)?;
-            start
+        } else if self.layout.is_data_cluster(old) {
+            self.write_chain(old, data)?;
+            old
         } else {
             // A new chain: give it back if the write fails part way.
             let first = self.allocate()?;
@@ -535,6 +534,12 @@ impl<D: BlockDevice> Filesystem<D> {
             first
         };
 
+        self.update_entry(slot, |raw| {
+            let mut e = Entry::parse(raw);
+            e.cluster = start;
+            e.size = data.len() as u32;
+            e.store_location(raw);
+        })?;
         // Every handle to this file sees the new chain.
         for h in self.handles.iter_mut().flatten() {
             if h.slot == slot {
@@ -542,19 +547,20 @@ impl<D: BlockDevice> Filesystem<D> {
                 h.size = data.len() as u32;
             }
         }
-        self.update_entry(slot, |raw| {
-            let mut e = Entry::parse(raw);
-            e.cluster = start;
-            e.size = data.len() as u32;
-            e.store_location(raw);
-        })
+        // Emptied: the old chain goes only once the entry no longer uses it.
+        if data.is_empty() {
+            self.free_chain(old);
+        }
+        Some(())
     }
 
     /// Write `data` over the chain starting at `first`, extending it as
-    /// needed and freeing what is left over.
+    /// needed and freeing what is left over. A corrupt chain that loops
+    /// back into the clusters already written is cut there and extended.
     fn write_chain(&mut self, first: u32, data: &[u8]) -> Option<()> {
         let cluster_bytes = self.layout.bytes_per_cluster() as usize;
         let mut cluster = first;
+        let mut written = 1;
         let mut chunks = data.chunks(cluster_bytes).peekable();
         while let Some(chunk) = chunks.next() {
             let lba = self.layout.cluster_lba(cluster);
@@ -572,8 +578,8 @@ impl<D: BlockDevice> Filesystem<D> {
             }
             if chunks.peek().is_some() {
                 cluster = match self.next_cluster(cluster) {
-                    Some(next) => next,
-                    None => {
+                    Some(next) if !self.in_chain(first, written, next) => next,
+                    _ => {
                         let next = self.allocate()?;
                         if !self.fat_set(cluster, next) {
                             return None;
@@ -581,15 +587,15 @@ impl<D: BlockDevice> Filesystem<D> {
                         next
                     }
                 };
+                written += 1;
             }
         }
-        // End the chain here and free the rest, unless a corrupt FAT loops
-        // the rest back into the clusters just written.
+        // End the chain here and free the rest, unless it loops back.
         let rest = self.fat_get(cluster);
         if !self.fat_set(cluster, FAT_EOC) {
             return None;
         }
-        if !self.chain_contains(first, rest) {
+        if !self.in_chain(first, written, rest) {
             self.free_chain(rest);
         }
         Some(())
@@ -621,17 +627,18 @@ impl<D: BlockDevice> Filesystem<D> {
         if cluster >= self.layout.cluster_end {
             return false;
         }
-        // Nothing to write if the entry already holds `value`.
-        if self.fat_get(cluster) == value & FAT_MASK {
-            return true;
-        }
         let (lba, offset) = self.fat_position(cluster);
         (0..self.layout.num_fats).all(|copy| {
-            self.cache
-                .update(lba + copy * self.layout.fat_size, |sector| {
-                    let raw = &mut sector[offset..offset + 4];
-                    let old = u32::from_le_bytes((&*raw).try_into().unwrap());
-                    raw.copy_from_slice(&(old & !FAT_MASK | value & FAT_MASK).to_le_bytes());
+            let lba = lba + copy * self.layout.fat_size;
+            let Some(sector) = self.cache.read(lba) else {
+                return false;
+            };
+            let old = u32::from_le_bytes(sector[offset..offset + 4].try_into().unwrap());
+            let new = old & !FAT_MASK | value & FAT_MASK;
+            // A copy that already holds `value` is not written again.
+            old == new
+                || self.cache.update(lba, |sector| {
+                    sector[offset..offset + 4].copy_from_slice(&new.to_le_bytes())
                 })
         })
     }
@@ -642,10 +649,11 @@ impl<D: BlockDevice> Filesystem<D> {
         self.layout.is_data_cluster(next).then_some(next)
     }
 
-    /// Whether `cluster` is on the chain starting at `start`.
-    fn chain_contains(&mut self, start: u32, cluster: u32) -> bool {
+    /// Whether `cluster` is one of the first `len` clusters of the chain
+    /// starting at `start`.
+    fn in_chain(&mut self, start: u32, len: usize, cluster: u32) -> bool {
         let mut c = start;
-        for _ in 0..self.layout.cluster_end {
+        for _ in 0..len {
             if c == cluster {
                 return true;
             }
@@ -937,6 +945,36 @@ mod tests {
     }
 
     #[test]
+    fn a_failed_fat_copy_is_written_on_retry() {
+        let mut fs = fs(1);
+        write_file(&mut fs, b"/f", &pattern(3000));
+        let h = fs.open(b"/f", false);
+        fs.cache.device().fail_lba = Some(fs.layout.fat_start + fs.layout.fat_size);
+        assert!(!fs.write(h, b"short"));
+        fs.cache.device().fail_lba = None;
+        assert!(fs.write(h, b"short"));
+        let (start, size) = (fs.layout.fat_start as usize, fs.layout.fat_size as usize);
+        let disk = &fs.cache.device().sectors;
+        assert_eq!(
+            disk[start..start + size],
+            disk[start + size..start + 2 * size]
+        );
+    }
+
+    #[test]
+    fn a_failed_empty_write_keeps_the_file() {
+        let mut fs = fs(1);
+        write_file(&mut fs, b"/f", &pattern(1500));
+        let h = fs.open(b"/f", false);
+        fs.cache.device().fail_lba = Some(fs.layout.cluster_lba(fs.layout.root_cluster));
+        let before = free_clusters(&mut fs);
+        assert!(!fs.write(h, b""));
+        fs.cache.device().fail_lba = None;
+        assert_eq!(free_clusters(&mut fs), before, "chain still in use");
+        assert_eq!(read_file(&mut fs, b"/f"), pattern(1500));
+    }
+
+    #[test]
     fn removed_files_invalidate_their_handles() {
         let mut fs = fs(1);
         write_file(&mut fs, b"/f", b"data");
@@ -1058,6 +1096,10 @@ mod tests {
         assert_ne!(fs.fat_get(first), FAT_FREE);
         assert_ne!(fs.fat_get(second), FAT_FREE);
         assert_eq!(read_file(&mut fs, b"/f"), pattern(1024));
+        // Nor overwrite its own first clusters when the data is longer.
+        fs.fat_set(second, first);
+        assert!(fs.write(h, &pattern(1536)));
+        assert_eq!(read_file(&mut fs, b"/f"), pattern(1536));
         assert!(fs.remove(b"/f"));
     }
 
