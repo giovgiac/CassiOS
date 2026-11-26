@@ -78,11 +78,22 @@ mod imp {
             }
         }
 
-        pub fn read(&self) -> T {
+        /// Read a value from the port.
+        ///
+        /// # Safety
+        ///
+        /// Port I/O drives hardware directly and can affect the whole
+        /// system; the caller must own the device behind the port.
+        pub unsafe fn read(&self) -> T {
             unsafe { T::read_from(self.number) }
         }
 
-        pub fn write(&self, value: T) {
+        /// Write a value to the port.
+        ///
+        /// # Safety
+        ///
+        /// See [`Port::read`].
+        pub unsafe fn write(&self, value: T) {
             unsafe { T::write_to(self.number, value) }
         }
     }
