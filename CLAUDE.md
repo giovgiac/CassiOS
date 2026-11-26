@@ -35,7 +35,7 @@ CassiOS is being ported to Rust phase by phase (issue #188, integration branch `
 
 - Toolchain pinned in `rust-toolchain.toml`; components target `i586-unknown-linux-gnu` as `#![no_std]` with `panic = "abort"` (no SSE). No external crates.
 - Each binary is a `staticlib` linked with the existing `ld` command and linker script (which must collect `.rodata*`, `.data*`, `.bss*`). Its Makefile runs `cargo build` and writes the same output path as before.
-- Shared userspace library: `libs/cassio`, crate `cassio` (`os`, `ipc`, `ns`, `heap`, panic handler; the kernel/userspace shared definitions will move to their own crate when the kernel is ported). Syscall wrappers are only compiled for `target_arch = "x86"` so pure logic runs as host tests.
+- Shared userspace library: `libs/cassio`, crate `cassio` (`os`, `io`, `ipc`, `ns`, `heap`, panic handler; the kernel/userspace shared definitions will move to their own crate when the kernel is ported). Syscall wrappers are only compiled for `target_arch = "x86"` so pure logic runs as host tests.
 - `make test-rust` (part of `make test`) runs `cargo test` on the host. Put unit tests in `#[cfg(test)]` modules next to the code; keep the C++ `tests/test_ipc.cpp` black-box tests for ported services.
 - Format with `cargo fmt`. Copyright header as `//` comments. `main.rs` holds only the entry point and receive loop.
 
