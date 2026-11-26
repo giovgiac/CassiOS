@@ -23,13 +23,14 @@ A microkernel operating system targeting i386 (32-bit x86), written in C++ and a
 - `qemu-system-i386` (for running)
 - `grub-mkrescue` and `xorriso` (for building the bootable ISO)
 - `dosfstools` and `mtools` (for FAT32 disk image creation)
+- `rustup` (installs the pinned Rust toolchain and i586 target from `rust-toolchain.toml`)
 
 ## Build
 
 ```sh
 make kernel    # compile and link the kernel binary
 make run       # build and launch in QEMU with all services
-make test      # build and run all tests (kernel + userspace)
+make test      # build and run all tests (Rust host + kernel + userspace)
 make iso       # build a bootable ISO
 make clean     # remove build artifacts
 ```

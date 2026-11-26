@@ -138,9 +138,10 @@ impl FreeList {
     }
 }
 
-/// Process-wide allocator backed by sbrk.
+/// Process-wide allocator that grows a FreeList via sbrk.
 pub struct Heap {
     list: UnsafeCell<FreeList>,
+    sbrk: fn(usize) -> *mut u8,
 }
 
 // Userspace processes are single-threaded.
@@ -149,16 +150,24 @@ unsafe impl Sync for Heap {}
 const PAGE: usize = 4096;
 
 impl Heap {
+    #[cfg(target_arch = "x86")]
     pub const fn new() -> Self {
+        Self::with_sbrk(|increment| crate::os::sbrk(increment as u32))
+    }
+
+    /// Build a heap over a custom break function (returns the old break,
+    /// or null on failure).
+    pub const fn with_sbrk(sbrk: fn(usize) -> *mut u8) -> Self {
         Self {
             list: UnsafeCell::new(FreeList::empty()),
+            sbrk,
         }
     }
 
     unsafe fn allocate(&self, size: usize) -> *mut u8 {
         let list = unsafe { &mut *self.list.get() };
         if !list.is_initialized() {
-            let base = sbrk(PAGE);
+            let base = (self.sbrk)(PAGE);
             if base.is_null() {
                 return null_mut();
             }
@@ -172,7 +181,7 @@ impl Heap {
 
         // Grow the heap and retry.
         let needed = (size + HEADER + PAGE + PAGE - 1) & !(PAGE - 1);
-        if sbrk(needed).is_null() {
+        if (self.sbrk)(needed).is_null() {
             return null_mut();
         }
         unsafe {
@@ -206,17 +215,6 @@ unsafe impl GlobalAlloc for Heap {
         };
         unsafe { (*self.list.get()).free(raw) };
     }
-}
-
-#[cfg(target_arch = "x86")]
-fn sbrk(increment: usize) -> *mut u8 {
-    crate::os::sbrk(increment as u32)
-}
-
-// Host builds never install Heap as the global allocator.
-#[cfg(not(target_arch = "x86"))]
-fn sbrk(_: usize) -> *mut u8 {
-    null_mut()
 }
 
 #[cfg(test)]
@@ -281,5 +279,44 @@ mod tests {
         assert!(unsafe { list.allocate(100) }.is_null());
         unsafe { list.extend(512) };
         assert!(!unsafe { list.allocate(100) }.is_null());
+    }
+
+    // A fake break over a static region, for the Heap tests only.
+    #[repr(align(4096))]
+    struct Arena([u8; 4 * PAGE]);
+    static mut ARENA: Arena = Arena([0; 4 * PAGE]);
+    static BREAK: core::sync::atomic::AtomicUsize = core::sync::atomic::AtomicUsize::new(0);
+
+    fn fake_sbrk(increment: usize) -> *mut u8 {
+        use core::sync::atomic::Ordering;
+        let old = BREAK.fetch_add(increment, Ordering::Relaxed);
+        if old + increment > 4 * PAGE {
+            return null_mut();
+        }
+        unsafe { (&raw mut ARENA.0).cast::<u8>().add(old) }
+    }
+
+    #[test]
+    fn heap_grows_and_honours_alignment() {
+        let heap = Heap::with_sbrk(fake_sbrk);
+        unsafe {
+            // Larger than the initial page, so the heap must grow.
+            let big = heap.alloc(Layout::from_size_align(6000, 4).unwrap());
+            assert!(!big.is_null());
+            big.write_bytes(0xAA, 6000);
+
+            let layout = Layout::from_size_align(100, 64).unwrap();
+            let aligned = heap.alloc(layout);
+            assert!(!aligned.is_null());
+            assert_eq!(aligned as usize % 64, 0);
+            aligned.write_bytes(0xBB, 100);
+            heap.dealloc(aligned, layout);
+
+            // Exhausting the fake break fails cleanly.
+            assert!(
+                heap.alloc(Layout::from_size_align(5 * PAGE, 4).unwrap())
+                    .is_null()
+            );
+        }
     }
 }
