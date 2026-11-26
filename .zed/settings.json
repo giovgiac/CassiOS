@@ -1,0 +1,17 @@
+{
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        "cargo": {
+          "target": "i586-unknown-linux-gnu"
+        },
+        "cfg": {
+          "setTest": false
+        },
+        "check": {
+          "allTargets": false
+        }
+      }
+    }
+  }
+}

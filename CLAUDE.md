@@ -5,7 +5,7 @@ A microkernel operating system targeting i386 (32-bit x86), written in C++ and a
 ## Technical Details
 
 - Toolchain: `g++` (with `-m32`), `as` (with `--32`), `ld` (with `-melf_i386`)
-- Two-tier test framework: `make test` runs kernel unit tests then userspace integration tests in QEMU
+- Three-tier test framework: `make test` runs Rust host unit tests, then kernel unit tests and userspace integration tests in QEMU
 - Modular standard library under `libs/` with `std::` namespace -- modules from types to service clients, plus `StringView`, `Box<T>`, `Rc<T>` (see `docs/plans/2026-03-19-std-library-design.md`)
 - Custom fixed-width types defined in `libs/types/include/std/types.hpp`: `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `usize`, `isize`
 - Code formatted with `.clang-format` -- run clang-format or use editor format-on-save
@@ -28,6 +28,16 @@ CassiOS is a microkernel. The kernel contains only: GDT/TSS, interrupt subsystem
 - **FAT32 filesystem**: the VFS service parses FAT32 on-disk structures, reads FAT entries on demand via an LRU sector cache, supports long filenames (LFN), case-sensitive matching. The ATA driver provides full 512-byte sector transfers via IPC data buffers. The build system creates a 32 MiB FAT32 disk image with pre-seeded files using `mkfs.fat` and `mtools`.
 - **Singletons** for kernel managers: `InterruptManager`, `IrqManager`, `PitTimer`, `COM1`, etc. (private constructors, static `instance`, accessed via getter)
 - **Serial**: `Serial` is a general class taking `PortType` values; `COM1` is a singleton wrapping it for COM1 ports. Used by the test framework for output.
+
+## Rust (migration in progress)
+
+CassiOS is being ported to Rust phase by phase (issue #188, integration branch `refactor/188-rust-migration`). Rust and C++ components coexist until the port is done.
+
+- Toolchain pinned in `rust-toolchain.toml`; components target `i586-unknown-linux-gnu` as `#![no_std]` with `panic = "abort"` (no SSE). No external crates.
+- Each binary is a `staticlib` linked with the existing `ld` command and linker script (which must collect `.rodata*`, `.data*`, `.bss*`). Its Makefile runs `cargo build` and writes the same output path as before.
+- Shared userspace library: `libs/cassio`, crate `cassio` (`os`, `ipc`, `ns`, `heap`, panic handler; the kernel/userspace shared definitions will move to their own crate when the kernel is ported). Syscall wrappers are only compiled for `target_arch = "x86"` so pure logic runs as host tests.
+- `make test-rust` (part of `make test`) runs `cargo test` on the host. Put unit tests in `#[cfg(test)]` modules next to the code; keep the C++ `tests/test_ipc.cpp` black-box tests for ported services.
+- Format with `cargo fmt`. Copyright header as `//` comments. `main.rs` holds only the entry point and receive loop.
 
 ## Pull Request Policy
 
