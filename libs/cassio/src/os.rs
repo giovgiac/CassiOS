@@ -25,6 +25,18 @@ pub mod syscall {
     pub const FRAMEBUFFER_INFO: u32 = 17;
 }
 
+/// VESA framebuffer details reported by the boot loader.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct FramebufferInfo {
+    /// Physical address of the framebuffer.
+    pub address: u32,
+    pub width: u32,
+    pub height: u32,
+    /// Bytes per scanline.
+    pub pitch: u32,
+    pub bpp: u32,
+}
+
 #[cfg(target_arch = "x86")]
 pub use imp::*;
 
@@ -32,7 +44,7 @@ pub use imp::*;
 mod imp {
     use core::arch::asm;
 
-    use super::syscall;
+    use super::{FramebufferInfo, syscall};
 
     /// Write bytes to a file descriptor (fd 2 = serial). Returns the
     /// number of bytes written, or negative on error.
@@ -81,6 +93,48 @@ mod imp {
             )
         };
         ret
+    }
+
+    /// Map `pages` physical pages starting at `physical` to `virt` in the
+    /// calling process. Returns 0 on success.
+    pub fn map_device(physical: u32, virt: u32, pages: u32) -> i32 {
+        let ret: i32;
+        unsafe {
+            asm!(
+                "int 0x80",
+                inlateout("eax") syscall::MAP_DEVICE => ret,
+                in("ebx") physical,
+                in("ecx") virt,
+                in("edx") pages,
+            )
+        };
+        ret
+    }
+
+    /// The boot framebuffer, all zero if there is none.
+    pub fn framebuffer_info() -> FramebufferInfo {
+        let (address, width, height, pitch, bpp): (u32, u32, u32, u32, u32);
+        unsafe {
+            // The kernel returns bpp in esi, which asm! cannot name; swap it
+            // through a scratch register.
+            asm!(
+                "xchg {bpp}, esi",
+                "int 0x80",
+                "xchg {bpp}, esi",
+                bpp = inout(reg) 0u32 => bpp,
+                inlateout("eax") syscall::FRAMEBUFFER_INFO => address,
+                lateout("ebx") width,
+                lateout("ecx") height,
+                lateout("edx") pitch,
+            )
+        };
+        FramebufferInfo {
+            address,
+            width,
+            height,
+            pitch,
+            bpp,
+        }
     }
 
     /// Grow the heap by `increment` bytes. Returns the old break, or null

@@ -51,7 +51,9 @@ pub mod message_type {
     // Nameserver (extended).
     pub const NS_LIST_ALL: u32 = 15;
 
-    // Display.
+    // Display. Fill rect, draw rect, draw char, scroll and flush must be
+    // sent with notify: the display never replies to them. Blit and get
+    // info are sends and are answered with the display's dimensions.
     pub const DISPLAY_FILL_RECT: u32 = 16;
     pub const DISPLAY_DRAW_RECT: u32 = 17;
     pub const DISPLAY_BLIT: u32 = 18;

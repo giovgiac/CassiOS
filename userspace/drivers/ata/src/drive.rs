@@ -20,9 +20,6 @@ pub const STATUS_BSY: u8 = 0x80;
 /// Error register bit: the drive aborted the command (e.g. unsupported).
 pub const ERROR_ABRT: u8 = 0x04;
 
-/// Device control bit that disables the drive's interrupt.
-pub const CONTROL_NIEN: u8 = 0x02;
-
 // Commands.
 pub const CMD_READ_SECTORS: u8 = 0x20;
 pub const CMD_WRITE_SECTORS: u8 = 0x30;
@@ -31,10 +28,6 @@ pub const CMD_IDENTIFY: u8 = 0xEC;
 
 /// Drive/head register value selecting the master drive in LBA mode.
 pub const MASTER_LBA: u8 = 0xE0;
-
-/// IDENTIFY words holding the 28-bit addressable sector count.
-pub const IDENTIFY_SECTORS_LOW: usize = 60;
-pub const IDENTIFY_SECTORS_HIGH: usize = 61;
 
 /// The drive/head, LBA low, LBA mid and LBA high register values that
 /// address `lba`.
@@ -82,6 +75,13 @@ mod imp {
     // Status polls before giving up (generous: a real disk can take
     // seconds to spin up).
     const TIMEOUT: u32 = 1_000_000;
+
+    /// Device control bit that disables the drive's interrupt.
+    const CONTROL_NIEN: u8 = 0x02;
+
+    /// IDENTIFY words holding the 28-bit addressable sector count.
+    const IDENTIFY_SECTORS_LOW: usize = 60;
+    const IDENTIFY_SECTORS_HIGH: usize = 61;
 
     /// The primary master drive.
     pub struct Drive {
