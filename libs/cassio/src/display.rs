@@ -10,7 +10,7 @@
 
 use crate::gfx::Color;
 use crate::ipc::{self, Message, message_type};
-use crate::{ns, os};
+use crate::ns;
 
 /// A connection to the display service.
 pub struct Display {
@@ -23,17 +23,9 @@ impl Display {
     /// starts. Without it, requests go nowhere and `size` is 0x0, so
     /// callers keep working.
     pub fn connect() -> Self {
-        const TRIES: u32 = 500;
-        const WAIT_MS: u32 = 10;
-        for _ in 0..TRIES {
-            let pid = ns::lookup(b"display");
-            if pid != 0 {
-                return Self { pid };
-            }
-            os::sleep(WAIT_MS);
+        Self {
+            pid: ns::connect(b"display"),
         }
-        os::write(2, b"display: service not found\n");
-        Self { pid: 0 }
     }
 
     /// Width and height in pixels.

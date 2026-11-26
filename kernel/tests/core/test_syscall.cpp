@@ -26,23 +26,16 @@ TEST(syscall_uptime_monotonic) {
 }
 
 TEST(syscall_sleep_returns_zero) {
-    // Test sleep by calling PitTimer directly -- using int 0x80 would require
-    // hardware interrupts enabled (sti), which conflicts with ATA tests.
+    // Sleep and the serial write enable interrupts while they wait, which the
+    // test kernel never does (a timer tick would run the scheduler with the
+    // processes earlier tests left). Sleep is tested through PitTimer here;
+    // both syscalls are tested from user mode in userspace/test.cpp.
     PitTimer& pit = PitTimer::getTimer();
 
     u32 before = pit.getTicks();
     pit.sleep(0);
     u32 after = pit.getTicks();
     ASSERT_EQ(after, before);
-}
-
-TEST(syscall_write_serial_returns_length) {
-    const char* msg = "test";
-    i32 result;
-    asm volatile("int $0x80"
-                 : "=a"(result)
-                 : "a"(os::syscall::Write), "b"(2u), "c"((u32)msg), "d"(4u));
-    ASSERT_EQ(result, 4);
 }
 
 TEST(syscall_write_vga_removed) {
@@ -80,5 +73,3 @@ TEST(multiboot_info_framebuffer_field_offsets) {
     ASSERT_EQ(__builtin_offsetof(memory::MultibootInfo, framebuffer_bpp), 108u);
     ASSERT_EQ(__builtin_offsetof(memory::MultibootInfo, framebuffer_type), 109u);
 }
-
-

@@ -12,7 +12,6 @@ using namespace cassio::kernel;
 TEST(interrupt_flags_values) {
     ASSERT_EQ(static_cast<u32>(IDT_DESCRIPTOR_PRESENT), 0x80u);
     ASSERT_EQ(static_cast<u32>(IDT_INTERRUPT_GATE), 0x0Eu);
-    ASSERT_EQ(static_cast<u32>(IDT_TRAP_GATE), 0x0Fu);
 }
 
 TEST(interrupt_irq_offset) {

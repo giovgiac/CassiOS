@@ -42,6 +42,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "shell"
+version = "0.1.0"
+dependencies = [
+ "cassio",
+]
+
+[[package]]
 name = "terminal"
 version = "0.1.0"
 dependencies = [

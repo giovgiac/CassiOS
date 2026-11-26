@@ -61,6 +61,54 @@ pub fn lookup(name: &[u8]) -> u32 {
     request(crate::ipc::message_type::NS_LOOKUP, name)
 }
 
+/// The PID of service `name`, retrying the lookup a bounded number of
+/// times (500 tries, sleeping 10 ms between them) while it starts. Logs and
+/// returns 0 if it never appears, so requests to it fail instead of hang.
+#[cfg(target_arch = "x86")]
+pub fn connect(name: &[u8]) -> u32 {
+    const TRIES: u32 = 500;
+    const WAIT_MS: u32 = 10;
+    for _ in 0..TRIES {
+        let pid = lookup(name);
+        if pid != 0 {
+            return pid;
+        }
+        crate::os::sleep(WAIT_MS);
+    }
+    crate::os::write(2, name);
+    crate::os::write(2, b": service not found\n");
+    0
+}
+
+/// Fill `out` with the registered names; returns how many it holds.
+#[cfg(target_arch = "x86")]
+pub fn list_all(out: &mut [Entry]) -> usize {
+    let mut msg = Message {
+        kind: crate::ipc::message_type::NS_LIST_ALL,
+        ..Message::default()
+    };
+    // SAFETY: Entry is plain repr(C) data, valid for any bytes.
+    let bytes = unsafe {
+        core::slice::from_raw_parts_mut(out.as_mut_ptr() as *mut u8, core::mem::size_of_val(out))
+    };
+    if crate::ipc::send_into(PID, &mut msg, bytes) < 0 {
+        return 0;
+    }
+    (msg.arg1 as usize).min(out.len())
+}
+
+impl Entry {
+    /// The name, up to its first NUL.
+    pub fn name(&self) -> &[u8] {
+        let len = self
+            .name
+            .iter()
+            .position(|&b| b == 0)
+            .unwrap_or(self.name.len());
+        &self.name[..len]
+    }
+}
+
 #[cfg(target_arch = "x86")]
 fn request(kind: u32, name: &[u8]) -> u32 {
     let mut msg = Message {
@@ -126,6 +174,15 @@ mod tests {
     fn stops_at_nul() {
         let (out, len) = roundtrip(b"ab\0cd");
         assert_eq!(&out[..len], b"ab");
+    }
+
+    #[test]
+    fn entry_name_stops_at_nul() {
+        let mut e = Entry::default();
+        e.name[..3].copy_from_slice(b"kbd");
+        assert_eq!(e.name(), b"kbd");
+        e.name = [b'x'; 20];
+        assert_eq!(e.name().len(), 20);
     }
 
     #[test]

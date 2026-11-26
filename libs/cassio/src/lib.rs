@@ -25,6 +25,10 @@ pub mod kbd;
 pub mod ns;
 pub mod os;
 pub mod ps2;
+#[cfg(target_arch = "x86")]
+pub mod terminal;
+#[cfg(target_arch = "x86")]
+pub mod vfs;
 
 #[cfg(target_arch = "x86")]
 mod rt {
@@ -64,7 +68,13 @@ mod rt {
     }
 
     // The prebuilt alloc crate is compiled with unwinding and references
-    // the personality routine. With panic = "abort" it is never called.
+    // the personality routine and, from its formatting code, the unwinder.
+    // With panic = "abort" neither is ever called.
     #[unsafe(no_mangle)]
     extern "C" fn rust_eh_personality() {}
+
+    #[unsafe(no_mangle)]
+    extern "C" fn _Unwind_Resume() -> ! {
+        os::exit(1)
+    }
 }

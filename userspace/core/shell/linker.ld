@@ -1,5 +1,5 @@
 /**
- * linker.ld -- Shell service userspace linker script
+ * linker.ld -- Shell userspace linker script
  *
  * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
  * Use of this source code is governed by a MIT-style
@@ -20,11 +20,12 @@ SECTIONS {
     }
 
     .data : {
-        *(.data)
+        *(.data*)
     }
 
     .bss : {
-        *(.bss)
+        *(.bss*)
+        *(COMMON)
     }
 
     /DISCARD/ : {

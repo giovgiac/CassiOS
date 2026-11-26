@@ -88,8 +88,9 @@ TEST(exception_unregistered_vectors_use_ignore) {
     ASSERT(addr0 != addr1);
 }
 
-TEST(exception_syscall_gate_is_dpl3_trap) {
-    // Vector 0x80 should be a DPL=3 trap gate (access byte 0xEF).
+TEST(exception_syscall_gate_is_dpl3_interrupt_gate) {
+    // Vector 0x80 should be a DPL=3 interrupt gate (access byte 0xEE), so
+    // syscalls cannot be preempted half-way through.
     struct __attribute__((packed)) {
         u16 limit;
         u32 base;
@@ -97,8 +98,8 @@ TEST(exception_syscall_gate_is_dpl3_trap) {
     asm volatile("sidt %0" : "=m"(idtr));
 
     u8* entry = reinterpret_cast<u8*>(idtr.base) + 0x80 * 8;
-    // 0xEF = IDT_DESCRIPTOR_PRESENT(0x80) | DPL=3(0x60) | IDT_TRAP_GATE(0x0F)
-    ASSERT_EQ(static_cast<u32>(entry[5]), 0xEFu);
+    // 0xEE = IDT_DESCRIPTOR_PRESENT(0x80) | DPL=3(0x60) | IDT_INTERRUPT_GATE(0x0E)
+    ASSERT_EQ(static_cast<u32>(entry[5]), 0xEEu);
 
     // Handler should be non-zero.
     u32 handler_addr = static_cast<u32>(*reinterpret_cast<u16*>(entry + 6)) << 16 |
