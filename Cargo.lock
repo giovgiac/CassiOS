@@ -21,6 +21,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hello"
+version = "0.1.0"
+dependencies = [
+ "cassio",
+]
+
+[[package]]
 name = "kbd"
 version = "0.1.0"
 dependencies = [
