@@ -132,7 +132,7 @@ kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALL
 $(NAMESERVER): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/core/ns
 
-$(KBD): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(KBD): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/drivers/kbd
 
 $(VFS): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_ATA)

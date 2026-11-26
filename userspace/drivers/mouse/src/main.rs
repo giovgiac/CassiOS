@@ -11,7 +11,7 @@
 #![cfg_attr(not(test), no_std)]
 
 #[cfg(not(test))]
-mod controller;
+mod device;
 mod mouse;
 
 #[cfg(not(test))]
@@ -20,12 +20,12 @@ pub extern "C" fn _start() -> ! {
     use cassio::ipc::{self, Message, message_type};
     use cassio::{ns, os};
 
-    use controller::Controller;
+    use device::Device;
     use mouse::Mouse;
 
     const MOUSE_IRQ: u32 = 12;
 
-    let controller = Controller::new();
+    let device = Device::new();
     let mut mouse = Mouse::new();
 
     // Failures are logged and the service keeps answering MouseRead, so
@@ -34,7 +34,7 @@ pub extern "C" fn _start() -> ! {
     if os::irq_register(MOUSE_IRQ) < 0 {
         os::write(2, b"mouse: IRQ 12 is already registered\n");
     }
-    if !controller.activate() {
+    if !device.activate() {
         os::write(2, b"mouse: PS/2 mouse did not respond\n");
     }
 
@@ -44,7 +44,7 @@ pub extern "C" fn _start() -> ! {
 
         match msg.kind {
             // IRQ notifications come from the kernel, with sender 0.
-            message_type::IRQ_NOTIFY if sender == 0 => controller.drain(&mut mouse),
+            message_type::IRQ_NOTIFY if sender == 0 => device.drain(&mut mouse),
             message_type::MOUSE_READ if sender > 0 => {
                 let (buttons, dx, dy) = mouse.read_state();
                 let mut reply = Message {

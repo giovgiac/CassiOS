@@ -14,8 +14,10 @@
 pub mod heap;
 pub mod io;
 pub mod ipc;
+pub mod kbd;
 pub mod ns;
 pub mod os;
+pub mod ps2;
 
 #[cfg(target_arch = "x86")]
 mod rt {
