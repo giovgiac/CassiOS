@@ -44,7 +44,10 @@ void SyscallHandler::load() {
     // An interrupt gate: syscalls run with interrupts disabled, so the
     // timer cannot switch to another process half-way through one (for
     // example while a notify is queued). Blocking syscalls switch stacks
-    // and the iret restores the next process's interrupt flag.
+    // and the iret restores the next process's interrupt flag. The
+    // exceptions are sleep and the serial write, which enable interrupts
+    // while they wait (for timer ticks, for the UART) and touch no shared
+    // state meanwhile.
     im.setInterruptGate(0x80, &syscallEntry, 3);
 }
 
@@ -290,8 +293,7 @@ i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
 
     if (fd == 2) {
         // Polling the UART takes about 0.26 ms per character at 38400
-        // baud, so the timer keeps running meanwhile, as in sleep. Only the
-        // UART is touched.
+        // baud, so interrupts stay enabled meanwhile (see load()).
         Serial& serial = COM1::getSerial();
         asm volatile("sti");
         for (u32 i = 0; i < len; ++i) {
@@ -342,9 +344,8 @@ i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
 }
 
 i32 SyscallHandler::sleep(u32 ms) {
-    // The only syscall that waits in the kernel: it needs the timer, so it
-    // runs with interrupts enabled and may be switched out while waiting.
-    // It touches no shared state, so that is safe.
+    // Waits for timer ticks, so interrupts stay enabled meanwhile and the
+    // caller may be switched out while it waits (see load()).
     PitTimer& pit = PitTimer::getTimer();
     asm volatile("sti");
     pit.sleep(ms);

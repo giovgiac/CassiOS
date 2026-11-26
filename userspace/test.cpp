@@ -78,12 +78,16 @@ TEST(userheap_write_and_read) {
 // --- Syscalls ---
 
 TEST(syscall_sleep_waits_for_the_timer) {
-    // Sleep is the one syscall that waits for timer ticks in the kernel,
-    // so it must run with interrupts enabled.
+    // Sleep waits for timer ticks in the kernel, so it must enable
+    // interrupts while it waits.
     i32 before = os::uptime();
     ASSERT_EQ(os::sleep(20), 0);
     i32 after = os::uptime();
     ASSERT(after - before >= 20);
+}
+
+TEST(syscall_write_serial_returns_length) {
+    ASSERT_EQ(os::write(2, "test", 4), 4);
 }
 
 extern "C" void _start() {
