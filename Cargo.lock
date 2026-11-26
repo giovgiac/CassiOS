@@ -47,3 +47,10 @@ version = "0.1.0"
 dependencies = [
  "cassio",
 ]
+
+[[package]]
+name = "vfs"
+version = "0.1.0"
+dependencies = [
+ "cassio",
+]

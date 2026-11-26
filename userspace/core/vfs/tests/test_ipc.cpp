@@ -53,12 +53,13 @@ TEST(vfs_ipc_open_write_read) {
     ASSERT_EQ(buf[2], (u8)'l');
     ASSERT_EQ(buf[3], (u8)'l');
     ASSERT_EQ(buf[4], (u8)'o');
+    ASSERT_EQ(fs.close(handle), 0u);
 }
 
 TEST(vfs_ipc_delete_file) {
     vfs::Vfs fs;
 
-    fs.open("/delme", true);
+    fs.close(fs.open("/delme", true));
     u32 ret = fs.remove("/delme");
     ASSERT_EQ(ret, 0u);
 
@@ -102,6 +103,7 @@ TEST(vfs_ipc_long_path) {
     // Create a file in the nested directory.
     u32 handle = fs.open("/longdir/subdir/file", true);
     ASSERT(handle != 0);
+    fs.close(handle);
 
     // Verify nested listing.
     char name[32];
@@ -139,6 +141,7 @@ TEST(vfs_ipc_large_write_read) {
     for (i32 i = 0; i < 64; i++) {
         ASSERT_EQ(buf[i], static_cast<u8>(i + 1));
     }
+    fs.close(handle);
 }
 
 TEST(vfs_ipc_remove_root_fails) {
@@ -162,7 +165,7 @@ TEST(vfs_ipc_remove_nonempty_dir_fails) {
     vfs::Vfs fs;
 
     fs.mkdir("/nonempty");
-    fs.open("/nonempty/child", true);
+    fs.close(fs.open("/nonempty/child", true));
 
     u32 ret = fs.remove("/nonempty");
     ASSERT(ret != 0);
@@ -182,6 +185,7 @@ TEST(vfs_ipc_read_with_offset) {
     ASSERT_EQ(n, 2);
     ASSERT_EQ(buf[0], (u8)'c');
     ASSERT_EQ(buf[1], (u8)'d');
+    fs.close(handle);
 }
 
 TEST(vfs_ipc_empty_file_in_subdir) {
@@ -217,6 +221,8 @@ TEST(vfs_ipc_empty_file_in_subdir) {
             count++;
     }
     ASSERT_EQ(count, 1u);
+    fs.close(h1);
+    fs.close(h2);
 }
 
 TEST(vfs_ipc_open_nonexistent_fails) {
@@ -237,6 +243,7 @@ TEST(vfs_ipc_dotdot_traversal) {
     i32 n = fs.read(handle, 0, buf, sizeof(buf));
     ASSERT(n > 0);
     ASSERT_EQ(buf[0], (u8)'W');
+    fs.close(handle);
 }
 
 TEST(vfs_ipc_dot_traversal) {
@@ -249,6 +256,7 @@ TEST(vfs_ipc_dot_traversal) {
     i32 n = fs.read(handle, 0, buf, sizeof(buf));
     ASSERT(n > 0);
     ASSERT_EQ(buf[0], (u8)'W');
+    fs.close(handle);
 }
 
 TEST(vfs_ipc_seed_file_readable) {
@@ -266,4 +274,18 @@ TEST(vfs_ipc_seed_file_readable) {
     ASSERT_EQ(buf[0], (u8)'W');
     ASSERT_EQ(buf[1], (u8)'e');
     ASSERT_EQ(buf[2], (u8)'l');
+    fs.close(handle);
+}
+
+TEST(vfs_ipc_close_releases_handles) {
+    vfs::Vfs fs;
+
+    // More opens than the service has handles: each close frees one.
+    for (u32 i = 0; i < 40; i++) {
+        u32 handle = fs.open("/README.TXT");
+        ASSERT(handle != 0);
+        ASSERT_EQ(fs.close(handle), 0u);
+        ASSERT(fs.close(handle) != 0);
+    }
+    ASSERT(fs.close(0) != 0);
 }

@@ -46,6 +46,10 @@ public:
     /// Returns 0 on success, non-zero on failure.
     u32 write(u32 handle, const u8* data, u32 len);
 
+    /// Release a handle from open(). Returns 0 on success, non-zero on
+    /// failure (for example a handle that is not open).
+    u32 close(u32 handle);
+
     /// Query the type of an entry at the given path.
     /// Returns 0 = not found, 1 = file, 2 = directory.
     u32 stat(const char* path);

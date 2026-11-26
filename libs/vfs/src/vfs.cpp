@@ -72,6 +72,14 @@ u32 vfs::Vfs::write(u32 handle, const u8* data, u32 len) {
     return msg.arg1;
 }
 
+u32 vfs::Vfs::close(u32 handle) {
+    ipc::Message msg = {};
+    msg.type = ipc::MessageType::VfsClose;
+    msg.arg1 = handle;
+    ipc::send(pid, &msg);
+    return msg.arg1;
+}
+
 u32 vfs::Vfs::stat(const char* path) {
     u32 len = pathLen(path);
     ipc::Message msg = {};
