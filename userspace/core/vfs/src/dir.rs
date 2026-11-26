@@ -26,8 +26,17 @@ const LFN_LAST: u8 = 0x40;
 pub const LFN_CHARS: usize = 13;
 const LFN_OFFSETS: [usize; LFN_CHARS] = [1, 3, 5, 7, 9, 14, 16, 18, 20, 22, 24, 28, 30];
 
-/// Characters a short (8.3) name may not hold; '_' replaces them.
+/// Printable characters a short (8.3) name may not hold.
 const SHORT_INVALID: &[u8] = b"*?<>|\":+,;=[]\\";
+
+/// Whether a short name may not hold `c` (control characters included);
+/// '_' replaces such characters.
+fn short_invalid(c: u8) -> bool {
+    c < 0x20 || c == 0x7F || SHORT_INVALID.contains(&c)
+}
+
+/// Highest "~N" number `numbered_short_name` takes.
+pub const MAX_SHORT_NUMBER: u32 = 999_999;
 
 /// Longest name a path component may have.
 pub const NAME_MAX: usize = 255;
@@ -202,12 +211,25 @@ pub fn short_name_text(entry: &Entry, out: &mut [u8; NAME_MAX]) -> usize {
 /// collide). A plain upper-case 8.3 name is stored as is: it has
 /// no long name, so a "~N" would make it unreachable by its own name.
 pub fn short_name(name: &[u8]) -> [u8; 11] {
+    let base_len = name.iter().rposition(|&c| c == b'.').unwrap_or(name.len());
+    let lossy = name.iter().any(|&c| short_invalid(c));
+    let tail = (base_len > 8 || base_len < name.len() || lossy) && needs_long_name(name);
+    build_short_name(name, tail.then_some(name.len() as u32 % 9 + 1))
+}
+
+/// The short name for `name` with "~n" as its tail, for when the usual one
+/// is taken (1 <= n <= MAX_SHORT_NUMBER). The name then needs long entries.
+pub fn numbered_short_name(name: &[u8], n: u32) -> [u8; 11] {
+    build_short_name(name, Some(n))
+}
+
+fn build_short_name(name: &[u8], tail: Option<u32>) -> [u8; 11] {
     let mut short = [b' '; 11];
     let last_dot = name.iter().rposition(|&c| c == b'.');
     let base_len = last_dot.unwrap_or(name.len());
 
     let short_char = |c: u8| {
-        if SHORT_INVALID.contains(&c) {
+        if short_invalid(c) {
             b'_'
         } else {
             c.to_ascii_uppercase()
@@ -221,11 +243,24 @@ pub fn short_name(name: &[u8]) -> [u8; 11] {
         short[j] = short_char(c);
         j += 1;
     }
-    let lossy = name.iter().any(|c| SHORT_INVALID.contains(c));
-    if (base_len > 8 || last_dot.is_some() || lossy) && needs_long_name(name) {
-        let j = j.min(6);
-        short[j] = b'~';
-        short[j + 1] = b'1' + (name.len() % 9) as u8;
+    if let Some(n) = tail {
+        let mut digits = [0u8; 7];
+        let mut count = 0;
+        let mut v = n;
+        loop {
+            digits[count] = b'0' + (v % 10) as u8;
+            count += 1;
+            v /= 10;
+            if v == 0 {
+                break;
+            }
+        }
+        // "~" and the digits replace the end of the base if needed.
+        let at = j.min(7 - count);
+        short[at] = b'~';
+        for k in 0..count {
+            short[at + 1 + k] = digits[count - 1 - k];
+        }
     }
     if let Some(dot) = last_dot {
         for (k, &c) in name[dot + 1..].iter().take(3).enumerate() {
@@ -248,7 +283,7 @@ pub fn needs_long_name(name: &[u8]) -> bool {
             b'.' if dot.is_some() => return true,
             b'.' => dot = Some(i),
             b'a'..=b'z' | b' ' => return true,
-            _ if SHORT_INVALID.contains(&c) => return true,
+            _ if short_invalid(c) => return true,
             _ => {}
         }
     }
@@ -360,6 +395,21 @@ mod tests {
     fn invalid_short_name_characters_are_replaced() {
         assert_eq!(&short_name(b"A+B"), b"A_B~4      ");
         assert_eq!(&short_name(b"X*Y.T;T"), b"X_Y~8   T_T");
+        assert_eq!(&short_name(b"A\tB"), b"A_B~4      ");
+    }
+
+    #[test]
+    fn numbered_short_names() {
+        assert_eq!(&numbered_short_name(b"NOTE", 1), b"NOTE~1     ");
+        assert_eq!(
+            &numbered_short_name(b"averylongname.txt", 12),
+            b"AVERY~12TXT"
+        );
+        assert_eq!(&numbered_short_name(b"x", MAX_SHORT_NUMBER), b"X~999999   ");
+        assert_eq!(
+            &numbered_short_name(b"abcdefgh", MAX_SHORT_NUMBER),
+            b"A~999999   "
+        );
     }
 
     #[test]
@@ -383,6 +433,8 @@ mod tests {
         assert!(needs_long_name(b".TXT"));
         assert!(needs_long_name(b"A+B"));
         assert!(needs_long_name(b"A.B[C"));
+        assert!(needs_long_name(b"A\tB"));
+        assert!(needs_long_name(b"A\x7fB"));
     }
 
     #[test]

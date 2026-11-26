@@ -262,6 +262,9 @@ impl<D: BlockDevice> Filesystem<D> {
         if cluster == self.layout.root_cluster {
             return Some(self.root());
         }
+        if !self.layout.is_data_cluster(cluster) {
+            return None;
+        }
         let sector = self.cache.read(self.layout.cluster_lba(cluster))?;
         let dotdot = Entry::parse(&sector[ENTRY_SIZE..2 * ENTRY_SIZE]);
         let mut node = self.root();
@@ -363,8 +366,18 @@ impl<D: BlockDevice> Filesystem<D> {
         if self.find_name(dir, name).is_some() {
             return None;
         }
-        let short = dir::short_name(name);
-        let long_count = if dir::needs_long_name(name) {
+        // Number the short name until no other entry holds it; a numbered
+        // one is reachable only through its long name.
+        let mut short = dir::short_name(name);
+        let mut number = 0;
+        while self.short_name_taken(dir, &short) {
+            number += 1;
+            if number > dir::MAX_SHORT_NUMBER {
+                return None;
+            }
+            short = dir::numbered_short_name(name, number);
+        }
+        let long_count = if number > 0 || dir::needs_long_name(name) {
             dir::long_entries(name)
         } else {
             0
@@ -393,9 +406,22 @@ impl<D: BlockDevice> Filesystem<D> {
         Some((entry, slots[long_count]))
     }
 
+    /// Whether an entry of the directory at `dir` has the short name `short`.
+    fn short_name_taken(&mut self, dir: u32, short: &[u8; 11]) -> bool {
+        self.walk(dir, |_, raw| match dir::classify(raw) {
+            Kind::End => ControlFlow::Break(false),
+            Kind::Visible(e) if e.name == *short => ControlFlow::Break(true),
+            _ => ControlFlow::Continue(()),
+        })
+        .unwrap_or(false)
+    }
+
     /// `count` consecutive free entry slots in the directory at `dir`,
     /// growing it by a cluster when it runs out.
     fn free_run(&mut self, dir: u32, count: usize) -> Option<[Slot; MAX_ENTRIES_PER_NAME]> {
+        if !self.layout.is_data_cluster(dir) {
+            return None;
+        }
         let mut run = [Slot::default(); MAX_ENTRIES_PER_NAME];
         let mut found = 0;
         let mut cluster = dir;
@@ -534,12 +560,19 @@ impl<D: BlockDevice> Filesystem<D> {
             first
         };
 
-        self.update_entry(slot, |raw| {
+        let updated = self.update_entry(slot, |raw| {
             let mut e = Entry::parse(raw);
             e.cluster = start;
             e.size = data.len() as u32;
             e.store_location(raw);
-        })?;
+        });
+        if updated.is_none() {
+            // A chain allocated for this write is not referenced anywhere.
+            if start != old {
+                self.free_chain(start);
+            }
+            return None;
+        }
         // Every handle to this file sees the new chain.
         for h in self.handles.iter_mut().flatten() {
             if h.slot == slot {
@@ -972,6 +1005,76 @@ mod tests {
         fs.cache.device().fail_lba = None;
         assert_eq!(free_clusters(&mut fs), before, "chain still in use");
         assert_eq!(read_file(&mut fs, b"/f"), pattern(1500));
+    }
+
+    #[test]
+    fn a_failed_first_write_frees_its_chain() {
+        let mut fs = fs(1);
+        let h = fs.open(b"/f", true);
+        let before = free_clusters(&mut fs);
+        fs.cache.device().fail_lba = Some(fs.layout.cluster_lba(fs.layout.root_cluster));
+        assert!(!fs.write(h, &pattern(3000)));
+        fs.cache.device().fail_lba = None;
+        assert_eq!(free_clusters(&mut fs), before);
+    }
+
+    fn short_names(fs: &mut Filesystem<MemDisk>, dir: u32) -> Vec<[u8; 11]> {
+        let mut out = Vec::new();
+        fs.walk(dir, |_, raw| match dir::classify(raw) {
+            Kind::End => ControlFlow::Break(()),
+            Kind::Visible(e) => {
+                out.push(e.name);
+                ControlFlow::Continue(())
+            }
+            _ => ControlFlow::Continue(()),
+        });
+        out
+    }
+
+    #[test]
+    fn short_names_stay_unique() {
+        let mut fs = fs(1);
+        write_file(&mut fs, b"/note", b"lower");
+        write_file(&mut fs, b"/NOTE", b"upper");
+        write_file(&mut fs, b"/abcdefgh1.txt", b"1");
+        write_file(&mut fs, b"/abcdefgh2.txt", b"2");
+        let root = fs.layout.root_cluster;
+        let shorts = short_names(&mut fs, root);
+        assert_eq!(
+            shorts,
+            [
+                *b"NOTE       ",
+                *b"NOTE~1     ",
+                *b"ABCDEF~5TXT",
+                *b"ABCDEF~1TXT"
+            ]
+        );
+        assert_eq!(read_file(&mut fs, b"/note"), b"lower");
+        assert_eq!(read_file(&mut fs, b"/NOTE"), b"upper");
+        assert_eq!(read_file(&mut fs, b"/abcdefgh2.txt"), b"2");
+        assert_eq!(names(&mut fs, b"/").len(), 4);
+    }
+
+    #[test]
+    fn directories_without_a_data_cluster_are_refused() {
+        let mut fs = fs(1);
+        // A corrupt entry: a directory at cluster 0.
+        let entry = Entry {
+            name: *b"BAD        ",
+            attr: dir::ATTR_DIRECTORY,
+            ..Entry::default()
+        };
+        let root = fs.layout.cluster_lba(fs.layout.root_cluster);
+        fs.cache.update(root, |s| entry.store(&mut s[..ENTRY_SIZE]));
+        let fat2 = fs.layout.fat_start + fs.layout.fat_size;
+        let before = fs.cache.device().sectors[(fat2 + fs.layout.fat_size - 1) as usize];
+        assert!(!fs.mkdir(b"/BAD/x"));
+        assert_eq!(fs.open(b"/BAD/f", true), 0);
+        assert_eq!(fs.stat(b"/BAD/.."), Stat::Missing);
+        assert_eq!(
+            fs.cache.device().sectors[(fat2 + fs.layout.fat_size - 1) as usize],
+            before
+        );
     }
 
     #[test]
