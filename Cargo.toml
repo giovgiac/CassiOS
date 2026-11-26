@@ -4,7 +4,7 @@
 
 [workspace]
 resolver = "3"
-members = ["libs/cassio", "userspace/core/ns", "userspace/drivers/mouse"]
+members = ["libs/cassio", "userspace/core/ns", "userspace/drivers/kbd", "userspace/drivers/mouse"]
 
 [workspace.package]
 edition = "2024"

@@ -11,7 +11,7 @@
 #![cfg_attr(not(test), no_std)]
 
 #[cfg(not(test))]
-mod controller;
+mod device;
 mod mouse;
 
 #[cfg(not(test))]
@@ -20,23 +20,35 @@ pub extern "C" fn _start() -> ! {
     use cassio::ipc::{self, Message, message_type};
     use cassio::{ns, os};
 
-    use controller::Controller;
+    use device::Device;
     use mouse::Mouse;
 
     const MOUSE_IRQ: u32 = 12;
+    // How long to wait for the keyboard driver before activating anyway.
+    const KBD_WAIT_TRIES: u32 = 100;
+    const KBD_WAIT_MS: u32 = 10;
 
-    let controller = Controller::new();
+    let device = Device::new();
     let mut mouse = Mouse::new();
 
     // Failures are logged and the service keeps answering MouseRead, so
-    // clients never block on a missing or unresponsive mouse.
-    ns::register_name(b"mouse");
+    // clients never block on a missing or unresponsive mouse. The name is
+    // registered last, so no client waits on the activation below.
     if os::irq_register(MOUSE_IRQ) < 0 {
         os::write(2, b"mouse: IRQ 12 is already registered\n");
     }
-    if !controller.activate() {
+    // The keyboard driver registers once it has configured the shared PS/2
+    // controller for both devices; only then can mouse reporting be enabled.
+    for _ in 0..KBD_WAIT_TRIES {
+        if ns::lookup(b"kbd") != 0 {
+            break;
+        }
+        os::sleep(KBD_WAIT_MS);
+    }
+    if !device.activate() {
         os::write(2, b"mouse: PS/2 mouse did not respond\n");
     }
+    ns::register_name(b"mouse");
 
     loop {
         let mut msg = Message::default();
@@ -44,7 +56,7 @@ pub extern "C" fn _start() -> ! {
 
         match msg.kind {
             // IRQ notifications come from the kernel, with sender 0.
-            message_type::IRQ_NOTIFY if sender == 0 => controller.drain(&mut mouse),
+            message_type::IRQ_NOTIFY if sender == 0 => device.drain(&mut mouse),
             message_type::MOUSE_READ if sender > 0 => {
                 let (buttons, dx, dy) = mouse.read_state();
                 let mut reply = Message {
