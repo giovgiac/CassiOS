@@ -39,7 +39,7 @@ pub extern "C" fn _start() -> ! {
     }
     // Heap buffers: the user stack is a single page.
     let mut buf = alloc::vec![0u8; BUF_SIZE];
-    let mut name = alloc::boxed::Box::new([0u8; NAME_MAX]);
+    let mut name = alloc::boxed::Box::new([0u8; NAME_MAX + 1]);
 
     loop {
         // Zeroed per request: receive does not report how many bytes

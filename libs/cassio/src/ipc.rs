@@ -28,51 +28,47 @@ pub mod message_type {
     // Nameserver.
     pub const NS_REGISTER: u32 = 2;
     pub const NS_LOOKUP: u32 = 3;
+    pub const NS_LIST_ALL: u32 = 4;
 
     // Keyboard.
-    pub const KBD_READ: u32 = 4;
+    pub const KBD_READ: u32 = 5;
 
     // VFS.
-    pub const VFS_MKDIR: u32 = 5;
-    pub const VFS_REMOVE: u32 = 6;
-    pub const VFS_OPEN: u32 = 7;
-    pub const VFS_READ: u32 = 8;
-    pub const VFS_WRITE: u32 = 9;
-    pub const VFS_LIST: u32 = 10;
-    pub const VFS_STAT: u32 = 11;
+    pub const VFS_MKDIR: u32 = 6;
+    pub const VFS_REMOVE: u32 = 7;
+    pub const VFS_OPEN: u32 = 8;
+    pub const VFS_READ: u32 = 9;
+    pub const VFS_WRITE: u32 = 10;
+    pub const VFS_LIST: u32 = 11;
+    pub const VFS_STAT: u32 = 12;
+    pub const VFS_CLOSE: u32 = 13;
 
     // Mouse.
-    pub const MOUSE_READ: u32 = 12;
+    pub const MOUSE_READ: u32 = 14;
 
     // ATA.
-    pub const ATA_READ: u32 = 13;
-    pub const ATA_WRITE: u32 = 14;
-
-    // Nameserver (extended).
-    pub const NS_LIST_ALL: u32 = 15;
+    pub const ATA_READ: u32 = 15;
+    pub const ATA_WRITE: u32 = 16;
 
     // Display. Fill rect, draw rect, draw char, scroll and flush must be
     // sent with notify: the display never replies to them. Blit and get
     // info are sends and are answered with the display's dimensions.
-    pub const DISPLAY_FILL_RECT: u32 = 16;
-    pub const DISPLAY_DRAW_RECT: u32 = 17;
-    pub const DISPLAY_BLIT: u32 = 18;
-    pub const DISPLAY_SCROLL: u32 = 19;
-    pub const DISPLAY_FLUSH: u32 = 20;
-    pub const DISPLAY_GET_INFO: u32 = 21;
-    pub const DISPLAY_DRAW_CHAR: u32 = 22;
+    pub const DISPLAY_FILL_RECT: u32 = 17;
+    pub const DISPLAY_DRAW_RECT: u32 = 18;
+    pub const DISPLAY_BLIT: u32 = 19;
+    pub const DISPLAY_SCROLL: u32 = 20;
+    pub const DISPLAY_FLUSH: u32 = 21;
+    pub const DISPLAY_GET_INFO: u32 = 22;
+    pub const DISPLAY_DRAW_CHAR: u32 = 23;
 
     // Terminal. TerminalWrite carries at most 256 bytes of text; clients
     // split longer text. Every send is answered with the cursor position.
-    pub const TERMINAL_PUTCHAR: u32 = 23;
-    pub const TERMINAL_WRITE: u32 = 24;
-    pub const TERMINAL_CLEAR: u32 = 25;
-    pub const TERMINAL_SET_CURSOR: u32 = 26;
-    pub const TERMINAL_GET_CURSOR: u32 = 27;
-    pub const TERMINAL_FLUSH: u32 = 28;
-
-    // VFS (extended).
-    pub const VFS_CLOSE: u32 = 29;
+    pub const TERMINAL_PUTCHAR: u32 = 24;
+    pub const TERMINAL_WRITE: u32 = 25;
+    pub const TERMINAL_CLEAR: u32 = 26;
+    pub const TERMINAL_SET_CURSOR: u32 = 27;
+    pub const TERMINAL_GET_CURSOR: u32 = 28;
+    pub const TERMINAL_FLUSH: u32 = 29;
 }
 
 #[cfg(target_arch = "x86")]

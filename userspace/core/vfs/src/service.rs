@@ -34,12 +34,12 @@ fn path(buf: &[u8]) -> &[u8] {
 }
 
 /// Answer one request. `buf` holds the request data and receives read
-/// data; `name` receives listed names.
+/// data; `name` receives listed names and their NUL.
 pub fn handle<D: BlockDevice>(
     fs: Option<&mut Filesystem<D>>,
     msg: &Message,
     buf: &mut [u8],
-    name: &mut [u8; NAME_MAX],
+    name: &mut [u8; NAME_MAX + 1],
 ) -> (Message, ReplyData) {
     // 0 means success for mkdir, remove, write and close.
     let status = |ok: bool| !ok as u32;
@@ -74,9 +74,8 @@ pub fn handle<D: BlockDevice>(
             reply.arg1 = status(len <= buf.len() && fs.write(msg.arg1, &buf[..len]));
         }
         message_type::VFS_LIST => {
-            if let Some(len) = fs.list(path(buf), msg.arg1 as usize, name) {
+            if let Some(len) = fs.list(path(buf), msg.arg1 as usize, &mut name[..NAME_MAX]) {
                 // The client expects the name NUL-terminated.
-                let len = len.min(NAME_MAX - 1);
                 name[len] = 0;
                 reply.arg1 = 1;
                 data = ReplyData::Name(len + 1);
@@ -96,7 +95,7 @@ mod tests {
     struct Client {
         fs: Option<Filesystem<MemDisk>>,
         buf: alloc::vec::Vec<u8>,
-        name: [u8; NAME_MAX],
+        name: [u8; NAME_MAX + 1],
     }
 
     impl Client {
@@ -104,7 +103,7 @@ mod tests {
             Self {
                 fs,
                 buf: alloc::vec![0; BUF_SIZE],
-                name: [0; NAME_MAX],
+                name: [0; NAME_MAX + 1],
             }
         }
 
@@ -181,6 +180,19 @@ mod tests {
             0
         );
         assert_eq!(c.request(message_type::VFS_REMOVE, [0; 3], b"/d\0").0, 0);
+    }
+
+    #[test]
+    fn longest_names_are_listed_with_their_nul() {
+        let mut c = mounted();
+        let mut path = b"/".to_vec();
+        path.extend_from_slice(&[b'n'; NAME_MAX]);
+        path.push(0);
+        assert_ne!(c.request(message_type::VFS_OPEN, [1, 0, 0], &path).0, 0);
+        let (found, name) = c.request(message_type::VFS_LIST, [0, 0, 0], b"/\0");
+        assert_eq!((found, name.len()), (1, NAME_MAX + 1));
+        assert_eq!(&name[..NAME_MAX], &path[1..=NAME_MAX]);
+        assert_eq!(name[NAME_MAX], 0);
     }
 
     #[test]

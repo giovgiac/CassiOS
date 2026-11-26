@@ -6,7 +6,8 @@
 //
 // Every sector the filesystem touches goes through a small LRU cache.
 // Writes go straight through to the device, so a cached sector is never
-// newer than the disk and eviction never writes.
+// newer than the disk and eviction never writes. A sector whose write
+// fails is dropped, so the next read sees what is really on the disk.
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -95,7 +96,7 @@ impl<D: BlockDevice> SectorCache<D> {
         }
         let i = self.find(lba).unwrap();
         change(&mut self.slots[i].data);
-        self.device.write(lba, &self.slots[i].data)
+        self.write_through(i)
     }
 
     /// Replace sector `lba` with `data` without reading it first.
@@ -105,7 +106,17 @@ impl<D: BlockDevice> SectorCache<D> {
         slot.data.copy_from_slice(data);
         slot.lba = lba;
         self.touch(i);
-        self.device.write(lba, data)
+        self.write_through(i)
+    }
+
+    /// Write slot `i` to the device, dropping it from the cache on failure.
+    fn write_through(&mut self, i: usize) -> bool {
+        let slot = &mut self.slots[i];
+        let ok = self.device.write(slot.lba, &slot.data);
+        if !ok {
+            slot.used = 0;
+        }
+        ok
     }
 
     fn find(&self, lba: u32) -> Option<usize> {
@@ -138,6 +149,8 @@ pub mod tests {
     pub struct MemDisk {
         pub sectors: Vec<Sector>,
         pub reads: usize,
+        /// Writes to this sector fail.
+        pub fail_lba: Option<u32>,
     }
 
     impl MemDisk {
@@ -145,6 +158,7 @@ pub mod tests {
             Self {
                 sectors: alloc::vec![[0; SECTOR_SIZE]; count],
                 reads: 0,
+                fail_lba: None,
             }
         }
     }
@@ -162,6 +176,9 @@ pub mod tests {
         }
 
         fn write(&mut self, lba: u32, buf: &Sector) -> bool {
+            if self.fail_lba == Some(lba) {
+                return false;
+            }
             match self.sectors.get_mut(lba as usize) {
                 Some(s) => {
                     s.copy_from_slice(buf);
@@ -216,6 +233,19 @@ pub mod tests {
         assert_eq!(c.device().reads, 0);
         assert_eq!(c.read(4).unwrap()[0], 7);
         assert_eq!(c.device().sectors[4][0], 7);
+    }
+
+    #[test]
+    fn failed_writes_are_not_cached() {
+        let mut c = cache(8, 2);
+        assert_eq!(c.read(5).unwrap()[1], 0);
+        c.device().fail_lba = Some(5);
+        assert!(!c.update(5, |s| s[1] = 0xAB));
+        c.device().fail_lba = Some(6);
+        assert!(!c.write(6, &[7; SECTOR_SIZE]));
+        c.device().fail_lba = None;
+        assert_eq!(c.read(5).unwrap()[1], 0);
+        assert_eq!(c.read(6).unwrap()[0], 6);
     }
 
     #[test]

@@ -94,7 +94,8 @@ pub fn classify(raw: &[u8]) -> Kind {
         FREE => return Kind::Free,
         _ => {}
     }
-    if raw[11] == ATTR_LFN {
+    // The top two attribute bits are reserved.
+    if raw[11] & 0x3F == ATTR_LFN {
         return Kind::LongName;
     }
     let entry = Entry::parse(raw);
@@ -223,7 +224,8 @@ pub fn short_name(name: &[u8]) -> [u8; 11] {
 }
 
 /// Whether `name` needs long-name entries (anything that is not a plain
-/// upper-case 8.3 name).
+/// upper-case 8.3 name with a non-empty base, and an extension if it has a
+/// dot).
 pub fn needs_long_name(name: &[u8]) -> bool {
     if name.len() > 12 {
         return true;
@@ -237,9 +239,11 @@ pub fn needs_long_name(name: &[u8]) -> bool {
             _ => {}
         }
     }
-    let base = dot.unwrap_or(name.len());
-    let ext = dot.map_or(0, |d| name.len() - d - 1);
-    base > 8 || ext > 3
+    let (base, ext_fits) = match dot {
+        Some(d) => (d, (1..=3).contains(&(name.len() - d - 1))),
+        None => (name.len(), true),
+    };
+    base == 0 || base > 8 || !ext_fits
 }
 
 /// Checksum of a short name, stored in each of its long-name entries.
@@ -356,6 +360,8 @@ mod tests {
         assert!(needs_long_name(b"TOOLONGNAME"));
         assert!(needs_long_name(b"FILE.TEXT"));
         assert!(needs_long_name(b"MY FILE"));
+        assert!(needs_long_name(b"NOTE."));
+        assert!(needs_long_name(b".TXT"));
     }
 
     #[test]
@@ -407,6 +413,8 @@ mod tests {
         raw[11] = ATTR_VOLUME_ID;
         assert!(matches!(classify(&raw), Kind::Hidden));
         raw[11] = ATTR_LFN;
+        assert!(matches!(classify(&raw), Kind::LongName));
+        raw[11] = ATTR_LFN | 0xC0;
         assert!(matches!(classify(&raw), Kind::LongName));
         raw[11] = ATTR_ARCHIVE;
         assert!(matches!(classify(&raw), Kind::Visible(_)));

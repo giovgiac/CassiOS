@@ -98,7 +98,8 @@ impl<D: BlockDevice> Filesystem<D> {
     }
 
     /// Name of the `index`th visible entry of the directory at `path`.
-    pub fn list(&mut self, path: &[u8], index: usize, out: &mut [u8; NAME_MAX]) -> Option<usize> {
+    /// `out` must hold NAME_MAX bytes.
+    pub fn list(&mut self, path: &[u8], index: usize, out: &mut [u8]) -> Option<usize> {
         let node = self.resolve(path)?;
         if !node.entry.is_dir() {
             return None;
@@ -211,8 +212,8 @@ impl<D: BlockDevice> Filesystem<D> {
         let mut node = self.root();
         for name in path.split(|&c| c == b'/') {
             match name {
-                b"" | b"." => continue,
                 _ if !node.entry.is_dir() => return None,
+                b"" | b"." => continue,
                 b".." => node = self.parent_of(node.entry.cluster)?,
                 _ => {
                     let found = self.find_name(node.entry.cluster, name)?;
@@ -230,7 +231,7 @@ impl<D: BlockDevice> Filesystem<D> {
     fn split_parent<'a>(&mut self, path: &'a [u8]) -> Option<(u32, &'a [u8])> {
         let slash = path.iter().rposition(|&c| c == b'/')?;
         let name = &path[slash + 1..];
-        if name.is_empty() || name.len() > NAME_MAX {
+        if matches!(name, b"" | b"." | b"..") || name.len() > NAME_MAX {
             return None;
         }
         let parent = if slash == 0 {
@@ -534,9 +535,13 @@ impl<D: BlockDevice> Filesystem<D> {
             first
         };
 
-        let h = self.handles[i].as_mut()?;
-        h.cluster = start;
-        h.size = data.len() as u32;
+        // Every handle to this file sees the new chain.
+        for h in self.handles.iter_mut().flatten() {
+            if h.slot == slot {
+                h.cluster = start;
+                h.size = data.len() as u32;
+            }
+        }
         self.update_entry(slot, |raw| {
             let mut e = Entry::parse(raw);
             e.cluster = start;
@@ -578,12 +583,15 @@ impl<D: BlockDevice> Filesystem<D> {
                 };
             }
         }
-        // End the chain here and free the rest.
+        // End the chain here and free the rest, unless a corrupt FAT loops
+        // the rest back into the clusters just written.
         let rest = self.fat_get(cluster);
         if !self.fat_set(cluster, FAT_EOC) {
             return None;
         }
-        self.free_chain(rest);
+        if !self.chain_contains(first, rest) {
+            self.free_chain(rest);
+        }
         Some(())
     }
 
@@ -632,6 +640,21 @@ impl<D: BlockDevice> Filesystem<D> {
     fn next_cluster(&mut self, cluster: u32) -> Option<u32> {
         let next = self.fat_get(cluster);
         self.layout.is_data_cluster(next).then_some(next)
+    }
+
+    /// Whether `cluster` is on the chain starting at `start`.
+    fn chain_contains(&mut self, start: u32, cluster: u32) -> bool {
+        let mut c = start;
+        for _ in 0..self.layout.cluster_end {
+            if c == cluster {
+                return true;
+            }
+            match self.next_cluster(c) {
+                Some(next) => c = next,
+                None => return false,
+            }
+        }
+        false
     }
 
     /// Mark the first free cluster as the end of a chain and return it.
@@ -751,6 +774,39 @@ mod tests {
     }
 
     #[test]
+    fn dot_names_cannot_be_created() {
+        let mut fs = fs(1);
+        assert!(fs.mkdir(b"/a"));
+        for path in [&b"/."[..], b"/..", b"/a/.", b"/a/..", b"/a/"] {
+            assert!(!fs.mkdir(path));
+            assert_eq!(fs.open(path, true), 0);
+        }
+        assert_eq!(names(&mut fs, b"/"), [b"a".to_vec()]);
+        assert!(names(&mut fs, b"/a").is_empty());
+    }
+
+    #[test]
+    fn trailing_and_leading_dot_names_are_found_again() {
+        let mut fs = fs(1);
+        write_file(&mut fs, b"/NOTE.", b"1");
+        write_file(&mut fs, b"/.TXT", b"2");
+        write_file(&mut fs, b"/NOTE.", b"3");
+        assert_eq!(names(&mut fs, b"/"), [b"NOTE.".to_vec(), b".TXT".to_vec()]);
+        assert_eq!(read_file(&mut fs, b"/NOTE."), b"3");
+        assert_eq!(read_file(&mut fs, b"/.TXT"), b"2");
+    }
+
+    #[test]
+    fn longest_names_list_in_full() {
+        let mut fs = fs(1);
+        let mut path = b"/".to_vec();
+        path.extend_from_slice(&[b'n'; NAME_MAX]);
+        write_file(&mut fs, &path, b"x");
+        assert_eq!(names(&mut fs, b"/"), [path[1..].to_vec()]);
+        assert!(!fs.mkdir(&[&path[..], b"n"].concat()), "over NAME_MAX");
+    }
+
+    #[test]
     fn create_write_read() {
         let mut fs = fs(1);
         write_file(&mut fs, b"/hello.txt", b"Hello, World!");
@@ -845,6 +901,42 @@ mod tests {
     }
 
     #[test]
+    fn writes_are_seen_by_every_handle_to_the_file() {
+        let mut fs = fs(1);
+        write_file(&mut fs, b"/f", &pattern(1500));
+        let (h1, h2) = (fs.open(b"/f", false), fs.open(b"/f", false));
+        assert!(fs.write(h1, b""));
+        write_file(&mut fs, b"/g", &pattern(1500));
+        // h2 must not write over g's clusters with f's old chain.
+        assert!(fs.write(h2, b"x"));
+        assert_eq!(read_file(&mut fs, b"/g"), pattern(1500));
+        assert_eq!(read_file(&mut fs, b"/f"), b"x");
+        let mut buf = [0; 4];
+        assert_eq!(fs.read(h1, 0, &mut buf), Some(1));
+    }
+
+    #[test]
+    fn writes_retried_after_a_disk_error_reach_the_disk() {
+        let mut fs = fs(1);
+        write_file(&mut fs, b"/f", &pattern(3000));
+        let h = fs.open(b"/f", false);
+        let first = fs.handles[h as usize - 1].as_ref().unwrap().cluster;
+        // The first FAT sector fails once, when the chain is cut short.
+        fs.cache.device().fail_lba = Some(fs.layout.fat_start);
+        assert!(!fs.write(h, b"short"));
+        fs.cache.device().fail_lba = None;
+        assert!(fs.write(h, b"short"));
+        let before = free_clusters(&mut fs);
+        // A fresh mount sees only what is on the disk.
+        let mut disk = MemDisk::new(0);
+        disk.sectors = fs.cache.device().sectors.clone();
+        let mut again = Filesystem::mount(disk).unwrap();
+        assert_eq!(read_file(&mut again, b"/f"), b"short");
+        assert_eq!(again.next_cluster(first), None, "chain ends on disk");
+        assert_eq!(free_clusters(&mut again), before);
+    }
+
+    #[test]
     fn removed_files_invalidate_their_handles() {
         let mut fs = fs(1);
         write_file(&mut fs, b"/f", b"data");
@@ -876,6 +968,10 @@ mod tests {
         assert_eq!(fs.stat(b"/f/x"), Stat::Missing);
         assert!(!fs.mkdir(b"/f/x"));
         assert_eq!(fs.list(b"/f", 0, &mut [0; NAME_MAX]), None);
+        assert_eq!(fs.stat(b"/f/"), Stat::Missing);
+        assert_eq!(fs.stat(b"/f/."), Stat::Missing);
+        assert_eq!(fs.open(b"/f/.", false), 0);
+        assert_eq!(fs.stat(b"/f"), Stat::File);
     }
 
     #[test]
@@ -957,6 +1053,11 @@ mod tests {
         fs.fat_set(second, first);
         let mut buf = alloc::vec![0; 2000];
         assert!(fs.read(h, 0, &mut buf).is_some());
+        // Overwriting must not free the clusters the loop points back into.
+        assert!(fs.write(h, &pattern(1024)));
+        assert_ne!(fs.fat_get(first), FAT_FREE);
+        assert_ne!(fs.fat_get(second), FAT_FREE);
+        assert_eq!(read_file(&mut fs, b"/f"), pattern(1024));
         assert!(fs.remove(b"/f"));
     }
 
@@ -967,6 +1068,7 @@ mod tests {
         let too_big = alloc::vec![1u8; (free + 1) * 64 * SECTOR_SIZE];
         let h = fs.open(b"/huge", true);
         assert!(!fs.write(h, &too_big));
-        assert!(fs.mkdir(b"/still-works") || free_clusters(&mut fs) == 0);
+        assert_eq!(free_clusters(&mut fs), free, "nothing leaked");
+        assert!(fs.mkdir(b"/still-works"));
     }
 }
