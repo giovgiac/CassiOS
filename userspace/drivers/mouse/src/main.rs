@@ -28,9 +28,15 @@ pub extern "C" fn _start() -> ! {
     let controller = Controller::new();
     let mut mouse = Mouse::new();
 
+    // Failures are logged and the service keeps answering MouseRead, so
+    // clients never block on a missing or unresponsive mouse.
     ns::register_name(b"mouse");
-    os::irq_register(MOUSE_IRQ);
-    controller.activate();
+    if os::irq_register(MOUSE_IRQ) < 0 {
+        os::write(2, b"mouse: IRQ 12 is already registered\n");
+    }
+    if !controller.activate() {
+        os::write(2, b"mouse: PS/2 mouse did not respond\n");
+    }
 
     loop {
         let mut msg = Message::default();

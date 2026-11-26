@@ -22,8 +22,13 @@ const WRITE_AUX: u8 = 0xD4;
 // Configuration byte bit that enables IRQ 12.
 const CONFIG_AUX_IRQ: u8 = 0x02;
 
-// Mouse command: enable data reporting.
+// Mouse command: enable data reporting, and the mouse's acknowledgement.
 const ENABLE_REPORTING: u8 = 0xF4;
+const ACK: u8 = 0xFA;
+
+// Status polls before giving up on the controller (well over the
+// milliseconds a real 8042 or mouse needs to respond).
+const TIMEOUT: u32 = 100_000;
 
 /// The PS/2 controller's command/status and data ports.
 pub struct Controller {
@@ -40,43 +45,67 @@ impl Controller {
     }
 
     /// Enable the auxiliary device, its IRQ, and mouse data reporting.
-    pub fn activate(&self) {
-        self.send_command(ENABLE_AUX);
-
-        self.send_command(READ_CONFIG);
-        let config = self.read_data() | CONFIG_AUX_IRQ;
-        self.send_command(WRITE_CONFIG);
-        self.write_data(config);
-
-        self.send_command(WRITE_AUX);
-        self.write_data(ENABLE_REPORTING);
-        self.read_data(); // ACK
+    /// Returns false if the controller or the mouse does not respond.
+    pub fn activate(&self) -> bool {
+        self.try_activate().is_some()
     }
 
     /// Feed every pending mouse byte to `mouse`. Keyboard bytes are left
     /// for the keyboard driver.
     pub fn drain(&self, mouse: &mut Mouse) {
-        while self.status() & (OUTPUT_FULL | AUX_DATA) == OUTPUT_FULL | AUX_DATA {
+        while self.has(OUTPUT_FULL | AUX_DATA) {
             mouse.handle_byte(unsafe { self.data.read() });
         }
     }
 
-    fn status(&self) -> u8 {
-        unsafe { self.command.read() }
+    fn try_activate(&self) -> Option<()> {
+        // Discard stale bytes so the replies below are ours. Bounded, since
+        // a missing controller reads as 0xFF (every status bit set).
+        for _ in 0..TIMEOUT {
+            if !self.has(OUTPUT_FULL) {
+                break;
+            }
+            unsafe { self.data.read() };
+        }
+
+        self.send_command(ENABLE_AUX)?;
+
+        self.send_command(READ_CONFIG)?;
+        let config = self.read_data(OUTPUT_FULL)? | CONFIG_AUX_IRQ;
+        self.send_command(WRITE_CONFIG)?;
+        self.write_data(config)?;
+
+        self.send_command(WRITE_AUX)?;
+        self.write_data(ENABLE_REPORTING)?;
+        (self.read_data(OUTPUT_FULL | AUX_DATA)? == ACK).then_some(())
     }
 
-    fn send_command(&self, command: u8) {
-        while self.status() & INPUT_FULL != 0 {}
+    fn has(&self, bits: u8) -> bool {
+        unsafe { self.command.read() & bits == bits }
+    }
+
+    /// Poll until `status & mask == expected`.
+    fn wait(&self, mask: u8, expected: u8) -> Option<()> {
+        (0..TIMEOUT)
+            .any(|_| unsafe { self.command.read() } & mask == expected)
+            .then_some(())
+    }
+
+    fn send_command(&self, command: u8) -> Option<()> {
+        self.wait(INPUT_FULL, 0)?;
         unsafe { self.command.write(command) };
+        Some(())
     }
 
-    fn write_data(&self, value: u8) {
-        while self.status() & INPUT_FULL != 0 {}
+    fn write_data(&self, value: u8) -> Option<()> {
+        self.wait(INPUT_FULL, 0)?;
         unsafe { self.data.write(value) };
+        Some(())
     }
 
-    fn read_data(&self) -> u8 {
-        while self.status() & OUTPUT_FULL == 0 {}
-        unsafe { self.data.read() }
+    /// Read a data byte once the status has all of `bits` set.
+    fn read_data(&self, bits: u8) -> Option<u8> {
+        self.wait(bits, bits)?;
+        Some(unsafe { self.data.read() })
     }
 }

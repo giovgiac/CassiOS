@@ -35,8 +35,11 @@ impl Mouse {
     /// the buttons and adds its movement to the accumulated deltas.
     pub fn handle_byte(&mut self, byte: u8) {
         // A packet's first byte always has bit 3 set. Skipping bytes until
-        // one does resynchronises after a lost byte.
-        if self.offset == 0 && byte & ALWAYS_ONE == 0 {
+        // one does resynchronises after a lost byte. Overflow packets are
+        // skipped too: their movement is meaningless, and rejecting the
+        // overflow bits stops movement bytes like 0xFF (-1) being taken
+        // for a header.
+        if self.offset == 0 && byte & (ALWAYS_ONE | OVERFLOW) != ALWAYS_ONE {
             return;
         }
 
@@ -46,11 +49,9 @@ impl Mouse {
         if self.offset == 0 {
             let flags = self.buffer[0];
             self.buttons = flags & BUTTONS;
-            if flags & OVERFLOW == 0 {
-                self.dx += delta(self.buffer[1], flags & X_SIGN != 0);
-                // PS/2 reports y upwards; screen y grows downwards.
-                self.dy -= delta(self.buffer[2], flags & Y_SIGN != 0);
-            }
+            self.dx += delta(self.buffer[1], flags & X_SIGN != 0);
+            // PS/2 reports y upwards; screen y grows downwards.
+            self.dy -= delta(self.buffer[2], flags & Y_SIGN != 0);
         }
     }
 
@@ -113,10 +114,22 @@ mod tests {
     }
 
     #[test]
-    fn overflow_packet_keeps_buttons_drops_movement() {
+    fn overflow_header_is_skipped() {
         let mut mouse = Mouse::new();
-        feed(&mut mouse, [0x49, 0xFF, 0x10]);
-        assert_eq!((mouse.buttons, mouse.dx, mouse.dy), (1, 0, 0));
+        mouse.handle_byte(0x49);
+        feed(&mut mouse, [0x09, 10, 5]);
+        assert_eq!((mouse.buttons, mouse.dx, mouse.dy), (1, 10, -5));
+    }
+
+    #[test]
+    fn misaligned_negative_dx_is_not_a_header() {
+        let mut mouse = Mouse::new();
+        // Stream shifted by one while moving left: dx = 0xFF (-1) arrives
+        // where a header is expected and must not be parsed as one.
+        mouse.handle_byte(0xFF);
+        mouse.handle_byte(0x00);
+        feed(&mut mouse, [0x18, 0xFF, 0x00]);
+        assert_eq!((mouse.buttons, mouse.dx, mouse.dy), (0, -1, 0));
     }
 
     #[test]
