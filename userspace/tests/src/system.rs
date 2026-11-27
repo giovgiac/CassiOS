@@ -30,7 +30,9 @@ tests!(
 const KERNEL_ADDRESS: u32 = 0xC010_0000;
 
 /// A raw syscall, for buffers the safe wrappers cannot express. esi
-/// cannot be an asm! operand on x86-32, so it is swapped in by hand.
+/// cannot be an asm! operand on x86-32, so it is swapped in by hand. Every
+/// argument register counts as clobbered, since some syscalls (MemInfo,
+/// FramebufferInfo) return values in them.
 fn raw_syscall(call: u32, ebx: u32, ecx: u32, edx: u32, esi: u32, edi: u32) -> u32 {
     let ret: u32;
     // SAFETY: the kernel validates every argument; the call either fails
@@ -42,10 +44,10 @@ fn raw_syscall(call: u32, ebx: u32, ecx: u32, edx: u32, esi: u32, edi: u32) -> u
             "xchg {s}, esi",
             s = inout(reg) esi => _,
             inlateout("eax") call => ret,
-            in("ebx") ebx,
-            in("ecx") ecx,
-            in("edx") edx,
-            in("edi") edi,
+            inlateout("ebx") ebx => _,
+            inlateout("ecx") ecx => _,
+            inlateout("edx") edx => _,
+            inlateout("edi") edi => _,
         )
     };
     ret

@@ -13,6 +13,7 @@
 #include "hardware/serial.hpp"
 
 #include <std/fmt.hpp>
+#include <std/io.hpp>
 
 using namespace cassio;
 using namespace std;
@@ -34,6 +35,11 @@ u32 ExceptionHandler::handle(u8 vector, u32 error_code, u32 esp) {
     char buf[48];
     fmt::format(buf, sizeof(buf), "EXCEPTION: vector={} error_code={}\n", (u32)vector, error_code);
     COM1::puts(buf);
+
+    // Fails a QEMU test run instead of hanging it; without the debug-exit
+    // device the write does nothing.
+    io::Port<u8> debug_exit(io::PortType::QemuDebugExit);
+    debug_exit.write(0x01);
 
     while (true) {
         asm volatile("cli; hlt");
