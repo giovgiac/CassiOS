@@ -6,7 +6,8 @@
  * license that can be found in the LICENSE file.
  *
  * IPC message format and message type constants, shared by the kernel
- * and the kernel tests. Userspace programs use libs/cassio.
+ * and the kernel tests. Rust code uses the same definitions from libs/sys;
+ * keep the two in step.
  *
  */
 

@@ -12,6 +12,9 @@ dependencies = [
 [[package]]
 name = "cassio"
 version = "0.1.0"
+dependencies = [
+ "sys",
+]
 
 [[package]]
 name = "display"
@@ -54,6 +57,10 @@ version = "0.1.0"
 dependencies = [
  "cassio",
 ]
+
+[[package]]
+name = "sys"
+version = "0.1.0"
 
 [[package]]
 name = "terminal"

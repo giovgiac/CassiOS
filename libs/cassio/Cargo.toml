@@ -2,3 +2,6 @@
 name = "cassio"
 edition.workspace = true
 version.workspace = true
+
+[dependencies]
+sys = { path = "../sys" }
