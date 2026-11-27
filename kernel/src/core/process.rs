@@ -185,6 +185,7 @@ impl Process {
         Some(sender)
     }
 
+    #[cfg(any(test, feature = "ktest"))]
     /// The first blocked sender, if any.
     pub fn first_sender(&self) -> Option<u32> {
         self.senders.front().copied()
@@ -345,26 +346,6 @@ mod imp {
         }
     }
 
-    /// Add the kernel task (C++ start() and the test kernel).
-    #[unsafe(no_mangle)]
-    extern "C" fn process_init() {
-        PROCESSES.with(|table| table.init());
-    }
-
-    /// Start a loaded module (C++ start()): the new pid, or 0.
-    #[unsafe(no_mangle)]
-    extern "C" fn process_spawn(
-        directory: u32,
-        entry: u32,
-        heap_start: u32,
-        cs: u32,
-        ds: u32,
-    ) -> u32 {
-        PROCESSES
-            .with(|table| table.spawn(directory, entry, heap_start, cs, ds))
-            .unwrap_or(0)
-    }
-
     impl Table {
         /// Start a program loaded into `directory`: map its user stack,
         /// give it a kernel stack with a frame that enters user mode at
@@ -443,7 +424,7 @@ mod imp {
     }
 
     /// Helpers for kernel tests that build processes.
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod testing {
         use alloc::vec::Vec;
 
@@ -493,7 +474,7 @@ mod imp {
         }
     }
 
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use super::testing::{add, with_table};
         use super::*;
@@ -529,7 +510,7 @@ mod imp {
         }
 
         fn process_create_beyond_old_limit() -> Outcome {
-            // The C++ table once held 16 processes.
+            // More than the 16 the table once held.
             with_table(|table| {
                 let mut frame = Frame::default();
                 for _ in 0..40 {
@@ -734,7 +715,7 @@ mod tests {
 
     #[test]
     fn senders_queue_in_order_past_the_old_limit() {
-        // The C++ queue once held 8, then 32 entries.
+        // More than the 8, then 32 entries the queue once held.
         let mut p = Process::new(1, 0, 0, 0, 0);
         for sender in 2..42 {
             assert!(p.push_sender(sender));

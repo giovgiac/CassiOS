@@ -4,8 +4,8 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 //
-// Layouts mirror kernel/include/memory/multiboot.hpp. Every address in
-// them is physical.
+// Layouts follow the Multiboot specification. Every address in them is
+// physical.
 
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]
@@ -14,6 +14,7 @@ use core::mem::size_of;
 
 pub const FLAG_MODS: u32 = 1 << 3;
 pub const FLAG_MMAP: u32 = 1 << 6;
+pub const FLAG_FRAMEBUFFER: u32 = 1 << 12;
 pub const MMAP_AVAILABLE: u32 = 1;
 
 #[repr(C, packed)]

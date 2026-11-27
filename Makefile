@@ -7,8 +7,6 @@ DISK_SIZE_MB ?= 32
 TEST_TIMEOUT ?= 120
 
 ASMFLAGS = --32
-STD_INCLUDES = $(foreach dir,$(wildcard libs/*/include),-I$(dir))
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
 LDFLAGS = -melf_i386 --gc-sections
 RUST_TARGET = i586-unknown-linux-gnu
 
@@ -27,31 +25,15 @@ HELLO = disk/bin/hello.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
 LIBSTD_MEM = lib/libstd_mem.a
-LIBSTD_STR = lib/libstd_str.a
-LIBSTD_FMT = lib/libstd_fmt.a
-LIBSTD_TEST = lib/libstd_test.a
 KERNEL_LIB = target/$(RUST_TARGET)/release/libkernel.a
+# The test kernel's library (feature ktest), in its own target directory.
+TEST_KERNEL_LIB = target/ktest/$(RUST_TARGET)/release/libkernel.a
 
 
-# Discover all source files automatically.
-cpp_sources = $(shell find kernel/src/ -name '*.cpp')
+# The kernel is Rust plus three assembly files: the multiboot loader and
+# the interrupt and syscall entry stubs.
 asm_sources = $(shell find kernel/src/ -name '*.s')
-objects = $(patsubst kernel/src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
-
-# Shared objects for the test kernel (everything except kernel.o).
-shared_objects = $(filter-out obj/core/kernel.o, $(objects))
-
-# Test objects are discovered from kernel/tests/**/test_*.cpp and libs/**/tests/test_*.cpp.
-test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
-test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
-lib_test_sources = $(shell find libs/ -path '*/tests/test_*.cpp' 2>/dev/null)
-lib_test_objects = $(patsubst libs/%.cpp, obj/libs/%.o, $(lib_test_sources))
-
-
-# Compile C++ source files.
-obj/%.o: kernel/src/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
+objects = $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
 
 # Compile assembly source files.
 obj/%.o: kernel/src/%.s
@@ -61,24 +43,17 @@ obj/%.o: kernel/src/%.s
 $(LIBSTD_MEM): FORCE
 	$(MAKE) -C libs/mem
 
-$(LIBSTD_STR): FORCE
-	$(MAKE) -C libs/str
-
-$(LIBSTD_FMT): FORCE
-	$(MAKE) -C libs/fmt
-
-$(LIBSTD_TEST): FORCE
-	$(MAKE) -C libs/test
-
-# The Rust part of the kernel, linked into both kernel binaries.
 $(KERNEL_LIB): FORCE
 	cargo build --release --target $(RUST_TARGET) --target-dir target -p kernel
 
+$(TEST_KERNEL_LIB): FORCE
+	cargo build --release --target $(RUST_TARGET) --target-dir target/ktest -p kernel --features ktest
+
 FORCE:
 
-kernel: kernel/src/linker.ld $(objects) $(KERNEL_LIB) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_FMT)
+kernel: kernel/src/linker.ld $(objects) $(KERNEL_LIB) $(LIBSTD_MEM)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(KERNEL_LIB) $(LIBSTD_FMT) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(KERNEL_LIB) $(LIBSTD_MEM)
 
 $(NAMESERVER): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/core/ns
@@ -107,18 +82,9 @@ $(USERSHELL): FORCE $(LIBSTD_MEM)
 $(HELLO): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/apps/hello
 
-# Compile test files from the kernel/tests/ directory.
-obj/tests/%.o: kernel/tests/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES) -Ikernel/tests/
-
-obj/libs/%.o: libs/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
-
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(KERNEL_LIB) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_FMT) $(LIBSTD_TEST)
+$(TEST_KERNEL): kernel/src/linker.ld $(objects) $(TEST_KERNEL_LIB) $(LIBSTD_MEM)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(KERNEL_LIB) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(objects) $(TEST_KERNEL_LIB) $(LIBSTD_MEM)
 
 $(USERTEST): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/tests
@@ -213,11 +179,6 @@ $(ISO): kernel $(NAMESERVER) $(KBD) $(VFS) $(MOUSE) $(ATA) $(DISPLAY) $(TERMINAL
 run: $(ISO) $(DISK)
 	qemu-system-i386 -machine pc -cdrom $(ISO) -boot d \
 	    -drive file=$(DISK),format=raw,if=ide
-
-# Include auto-generated header dependencies (produced by -MMD -MP).
--include $(objects:.o=.d)
--include $(test_objects:.o=.d)
--include $(lib_test_objects:.o=.d)
 
 .PHONY: kernel clean run test test-rust test-kernel test-userspace
 clean:

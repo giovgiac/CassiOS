@@ -9,9 +9,7 @@
 // drives the PIT; each line can also be forwarded to one userspace driver,
 // which receives an IrqNotify message, at once if it is blocked in
 // receive and otherwise on its next receive. Spurious IRQs (7 and 15 not
-// in service) are dropped. The entry stubs are in stub.s. The C++ IrqManager
-// (kernel/include/hardware/irq.hpp) forwards here until its callers are
-// ported.
+// in service) are dropped. The entry stubs are in stub.s.
 
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]
@@ -234,7 +232,7 @@ mod imp {
         FORWARDING.with(|f| f.take_pending(pid))
     }
 
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use super::*;
         use crate::ktest::Outcome;

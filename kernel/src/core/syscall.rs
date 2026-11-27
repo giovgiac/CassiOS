@@ -592,25 +592,7 @@ mod imp {
         handle(esp)
     }
 
-    /// For C++ start(): the multiboot framebuffer.
-    #[unsafe(no_mangle)]
-    extern "C" fn syscall_set_framebuffer(
-        address: u32,
-        width: u32,
-        height: u32,
-        pitch: u32,
-        bpp: u32,
-    ) {
-        set_framebuffer(FramebufferInfo {
-            address,
-            width,
-            height,
-            pitch,
-            bpp,
-        });
-    }
-
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use alloc::vec::Vec;
 
@@ -1156,12 +1138,11 @@ mod imp {
         }
 
         fn syscall_write_to_other_fds_fails() -> Outcome {
+            // Called directly: through the gate, buffers_valid would reject
+            // this kernel buffer before the fd is looked at.
             let text = b"x";
             for fd in [1, 99] {
-                check_eq!(
-                    raw_syscall(syscall::WRITE, fd, text.as_ptr() as u32, 1) as i32,
-                    -1
-                );
+                check_eq!(write(fd, text.as_ptr() as u32, 1), -1);
             }
             Ok(())
         }

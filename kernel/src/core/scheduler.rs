@@ -95,7 +95,7 @@ pub fn tick(esp: u32) -> u32 {
     PROCESSES.with(|table| schedule(table, esp))
 }
 
-#[cfg(not(test))]
+#[cfg(feature = "ktest")]
 pub mod ktests {
     use super::*;
     use crate::ktest::Outcome;

@@ -7,9 +7,7 @@
 // Every vector gets an interrupt gate (interrupts stay disabled while its
 // handler runs): CPU exceptions, the remapped PIC IRQs, the syscall gate
 // (kernel/src/core/syscall.rs), and an ignoring stub for the rest. The
-// entry stubs are in stub.s and syscall_stub.s. The C++ InterruptManager
-// (kernel/include/hardware/interrupt.hpp) forwards here until its callers
-// are ported.
+// entry stubs are in stub.s and syscall_stub.s.
 
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]
@@ -37,14 +35,17 @@ impl Gate {
         ])
     }
 
+    #[cfg(any(test, feature = "ktest"))]
     pub fn handler(&self) -> u32 {
         u32::from_le_bytes([self.0[0], self.0[1], self.0[6], self.0[7]])
     }
 
+    #[cfg(any(test, feature = "ktest"))]
     pub fn selector(&self) -> u16 {
         u16::from_le_bytes([self.0[2], self.0[3]])
     }
 
+    #[cfg(any(test, feature = "ktest"))]
     pub fn access(&self) -> u8 {
         self.0[5]
     }
@@ -110,17 +111,7 @@ mod imp {
         unsafe { asm!("sti", options(nomem, nostack)) };
     }
 
-    #[unsafe(no_mangle)]
-    extern "C" fn interrupt_init() {
-        init();
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn interrupt_enable() {
-        enable();
-    }
-
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use super::*;
         use crate::ktest::Outcome;

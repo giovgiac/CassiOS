@@ -27,11 +27,6 @@ SECTIONS {
 
     .data : AT(ADDR(.data) - KERNEL_VBASE)
     {
-        start_ctors = .;
-        KEEP(*(.init_array));
-        KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*)));
-        end_ctors = .;
-
         *(.data*)
         *(.got*)
     }
@@ -43,8 +38,7 @@ SECTIONS {
     }
     _kernel_end = .;
 
-    /* Nothing unwinds: C++ is built without exceptions, Rust with
-       panic = "abort". */
+    /* Nothing unwinds: the kernel is built with panic = "abort". */
     /DISCARD/ :
     {
         *(.fini_array*)

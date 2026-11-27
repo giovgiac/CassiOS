@@ -5,9 +5,7 @@
 // license that can be found in the LICENSE file.
 //
 // Channel 0 ticks TICK_FREQUENCY times a second on IRQ 0; each tick counts
-// and gives the scheduler a chance to switch process. The C++ PitTimer
-// (kernel/include/hardware/pit.hpp) forwards here until its callers are
-// ported.
+// and gives the scheduler a chance to switch process.
 
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]
@@ -73,12 +71,7 @@ mod imp {
         }
     }
 
-    #[unsafe(no_mangle)]
-    extern "C" fn pit_activate() {
-        activate();
-    }
-
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use super::*;
         use crate::ktest::Outcome;

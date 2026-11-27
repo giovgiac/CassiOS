@@ -6,9 +6,7 @@
 //
 // Loads 32-bit i386 executables into a user address space: every PT_LOAD
 // segment is copied into fresh frames, the rest of its memory zeroed. The
-// program's heap starts at the first page after its segments. The C++
-// ElfLoader (kernel/include/core/elf.hpp) forwards here until its callers
-// are ported.
+// program's heap starts at the first page after its segments.
 
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]
@@ -187,35 +185,7 @@ mod imp {
         Ok(program)
     }
 
-    /// Load for C++: true on success, with the entry point and the initial
-    /// heap break stored through `entry` and `heap_start`.
-    ///
-    /// # Safety
-    ///
-    /// `data` must point to `size` readable bytes, and `entry` and
-    /// `heap_start` must be writable.
-    #[unsafe(no_mangle)]
-    unsafe extern "C" fn elf_load(
-        directory: u32,
-        data: *const u8,
-        size: usize,
-        entry: *mut u32,
-        heap_start: *mut u32,
-    ) -> bool {
-        let data = unsafe { core::slice::from_raw_parts(data, size) };
-        match load(directory, data) {
-            Ok(program) => {
-                unsafe {
-                    *entry = program.entry;
-                    *heap_start = program.heap_start;
-                }
-                true
-            }
-            Err(_) => false,
-        }
-    }
-
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use alloc::vec::Vec;
 
@@ -285,7 +255,7 @@ mod imp {
     }
 }
 
-#[cfg(any(test, target_arch = "x86"))]
+#[cfg(any(test, feature = "ktest"))]
 pub mod tests {
     use alloc::vec::Vec;
 

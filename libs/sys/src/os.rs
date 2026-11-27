@@ -63,8 +63,8 @@ mod tests {
         assert_eq!(core::mem::size_of::<ProcEntry>(), 12);
     }
 
-    // Every value, mirrored in libs/os/tests/test_os.cpp, so a number
-    // changed on one side only fails the tests.
+    // Every value: programs and the kernel are built separately, so a
+    // change here is a deliberate ABI change.
     #[test]
     fn syscall_numbers_match_the_kernel() {
         assert_eq!(syscall::SEND, 0);

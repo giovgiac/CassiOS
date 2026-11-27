@@ -34,7 +34,6 @@
 
 
 .section .text
-.extern ctors
 .extern start
 .global loader
 
@@ -93,9 +92,6 @@ higher_half:
 
     # Translate multiboot pointer to virtual address.
     addl    $KERNEL_VBASE, %edi
-
-    # Call global constructors.
-    call    ctors
 
     # Call kernel entry point: start(multiboot, magic).
     push    %esi
