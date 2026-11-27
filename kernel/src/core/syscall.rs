@@ -263,7 +263,7 @@ mod imp {
             }
             return Received::Notification;
         }
-        if let Some(sender) = table.current().senders.pop_front() {
+        if let Some(sender) = table.current().pop_sender() {
             let Some(process) = table.get(sender) else {
                 return Received::Error;
             };
@@ -717,7 +717,7 @@ mod imp {
                 as_caller(table, sender);
                 let mut out = message(1, 2);
                 check_eq!(send(table, receiver, ptr(&mut out), 0, 0), 0);
-                check_eq!(table.get(receiver).unwrap().senders.front(), Some(&sender));
+                check_eq!(table.get(receiver).unwrap().first_sender(), Some(sender));
                 check_eq!(table.get(sender).unwrap().state, State::SendBlocked);
                 Ok(())
             })

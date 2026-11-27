@@ -105,8 +105,8 @@ pub struct Process {
     pub data_ptr: u32,
     pub data_len: u32,
     /// Processes blocked sending to this one, in order.
-    pub senders: VecDeque<u32>,
-    pub notifications: VecDeque<Notification>,
+    senders: VecDeque<u32>,
+    notifications: VecDeque<Notification>,
     /// Bytes of data in `notifications`.
     notification_bytes: usize,
 }
@@ -164,11 +164,30 @@ impl Process {
         true
     }
 
-    /// Take the oldest notification.
+    /// Take the oldest notification. An emptied queue gives its buffer
+    /// back: a full-screen redraw grows the display's to about 300 KiB.
     pub fn pop_notification(&mut self) -> Option<Notification> {
         let notification = self.notifications.pop_front()?;
         self.notification_bytes -= notification.data.len();
+        if self.notifications.is_empty() {
+            self.notifications = VecDeque::new();
+        }
         Some(notification)
+    }
+
+    /// Take the first blocked sender. An emptied queue gives its buffer
+    /// back.
+    pub fn pop_sender(&mut self) -> Option<u32> {
+        let sender = self.senders.pop_front()?;
+        if self.senders.is_empty() {
+            self.senders = VecDeque::new();
+        }
+        Some(sender)
+    }
+
+    /// The first blocked sender, if any.
+    pub fn first_sender(&self) -> Option<u32> {
+        self.senders.front().copied()
     }
 
     /// Bytes of heap grown by sbrk.
@@ -699,6 +718,10 @@ mod tests {
         assert_eq!(p.pop_notification().map(|n| n.data.len()), Some(half.len()));
         assert!(p.push_notification(Message::default(), &half));
         assert!(!p.push_notification(Message::default(), &[0]));
+        // Draining the queue releases its buffer.
+        while p.pop_notification().is_some() {}
+        assert_eq!(p.notifications.capacity(), 0);
+        assert!(p.push_notification(Message::default(), &half));
     }
 
     #[test]
@@ -724,11 +747,12 @@ mod tests {
         let mut p = Process::new(1, 0, 0, 0, 0);
         p.push_sender(2);
         p.push_sender(3);
-        assert_eq!(p.senders.pop_front(), Some(2));
+        assert_eq!(p.pop_sender(), Some(2));
         p.push_sender(4);
-        assert_eq!(p.senders.pop_front(), Some(3));
-        assert_eq!(p.senders.pop_front(), Some(4));
-        assert_eq!(p.senders.pop_front(), None);
+        assert_eq!(p.pop_sender(), Some(3));
+        assert_eq!(p.pop_sender(), Some(4));
+        assert_eq!(p.pop_sender(), None);
+        assert_eq!(p.senders.capacity(), 0);
     }
 
     #[test]
