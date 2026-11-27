@@ -2,7 +2,7 @@
 
 ## Current State
 
-CassiOS is a microkernel OS. The kernel provides IPC (synchronous message passing), scheduling, memory management, and interrupt routing. Everything else runs as userspace services: keyboard, mouse, VGA terminal, ATA disk, FAT32 filesystem, nameserver, and an interactive shell with 16 commands. Boots via GRUB (multiboot), 32-bit protected mode, preemptive round-robin scheduling, per-process address spaces, ELF loader, serial output (COM1), and both kernel and userspace test frameworks. The filesystem is persistent on a 32 MiB FAT32 disk image with long filename support.
+CassiOS is a microkernel OS. The kernel provides IPC (synchronous message passing), scheduling, memory management, and interrupt routing. Everything else runs as userspace services: keyboard, mouse, VESA framebuffer display, graphical terminal, ATA disk, FAT32 filesystem, nameserver, and an interactive shell with 18 commands. It is written in Rust (ported from C++ in Phase 11), plus three assembly files. Boots via GRUB (multiboot), 32-bit protected mode, preemptive round-robin scheduling, per-process address spaces, ELF loader, serial output (COM1), and both kernel and userspace test frameworks. The filesystem is persistent on a 32 MiB FAT32 disk image with long filename support.
 
 ## Phase 1: Memory Management
 
@@ -11,7 +11,7 @@ CassiOS is a microkernel OS. The kernel provides IPC (synchronous message passin
 Add three layers of memory management:
 
 1. **Physical memory manager** (#41) — bitmap allocator tracking 4 KiB frames, parses the multiboot memory map to discover available RAM, bumps GDT limits to 4 GiB
-2. **Kernel heap** (#42) — fixed 1 MiB free list allocator (first-fit) with global `operator new`/`delete`, backed by physical frames
+2. **Kernel heap** (#42) — fixed 1 MiB free list allocator (first-fit), the kernel's global allocator, backed by physical frames
 3. **Paging** (#43) — identity map (VA = PA) for all usable RAM, page directory + page tables, CR0.PG enabled
 
 Design: `docs/plans/2026-03-10-memory-management-design.md`
@@ -57,7 +57,7 @@ Design: `docs/plans/2026-03-15-syscall-interface-design.md`
 Add ring 3 execution, an ELF loader, preemptive scheduling, and per-process address spaces. A single init process loaded from a GRUB multiboot module runs alongside the existing kernel shell.
 
 1. **GDT + TSS** — user code/data segments, Task State Segment for ring 0 stack on privilege transitions
-2. **Process management** — Process struct, fixed-size process table (16 slots), ProcessManager singleton
+2. **Process management** — Process struct, fixed-size process table (16 slots; now grows on the heap)
 3. **Scheduler** — preemptive round-robin via PIT timer, context switching by swapping saved ESP, single kernel stack with state saved to PCB
 4. **Per-process address spaces** — separate page directories with shared kernel mappings, user pages in lower 3 GiB
 5. **ELF loader** — parse ELF32 from multiboot modules, load PT_LOAD segments into user address spaces
@@ -72,10 +72,10 @@ Design: `docs/plans/2026-03-16-userspace-process-management-design.md`
 
 Migrated from monolithic to microkernel architecture. The kernel now contains only: GDT/TSS, interrupt subsystem, memory management, process management, scheduler, PIT timer, IPC, ELF loader, and serial. Everything else runs as userspace services communicating via IPC.
 
-1. **Interrupt subsystem refactor** (#96) — split InterruptManager into IDT owner, ExceptionHandler, IrqManager, and SyscallHandler
+1. **Interrupt subsystem refactor** (#96) — split the interrupt code into the IDT, exception handling, IRQ dispatch and the syscall handler
 2. **IPC mechanism** (#97) — synchronous message passing (send/receive/reply) with fire-and-forget notify
 3. **IRQ forwarding** (#98) — kernel routes hardware interrupts to registered userspace driver processes via IPC
-4. **Userspace test framework** (#99) — TEST() macro with auto-registration, serial output, QEMU exit
+4. **Userspace test framework** (#99) — test runner with serial output and QEMU exit
 5. **Nameserver** (#100, #101) — service discovery by name, first userspace service
 6. **Driver migration** — keyboard (#102), VGA terminal (#103), filesystem (#104), mouse (#105), ATA (#106) moved to userspace
 7. **Shell migration** (#107) — shell as userspace process, dead kernel code removed, PIT moved to hardware/, drivers grouped under userspace/drivers/
@@ -90,7 +90,7 @@ Replaced the in-memory filesystem with FAT32 backed by the ATA PIO block device.
 
 1. **ATA IPC upgrade** (#124) — replaced 16-byte/8-byte arg-packed transfers with full 512-byte sector transfers using IPC data buffers
 2. **Build system** (#125) — `make disk` creates a 32 MiB FAT32-formatted disk image with pre-seeded files via `mkfs.fat` and `mtools`
-3. **FAT32 implementation** (#126) — Fat32 class with mount, BPB parsing, on-demand FAT via LRU sector cache, directory operations with LFN support, cluster-chain file I/O, VfsStat for path validation, case-sensitive filenames
+3. **FAT32 implementation** (#126) — FAT32 driver with mount, BPB parsing, on-demand FAT via LRU sector cache, directory operations with LFN support, cluster-chain file I/O, VfsStat for path validation, case-sensitive filenames
 
 Design: `docs/plans/2026-03-18-fat32-filesystem-design.md`
 
@@ -98,21 +98,32 @@ Design: `docs/plans/2026-03-18-fat32-filesystem-design.md`
 
 **Status**: Complete
 
-Switch from VGA text mode to a VESA/VBE framebuffer (32bpp, requested via multiboot header so GRUB handles mode setting and falls back to the closest available resolution). Replace the VGA text-mode terminal with a software-rendered graphical terminal built on a simple 2D graphics library. The VGA service is replaced by a new `display` service (`userspace/drivers/display/`, `std::display::Display` client).
+Switch from VGA text mode to a VESA/VBE framebuffer (32bpp, requested via multiboot header so GRUB handles mode setting and falls back to the closest available resolution). Replace the VGA text-mode terminal with a software-rendered graphical terminal built on a simple 2D graphics library. The VGA service is replaced by a new `display` service (`userspace/drivers/display/`, `cassio::display::Display` client).
 
 1. **VESA framebuffer** (#183) — multiboot video mode request, framebuffer discovery from multiboot info (actual resolution, pitch, bpp), MapDevice to map it into the display service's address space
-2. **Graphics library (`std::gfx`)** (#183) — PixelBuffer class with drawing primitives: drawPixel, fillRect, drawRect, drawChar (bitmap font), drawText, scroll (ring buffer), blit. Operates on caller-provided buffers
-3. **Display service** (#183, `userspace/drivers/display/`) — replaces the VGA driver. Owns the framebuffer and back buffer, uses `std::gfx` internally to draw. Exposes IPC commands for drawing, blit, scroll, and flush (copy back buffer to framebuffer). Pure hardware abstraction — draws pixels, knows nothing about text or terminals
+2. **Graphics library (`cassio::gfx`)** (#183) — `PixelBuffer` with drawing primitives: fill_rect, draw_rect, draw_char (bitmap font), scroll (ring buffer), blit. Operates on caller-provided buffers
+3. **Display service** (#183, `userspace/drivers/display/`) — replaces the VGA driver. Owns the framebuffer and back buffer, uses `cassio::gfx` internally to draw. Exposes IPC commands for drawing, blit, scroll, and flush (copy back buffer to framebuffer). Pure hardware abstraction — draws pixels, knows nothing about text or terminals
 4. **Terminal service** (#183, `userspace/core/terminal/`) — connects to the display service, renders a character grid with bitmap font, cursor, and scrolling. The shell and apps talk to the terminal (same IPC protocol as the current VGA service), the terminal translates to draw calls
-5. **Migration** (#183) — replaced `std::vga::Vga` client with `std::terminal::Terminal`, removed old VGA driver, updated all service and app references
+5. **Migration** (#183) — replaced the VGA client with the terminal client (`cassio::terminal::Terminal`), removed old VGA driver, updated all service and app references
 
 Double buffering (draw to RAM, flush to framebuffer) prevents tearing. Separating display from terminal keeps the driver clean and avoids a refactor when non-terminal apps (editor, GUI) need direct screen access later.
 
-## Phase 11: Text Editor
+## Phase 11: Rust Migration
+
+**Status**: Complete
+
+Ported the whole system from C++ to Rust (#188), one PR per step on the integration branch `refactor/188-rust-migration`, keeping `make test` and `make run` working after each step.
+
+1. **Foundation** (#190) — pinned toolchain, Cargo workspace, the shared userspace crate `cassio`, the nameserver as pilot
+2. **Userspace** (#192–#208) — every driver, service and app, then the userspace test runner
+3. **Kernel** (#210–#222) — in place and bottom-up: shared definitions in `libs/sys`, serial, memory, GDT/TSS and ELF, interrupts and the PIT, processes, scheduler, syscalls and IPC, then the boot path and the test kernel
+4. **Cleanup** (#224) — `libs/mem` rewritten in Rust; no C++ or `g++` left
+
+## Phase 12: Text Editor
 
 **Status**: Not started
 
-A nano-like fullscreen text editor, compiled to `disk/bin/edit.elf` and launched from the shell via `exec /bin/edit.elf <filename>`. Uses the terminal service for rendering (putchar, setCursor, clear, flush) and the keyboard service for input.
+A nano-like fullscreen text editor, compiled to `disk/bin/edit.elf` and launched from the shell via `exec /bin/edit.elf <filename>`. Uses the terminal service for rendering (putchar, set_cursor, clear, flush) and the keyboard service for input.
 
 - **Buffer**: gap buffer for efficient insert/delete at cursor. Heap-allocated, grows as needed
 - **Viewport**: scrollable window over the buffer. Arrow keys move cursor, Page Up/Down scroll. Line wrapping or horizontal scroll for long lines
@@ -121,7 +132,7 @@ A nano-like fullscreen text editor, compiled to `disk/bin/edit.elf` and launched
 - **File I/O**: load file from VFS on startup, save back on Ctrl+S via VFS write
 - **No syntax highlighting or advanced features** — just a clean, usable text editor
 
-## Phase 12: BASIC Interpreter
+## Phase 13: BASIC Interpreter
 
 **Status**: Not started
 
