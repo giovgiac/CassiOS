@@ -12,6 +12,8 @@
 #![no_std]
 
 extern crate alloc;
+// memcpy and the other memory functions every program links.
+extern crate mem as _;
 
 #[cfg(target_arch = "x86")]
 pub mod ata;
@@ -31,7 +33,6 @@ pub mod vfs;
 
 #[cfg(target_arch = "x86")]
 mod rt {
-    use core::ffi::c_void;
     use core::fmt::{self, Write};
     use core::panic::PanicInfo;
 
@@ -55,17 +56,6 @@ mod rt {
     #[global_allocator]
     static HEAP: sys::heap::Heap =
         sys::heap::Heap::with_sbrk(|increment| os::sbrk(increment as u32));
-
-    // libstd_mem provides memcmp but not bcmp, which LLVM emits for
-    // slice equality.
-    unsafe extern "C" {
-        fn memcmp(a: *const c_void, b: *const c_void, n: usize) -> i32;
-    }
-
-    #[unsafe(no_mangle)]
-    unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, n: usize) -> i32 {
-        unsafe { memcmp(a, b, n) }
-    }
 
     // The prebuilt alloc crate is compiled with unwinding and references
     // the personality routine and, from its formatting code, the unwinder.

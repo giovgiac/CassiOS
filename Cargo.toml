@@ -4,7 +4,7 @@
 
 [workspace]
 resolver = "3"
-members = ["kernel", "libs/cassio", "libs/sys", "userspace/apps/hello", "userspace/core/ns", "userspace/core/shell", "userspace/core/terminal", "userspace/core/vfs", "userspace/drivers/ata", "userspace/drivers/display", "userspace/drivers/kbd", "userspace/drivers/mouse", "userspace/tests"]
+members = ["kernel", "libs/cassio", "libs/mem", "libs/sys", "userspace/apps/hello", "userspace/core/ns", "userspace/core/shell", "userspace/core/terminal", "userspace/core/vfs", "userspace/drivers/ata", "userspace/drivers/display", "userspace/drivers/kbd", "userspace/drivers/mouse", "userspace/tests"]
 
 [workspace.package]
 edition = "2024"

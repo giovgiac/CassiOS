@@ -4,13 +4,11 @@
 
 # Ignore IDE Files
 .idea/
-.vscode/*
-!.vscode/c_cpp_properties.json
+.vscode/
 
 # Ignore Binary Files
 bin/
 obj/
-lib/
 
 # Ignore Cargo Build Output
 target/

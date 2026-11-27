@@ -14,6 +14,8 @@
 #![cfg_attr(not(test), no_std)]
 
 extern crate alloc;
+// memcpy and the other memory functions.
+extern crate mem as _;
 
 #[cfg(any(test, feature = "ktest"))]
 #[macro_use]
@@ -82,8 +84,9 @@ const KTESTS: [&[ktest::Test]; 13] = [
     system::syscall::ktests::TESTS,
 ];
 
-/// Tests of libstd_mem (libs/mem), which supplies memcpy, memmove, memset
-/// and memcmp to the kernel and every program until it is replaced.
+/// Tests of the memory functions libs/mem exports (memcpy, memmove, memset
+/// and memcmp), as the i586 build links them. libs/mem's host tests cover
+/// every alignment.
 #[cfg(feature = "ktest")]
 mod libmem {
     use core::ffi::c_void;
@@ -120,7 +123,7 @@ mod libmem {
 
     /// Byte `offset` from `base`. Like every length below, it is hidden
     /// from the compiler (black_box), which would otherwise work out or
-    /// inline a call instead of reaching libstd_mem. Every pointer comes
+    /// inline a call instead of reaching libs/mem. Every pointer comes
     /// from one `base`, so none invalidates another.
     fn at(base: *mut u8, offset: usize) -> *mut c_void {
         black_box(base.wrapping_add(offset).cast())
@@ -185,7 +188,7 @@ mod libmem {
         check!(cmp(&[0x80], &[0x01], 1) > 0);
         check_eq!(cmp(b"a", b"b", 0), 0);
         // A difference in the last byte of a whole Buffer: the other tests
-        // compare Buffers through memcmp (bcmp forwards to it).
+        // compare Buffers through bcmp, the same comparison.
         let (a, mut b) = (Buffer::counting(), Buffer::counting());
         check_eq!(cmp(&a.0, &b.0, 64), 0);
         b.0[63] += 1;
@@ -198,7 +201,6 @@ mod libmem {
 #[cfg(all(target_arch = "x86", not(test)))]
 mod rt {
     use core::arch::asm;
-    use core::ffi::c_void;
     use core::fmt::Write;
     use core::panic::PanicInfo;
 
@@ -215,17 +217,6 @@ mod rt {
     #[unsafe(no_mangle)]
     extern "C" fn _Unwind_Resume() -> ! {
         panic!("unwinding is not supported")
-    }
-
-    // libstd_mem provides memcmp but not bcmp, which LLVM emits for
-    // slice equality.
-    unsafe extern "C" {
-        fn memcmp(a: *const c_void, b: *const c_void, n: usize) -> i32;
-    }
-
-    #[unsafe(no_mangle)]
-    unsafe extern "C" fn bcmp(a: *const c_void, b: *const c_void, n: usize) -> i32 {
-        unsafe { memcmp(a, b, n) }
     }
 
     #[panic_handler]
