@@ -109,6 +109,28 @@ mod imp {
             unsafe { T::write_to(self.number, value) }
         }
     }
+
+    impl Port<u8> {
+        /// Write a byte, then wait a little: older devices such as the
+        /// PIC need time between writes.
+        ///
+        /// # Safety
+        ///
+        /// See [`Port::read`].
+        pub unsafe fn write_slow(&self, value: u8) {
+            unsafe {
+                asm!(
+                    "out dx, al",
+                    "jmp 2f",
+                    "2: jmp 3f",
+                    "3:",
+                    in("dx") self.number,
+                    in("al") value,
+                    options(nostack),
+                )
+            };
+        }
+    }
 }
 
 #[cfg(test)]

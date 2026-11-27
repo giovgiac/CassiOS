@@ -8,11 +8,11 @@
 .extern handleInterrupt
 .extern handleException
 
-# Exception stubs -- route to ExceptionHandler.
+# Exception stubs -- route to handleException (kernel/src/hardware/exception.rs).
 # Exceptions without error codes push a dummy 0 for uniform stack layout.
 .macro HandleException num
-.global _ZN6cassio8hardware16ExceptionHandler19handleException\num\()Ev
-_ZN6cassio8hardware16ExceptionHandler19handleException\num\()Ev:
+.global exception_stub_\num
+exception_stub_\num:
     pushl   $0
     pushl   $\num
     jmp     exception
@@ -20,16 +20,16 @@ _ZN6cassio8hardware16ExceptionHandler19handleException\num\()Ev:
 
 # Exceptions that push a hardware error code onto the stack.
 .macro HandleExceptionWithError num
-.global _ZN6cassio8hardware16ExceptionHandler19handleException\num\()Ev
-_ZN6cassio8hardware16ExceptionHandler19handleException\num\()Ev:
+.global exception_stub_\num
+exception_stub_\num:
     pushl   $\num
     jmp     exception
 .endm
 
-# IRQ stubs -- route to IrqManager.
+# IRQ stubs -- route to handleInterrupt (kernel/src/hardware/irq.rs).
 .macro HandleInterruptRequest num
-.global _ZN6cassio8hardware10IrqManager26handleInterruptRequest\num\()Ev
-_ZN6cassio8hardware10IrqManager26handleInterruptRequest\num\()Ev:
+.global irq_stub_\num
+irq_stub_\num:
     pushl   $0
     pushl   $(\num + IRQ_BASE)
     jmp     interrupt
@@ -95,6 +95,6 @@ interrupt:
     addl    $8, %esp        # skip number + error_code
     iret
 
-.global _ZN6cassio8hardware16InterruptManager22ignoreInterruptRequestEv
-_ZN6cassio8hardware16InterruptManager22ignoreInterruptRequestEv:
+.global ignore_interrupt
+ignore_interrupt:
     iret

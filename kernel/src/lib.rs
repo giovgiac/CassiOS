@@ -28,6 +28,11 @@ mod system {
 
 mod hardware {
     #[cfg(target_arch = "x86")]
+    pub mod exception;
+    pub mod interrupt;
+    pub mod irq;
+    pub mod pit;
+    #[cfg(target_arch = "x86")]
     pub mod serial;
 }
 
@@ -60,6 +65,9 @@ extern "C" fn kernel_run_tests(passed: &mut u32, failed: &mut u32) {
     let groups = [
         hardware::serial::ktests::TESTS,
         system::gdt::ktests::TESTS,
+        hardware::interrupt::ktests::TESTS,
+        hardware::irq::ktests::TESTS,
+        hardware::pit::ktests::TESTS,
         memory::physical::ktests::TESTS,
         memory::heap::ktests::TESTS,
         memory::paging::ktests::TESTS,

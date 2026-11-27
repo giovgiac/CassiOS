@@ -96,4 +96,10 @@ private:
 } // namespace kernel
 } // namespace cassio
 
+/**
+ * @brief The scheduler entry for the Rust PIT tick (kernel/src/hardware/pit.rs).
+ *
+ */
+extern "C" std::u32 scheduler_schedule(std::u32 esp);
+
 #endif // CORE_SCHEDULER_HPP_

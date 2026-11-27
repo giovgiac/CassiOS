@@ -5,91 +5,42 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
+ * IRQ dispatch is Rust (kernel/src/hardware/irq.rs). IrqManager forwards
+ * to it until its callers are ported.
+ *
  */
 
 #ifndef HARDWARE_IRQ_HPP_
 #define HARDWARE_IRQ_HPP_
 
-#include <std/io.hpp>
 #include <std/ipc.hpp>
 #include <std/types.hpp>
+
+extern "C" std::u32 irq_dispatch(std::u8 vector, std::u32 esp);
+extern "C" std::i32 irq_register_forward(std::u8 irq, std::u32 pid);
+extern "C" bool irq_deliver_pending(std::u32 pid, std::ipc::Message* msg);
+
+/**
+ * @brief Delivers IrqNotify for irq to process pid if it is blocked in
+ * receive. Called by the Rust IRQ dispatch. Returns 0 if there is no such
+ * process, 1 if the message was delivered, 2 if the process is not
+ * receiving (the IRQ stays pending).
+ *
+ */
+extern "C" std::u32 process_deliver_irq(std::u32 pid, std::u8 irq);
 
 namespace cassio {
 namespace hardware {
 
-using std::io::Port;
-using std::io::PortType;
-
 // Offset added to PIC IRQs to avoid conflict with CPU exceptions.
 constexpr std::u8 IRQ_OFFSET = 0x20;
 
-// IRQ handler function pointer: takes ESP, returns (possibly modified) ESP.
-typedef std::u32 (*IrqHandler)(std::u32 esp);
-
-/**
- * @brief Singleton that owns the PIC and dispatches hardware IRQs.
- *
- * Manages the 8259 PIC pair (master and slave), routes IRQs 0-15 to
- * registered in-kernel handlers or forwards them to userspace, and
- * sends EOI after handling.
- *
- */
 class IrqManager final {
-private:
-    IrqHandler handlers[16];
-    std::u32 forwardPid[16];
-    bool pendingIrq[16];
-
-    Port<std::u8> pic_master_cmd;
-    Port<std::u8> pic_master_data;
-    Port<std::u8> pic_slave_cmd;
-    Port<std::u8> pic_slave_data;
-
-    static IrqManager instance;
-
-private:
-    IrqManager();
-    ~IrqManager() = default;
-
 public:
-    /**
-     * @brief Returns the singleton IrqManager instance.
-     *
-     */
     inline static IrqManager& getManager() { return instance; }
 
-    /**
-     * @brief Assembly entry points for IRQ vectors (defined in stub.s).
-     *
-     */
-    static void handleInterruptRequest0x00();
-    static void handleInterruptRequest0x01();
-    static void handleInterruptRequest0x0C();
-    static void handleInterruptRequest0x0E();
-
-    /**
-     * @brief Registers IDT entries for IRQ vectors and initializes the PICs.
-     *
-     */
-    void load();
-
-    /**
-     * @brief Dispatches an IRQ to the registered handler and sends EOI.
-     *
-     */
-    std::u32 handleIrq(std::u8 number, std::u32 esp);
-
-    /**
-     * @brief Registers a handler function for the given IRQ number (0-15).
-     *
-     */
-    void registerHandler(std::u8 irq, IrqHandler handler);
-
-    /**
-     * @brief Unregisters the handler for the given IRQ number.
-     *
-     */
-    void unregisterHandler(std::u8 irq);
+    /** Dispatches the IRQ at the given vector and sends EOI. */
+    std::u32 handleIrq(std::u8 number, std::u32 esp) { return irq_dispatch(number, esp); }
 
     /**
      * @brief Registers a userspace process to receive IRQ notifications.
@@ -97,32 +48,30 @@ public:
      * One process per IRQ. Returns 0 on success, -1 if irq is out of range.
      *
      */
-    std::i32 registerForward(std::u8 irq, std::u32 pid);
+    std::i32 registerForward(std::u8 irq, std::u32 pid) { return irq_register_forward(irq, pid); }
 
     /**
-     * @brief Delivers a pending IRQ notification to a process.
-     *
-     * Scans for pending IRQs registered to the given PID and fills msg
-     * with the first one found. Returns true if a notification was
-     * delivered, false if none pending.
+     * @brief Fills msg with the first IRQ pending for pid. Returns false
+     * if none is pending.
      *
      */
-    bool deliverPending(std::u32 pid, std::ipc::Message* msg);
+    bool deliverPending(std::u32 pid, std::ipc::Message* msg) {
+        return irq_deliver_pending(pid, msg);
+    }
 
     /** Deleted Methods */
     IrqManager(const IrqManager&) = delete;
     IrqManager(IrqManager&&) = delete;
     IrqManager& operator=(const IrqManager&) = delete;
     IrqManager& operator=(IrqManager&&) = delete;
+
+private:
+    IrqManager() = default;
+
+    static IrqManager instance;
 };
 
 } // namespace hardware
 } // namespace cassio
-
-/**
- * @brief C-linkage interrupt handler called from assembly stubs in stub.s.
- *
- */
-extern "C" std::u32 handleInterrupt(std::u8 number, std::u32 esp);
 
 #endif // HARDWARE_IRQ_HPP_

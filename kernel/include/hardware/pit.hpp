@@ -5,93 +5,50 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
+ * The PIT is Rust (kernel/src/hardware/pit.rs). PitTimer forwards to it
+ * until its callers are ported.
+ *
  */
 
 #ifndef HARDWARE_PIT_HPP_
 #define HARDWARE_PIT_HPP_
 
-#include <std/io.hpp>
-#include <std/os.hpp>
 #include <std/types.hpp>
 
-#include <hardware/irq.hpp>
+extern "C" void pit_activate();
+extern "C" std::u32 pit_ticks();
+extern "C" std::u32 pit_tick(std::u32 esp);
+extern "C" void pit_sleep(std::u32 ms);
 
 namespace cassio {
 namespace hardware {
 
-// PIT oscillator base frequency in Hz.
-constexpr std::u32 PIT_BASE_FREQUENCY = 1193182;
-
-// Target tick frequency derived from the shared system constant.
-constexpr std::u32 PIT_FREQUENCY = std::os::TICK_FREQUENCY;
-
-// Divisor to achieve the target frequency.
-constexpr std::u16 PIT_DIVISOR = PIT_BASE_FREQUENCY / PIT_FREQUENCY;
-
-// PIT command byte: channel 0, lo/hi byte, rate generator (mode 2).
-constexpr std::u8 PIT_CMD_CHANNEL0_MODE2 = 0x34;
-
-/**
- * @brief PIT timer driver singleton.
- *
- * Programs the 8253/8254 PIT channel 0 for periodic ticks at ~100 Hz.
- * Maintains a tick counter and provides a busy-wait sleep.
- *
- */
 class PitTimer {
-private:
-    std::io::Port<std::u8> channel0;
-    std::io::Port<std::u8> command;
-    volatile std::u32 ticks;
-
-    static PitTimer instance;
-
-private:
-    PitTimer();
-    ~PitTimer() = default;
-
 public:
-    /**
-     * @brief Returns the PitTimer singleton instance.
-     *
-     */
     inline static PitTimer& getTimer() { return instance; }
 
-    /**
-     * @brief Static IRQ handler registered with IrqManager.
-     *
-     */
-    static std::u32 irqHandler(std::u32 esp);
+    /** Programs channel 0 to tick at TICK_FREQUENCY. */
+    void activate() { pit_activate(); }
 
-    /**
-     * @brief Programs the PIT for periodic mode at ~100 Hz.
-     *
-     */
-    void activate();
+    /** Counts a tick and lets the scheduler switch process. */
+    std::u32 handleInterrupt(std::u32 esp) { return pit_tick(esp); }
 
-    /**
-     * @brief Increments the tick counter and invokes the scheduler.
-     *
-     */
-    std::u32 handleInterrupt(std::u32 esp);
+    /** Ticks since activation. */
+    std::u32 getTicks() { return pit_ticks(); }
 
-    /**
-     * @brief Returns the number of ticks since activation.
-     *
-     */
-    std::u32 getTicks();
-
-    /**
-     * @brief Busy-waits for the given number of milliseconds.
-     *
-     */
-    void sleep(std::u32 ms);
+    /** Waits at least ms milliseconds; interrupts must be enabled. */
+    void sleep(std::u32 ms) { pit_sleep(ms); }
 
     /** Deleted Methods */
     PitTimer(const PitTimer&) = delete;
     PitTimer(PitTimer&&) = delete;
     PitTimer& operator=(const PitTimer&) = delete;
     PitTimer& operator=(PitTimer&&) = delete;
+
+private:
+    PitTimer() = default;
+
+    static PitTimer instance;
 };
 
 } // namespace hardware

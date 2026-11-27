@@ -28,6 +28,7 @@ using namespace cassio;
 using namespace std;
 using namespace cassio::hardware;
 using namespace cassio::kernel;
+using namespace std::io;
 
 extern "C" void syscallEntry();
 
