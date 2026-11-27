@@ -73,12 +73,7 @@ mod imp {
         }
     }
 
-    #[unsafe(no_mangle)]
-    extern "C" fn pit_activate() {
-        activate();
-    }
-
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use super::*;
         use crate::ktest::Outcome;

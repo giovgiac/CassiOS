@@ -56,26 +56,7 @@ pub fn init() {
     });
 }
 
-#[unsafe(no_mangle)]
-extern "C" fn heap_init() {
-    init();
-}
-
-/// `size` bytes for C++ operator new, or null.
-#[unsafe(no_mangle)]
-extern "C" fn kernel_alloc(size: usize) -> *mut u8 {
-    unsafe { HEAP.allocate(size) }
-}
-
-/// # Safety
-///
-/// `ptr` must come from kernel_alloc, or be null.
-#[unsafe(no_mangle)]
-unsafe extern "C" fn kernel_free(ptr: *mut u8) {
-    unsafe { HEAP.free(ptr) };
-}
-
-#[cfg(not(test))]
+#[cfg(feature = "ktest")]
 pub mod ktests {
     use alloc::boxed::Box;
     use alloc::vec;

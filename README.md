@@ -1,6 +1,6 @@
 # CassiOS
 
-A microkernel operating system targeting i386 (32-bit x86), written in C++ and assembly. Boots via GRUB using the Multiboot specification. Built from scratch with a custom modular standard library -- every component from the GDT to the IPC layer is hand-written.
+A microkernel operating system targeting i386 (32-bit x86), written in Rust and assembly. Boots via GRUB using the Multiboot specification. Built from scratch -- every component from the GDT to the IPC layer is hand-written.
 
 ## Features
 
@@ -14,7 +14,7 @@ A microkernel operating system targeting i386 (32-bit x86), written in C++ and a
 - **Syscall interface** via `int 0x80` (IPC, memory, process control, system info)
 - **Physical memory manager**, kernel heap with `new`/`delete`, paging
 - **Persistent FAT32 filesystem** -- 32 MiB disk image, on-demand FAT via LRU sector cache, directories, LFN, case-sensitive
-- **Standard libraries** -- the kernel's C++ modules under `libs/` (`std::` namespace: types, mem, str, fmt, collections, IPC message format), and `libs/cassio`, the Rust library userspace programs share (syscalls, IPC, heap, service clients)
+- **Libraries** -- `libs/sys`, the definitions and code the kernel and userspace share (IPC and syscall numbers, port I/O, the heap allocator), and `libs/cassio`, the Rust library userspace programs share (syscalls, IPC, service clients)
 - **Three-tier test framework** -- Rust host unit tests, then kernel unit tests and userspace integration tests run headlessly via QEMU
 
 ## Prerequisites

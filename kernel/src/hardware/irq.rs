@@ -234,7 +234,7 @@ mod imp {
         FORWARDING.with(|f| f.take_pending(pid))
     }
 
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use super::*;
         use crate::ktest::Outcome;

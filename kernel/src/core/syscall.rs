@@ -592,25 +592,7 @@ mod imp {
         handle(esp)
     }
 
-    /// For C++ start(): the multiboot framebuffer.
-    #[unsafe(no_mangle)]
-    extern "C" fn syscall_set_framebuffer(
-        address: u32,
-        width: u32,
-        height: u32,
-        pitch: u32,
-        bpp: u32,
-    ) {
-        set_framebuffer(FramebufferInfo {
-            address,
-            width,
-            height,
-            pitch,
-            bpp,
-        });
-    }
-
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use alloc::vec::Vec;
 

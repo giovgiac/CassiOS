@@ -4,16 +4,18 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 //
-// The kernel is being ported from C++ one subsystem at a time. This crate
-// is a staticlib linked into the C++ kernel: C++ calls ported subsystems
-// through extern "C" functions, and C++ classes forward to them until
-// their callers are ported. Hardware access is only compiled for the i586
-// target, so pure logic runs as host tests.
+// The whole kernel apart from three assembly files: the multiboot loader
+// (kernel/src/core/loader.s), which calls start() in core/kernel.rs, and
+// the interrupt and syscall entry stubs. It is a staticlib linked with
+// them by ld. Hardware access is only compiled for the i586 target, so
+// pure logic runs as host tests. Built with the `ktest` feature it is the
+// test kernel, which runs the kernel tests (the `ktests` modules).
 
 #![cfg_attr(not(test), no_std)]
 
 extern crate alloc;
 
+#[cfg(any(test, feature = "ktest"))]
 #[macro_use]
 mod ktest;
 #[cfg(target_arch = "x86")]
@@ -24,6 +26,8 @@ mod sync;
 mod system {
     pub mod elf;
     pub mod gdt;
+    #[cfg(all(target_arch = "x86", not(test)))]
+    pub mod kernel;
     pub mod process;
     #[cfg(target_arch = "x86")]
     pub mod scheduler;
@@ -60,27 +64,95 @@ mod memory {
     }
 }
 
-/// Run the Rust kernel tests, adding to the counts. Called by the test
-/// kernel before the C++ tests, whose runner reports the totals.
-#[cfg(all(target_arch = "x86", not(test)))]
-#[unsafe(no_mangle)]
-extern "C" fn kernel_run_tests(passed: &mut u32, failed: &mut u32) {
-    let mut out = &hardware::serial::COM1;
-    let groups = [
-        hardware::serial::ktests::TESTS,
-        system::gdt::ktests::TESTS,
-        hardware::interrupt::ktests::TESTS,
-        hardware::irq::ktests::TESTS,
-        hardware::pit::ktests::TESTS,
-        memory::physical::ktests::TESTS,
-        memory::heap::ktests::TESTS,
-        memory::paging::ktests::TESTS,
-        system::elf::ktests::TESTS,
-        system::process::ktests::TESTS,
-        system::scheduler::ktests::TESTS,
-        system::syscall::ktests::TESTS,
-    ];
-    ktest::run(&groups, &mut out, passed, failed);
+/// Every group of kernel tests, in the order the test kernel runs them.
+#[cfg(feature = "ktest")]
+const KTESTS: [&[ktest::Test]; 13] = [
+    libmem::TESTS,
+    hardware::serial::ktests::TESTS,
+    system::gdt::ktests::TESTS,
+    hardware::interrupt::ktests::TESTS,
+    hardware::irq::ktests::TESTS,
+    hardware::pit::ktests::TESTS,
+    memory::physical::ktests::TESTS,
+    memory::heap::ktests::TESTS,
+    memory::paging::ktests::TESTS,
+    system::elf::ktests::TESTS,
+    system::process::ktests::TESTS,
+    system::scheduler::ktests::TESTS,
+    system::syscall::ktests::TESTS,
+];
+
+/// Tests of libstd_mem (libs/mem), which supplies memcpy, memmove, memset
+/// and memcmp to the kernel and every program until it is replaced.
+#[cfg(feature = "ktest")]
+mod libmem {
+    use core::ffi::c_void;
+
+    use crate::ktest::Outcome;
+
+    unsafe extern "C" {
+        fn memcpy(dst: *mut c_void, src: *const c_void, n: usize) -> *mut c_void;
+        fn memmove(dst: *mut c_void, src: *const c_void, n: usize) -> *mut c_void;
+        fn memset(dst: *mut c_void, value: i32, n: usize) -> *mut c_void;
+        fn memcmp(a: *const c_void, b: *const c_void, n: usize) -> i32;
+    }
+
+    tests!(
+        mem_copy_copies_and_returns_dst,
+        mem_move_handles_both_overlaps,
+        mem_set_fills_and_returns_dst,
+        mem_compare_orders_bytes,
+    );
+
+    fn mem_copy_copies_and_returns_dst() -> Outcome {
+        // Odd lengths and offsets exercise the word and byte loops.
+        let src: [u8; 37] = core::array::from_fn(|i| i as u8 * 3);
+        let mut dst = [0u8; 40];
+        let out = unsafe { memcpy(dst[1..].as_mut_ptr().cast(), src.as_ptr().cast(), 37) };
+        check_eq!(out, dst[1..].as_mut_ptr().cast());
+        check!(dst[1..38] == src);
+        check_eq!((dst[0], dst[38]), (0, 0));
+        Ok(())
+    }
+
+    fn mem_move_handles_both_overlaps() -> Outcome {
+        let mut forward = [1u8, 2, 3, 4, 5];
+        unsafe { memmove(forward.as_mut_ptr().cast(), forward[2..].as_ptr().cast(), 3) };
+        check_eq!(forward, [3, 4, 5, 4, 5]);
+        let mut backward = [1u8, 2, 3, 4, 5];
+        let out = unsafe {
+            memmove(
+                backward[2..].as_mut_ptr().cast(),
+                backward.as_ptr().cast(),
+                3,
+            )
+        };
+        check_eq!(backward, [1, 2, 1, 2, 3]);
+        check_eq!(out, backward[2..].as_mut_ptr().cast());
+        Ok(())
+    }
+
+    fn mem_set_fills_and_returns_dst() -> Outcome {
+        let mut buf = [0u8; 33];
+        let out = unsafe { memset(buf[1..].as_mut_ptr().cast(), 0x1AB, 31) };
+        check_eq!(out, buf[1..].as_mut_ptr().cast());
+        // Only the low byte of the value is stored.
+        check!(buf[1..32].iter().all(|&b| b == 0xAB));
+        check_eq!((buf[0], buf[32]), (0, 0));
+        Ok(())
+    }
+
+    fn mem_compare_orders_bytes() -> Outcome {
+        let cmp =
+            |a: &[u8], b: &[u8], n| unsafe { memcmp(a.as_ptr().cast(), b.as_ptr().cast(), n) };
+        check_eq!(cmp(b"abc", b"abc", 3), 0);
+        check!(cmp(b"abc", b"abd", 3) < 0);
+        check!(cmp(b"abd", b"abc", 3) > 0);
+        // Bytes compare unsigned.
+        check!(cmp(&[0x80], &[0x01], 1) > 0);
+        check_eq!(cmp(b"a", b"b", 0), 0);
+        Ok(())
+    }
 }
 
 #[cfg(all(target_arch = "x86", not(test)))]

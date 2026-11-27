@@ -1,17 +1,12 @@
 # CassiOS
 
-A microkernel operating system targeting i386 (32-bit x86), written in C++ and assembly. Boots via GRUB using the Multiboot specification.
+A microkernel operating system targeting i386 (32-bit x86), written in Rust and assembly (the port from C++ is finishing; see below). Boots via GRUB using the Multiboot specification.
 
 ## Technical Details
 
-- Toolchain: `g++` (with `-m32`), `as` (with `--32`), `ld` (with `-melf_i386`)
+- Toolchain: Rust (see below), `as` (with `--32`), `ld` (with `-melf_i386`); `g++` only for `libs/mem` (memcpy, memset, memmove, memcmp for the kernel and every program) until it is replaced
 - Three-tier test framework: `make test` runs Rust host unit tests, then kernel unit tests and userspace integration tests in QEMU
-- Modular C++ standard library under `libs/` with `std::` namespace, used by the kernel -- modules from types to the IPC message format, plus `StringView`, `Box<T>`, `Rc<T>` (see `docs/plans/2026-03-19-std-library-design.md`). Userspace uses the Rust `libs/cassio` instead
-- Custom fixed-width types defined in `libs/types/include/std/types.hpp`: `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `usize`, `isize`
-- Code formatted with `.clang-format` -- run clang-format or use editor format-on-save
-- Headers use `#ifndef` include guards (not `#pragma once`)
 - Assembly uses AT&T syntax
-- Copy/move constructors and assignment operators are explicitly deleted on hardware-bound and singleton classes
 - When issues or bugs are encountered, start by reproducing the issue yourself, determine the root cause and only then attempt to fix. Once applied, verify and prove that the issue is no longer reproducible through testing
 - Manual testing: `make run` boots with all services in QEMU
 - For headless/automated testing, use the QEMU monitor with `screendump` to capture VGA screenshots (see `docs/DEBUGGING.md` for the full test script and techniques)
@@ -20,27 +15,27 @@ A microkernel operating system targeting i386 (32-bit x86), written in C++ and a
 
 CassiOS is a microkernel. The kernel contains only: GDT/TSS, interrupt subsystem (IDT, exceptions, IRQ dispatch), memory management (physical, heap, paging), process management, scheduler, PIT timer, IPC, ELF loader, and serial. Everything else runs as userspace services.
 
-- **Boot flow**: GRUB loads the kernel via Multiboot (`kernel/src/core/loader.s`), which sets up a 2MiB stack, calls `ctors()` for global constructors, then calls `start()` in `kernel.cpp`. `start()` initializes GDT, interrupts, memory, PIT, scheduler, loads userspace ELF modules, and enters an idle loop (`hlt`).
+- **Boot flow**: GRUB loads the kernel via Multiboot (`kernel/src/core/loader.s`), which maps the kernel into the higher half, sets up a 2MiB stack and calls `start()` in `kernel/src/core/kernel.rs`. `start()` initializes COM1, the GDT, interrupts, memory, the PIT and the kernel task, loads the userspace ELF modules, and becomes the idle loop (`hlt`).
 - **Interrupt dispatch**: assembly stubs in `kernel/src/hardware/stub.s` bridge exceptions and IRQs to `handleException` and `handleInterrupt` in Rust (`kernel/src/hardware/`). IRQ 0 drives the PIT; other IRQs are forwarded to registered userspace processes via IPC.
 - **IPC**: synchronous message passing (send/receive/reply) plus fire-and-forget notify. Messages are 24 bytes (type + 5 args) with optional bulk data buffers for large transfers. The kernel copies messages between address spaces. `receive()` priority: IRQ notifications > notify queue > send queue.
 - **Userspace services**: each is a separate ELF binary loaded as a GRUB multiboot module. Services register with the nameserver and communicate via IPC. Drivers live under `userspace/drivers/`, core services under `userspace/core/` (ns, shell, vfs), and user programs under `userspace/apps/`. Service clients in `libs/cassio` (e.g. `cassio::vfs::Vfs`) look up the service's PID in the nameserver when they connect.
 - **User program execution**: the shell `exec` command reads an ELF from the FAT32 filesystem, passes it to the `Exec` syscall which creates a new process, then blocks via `WaitPid` until the child exits. Programs under `userspace/apps/` are compiled to `disk/bin/` and included in the FAT32 image.
 - **FAT32 filesystem**: the VFS service parses FAT32 on-disk structures, reads FAT entries on demand via an LRU sector cache, supports long filenames (LFN), case-sensitive matching. The ATA driver provides full 512-byte sector transfers via IPC data buffers. The build system creates a 32 MiB FAT32 disk image with pre-seeded files using `mkfs.fat` and `mtools`.
-- **Singletons** for kernel managers: `InterruptManager`, `PitTimer`, etc. (private constructors, static `instance`, accessed via getter)
-- **Serial**: the COM1 driver is Rust (`kernel/src/hardware/serial.rs`); the C++ `COM1` class forwards to it. Used for the kernel log, the serial write syscall and test output.
+- **Kernel state**: each subsystem keeps its state in a `static` (`sync::Global`, e.g. the frame bitmap, the process table), reached by its functions.
+- **Serial**: COM1 (`kernel/src/hardware/serial.rs`) carries the kernel log, the serial write syscall and test output.
 
 ## Rust (migration in progress)
 
-CassiOS is being ported to Rust phase by phase (issue #188, integration branch `refactor/188-rust-migration`). Rust and C++ components coexist until the port is done.
+CassiOS is being ported to Rust phase by phase (issue #188, integration branch `refactor/188-rust-migration`). Userspace and the kernel are Rust; what remains is replacing `libs/mem` and the final cleanup.
 
 - Toolchain pinned in `rust-toolchain.toml`; components target `i586-unknown-linux-gnu` as `#![no_std]` with `panic = "abort"` (no SSE). No external crates.
 - Each binary is a `staticlib` linked with the existing `ld` command and linker script (which must collect `.rodata*`, `.data*`, `.bss*`). Its Makefile runs `cargo build` and writes the same output path as before.
 - Shared userspace library: `libs/cassio`, crate `cassio` (`os`, `ipc`, `ns`, `ps2`, `gfx`, the `ata`, `display`, `kbd`, `terminal` and `vfs` clients, global allocator, panic handler). Syscall wrappers are only compiled for `target_arch = "x86"` so pure logic runs as host tests.
-- Kernel/userspace shared definitions: `libs/sys`, crate `sys` (IPC `Message` and message types, syscall numbers, `ProcEntry`, `FramebufferInfo`, port I/O `Port`/`PortType`, the free-list `Heap` allocator). No global allocator, panic handler or syscalls; `cassio` re-exports them. Keep them in step with `libs/ipc`, `libs/os` and `libs/io` (their tests pin every value on both sides) until the kernel is ported.
-- Kernel: crate `kernel` (`kernel/Cargo.toml`, Rust sources under `kernel/src` next to the C++ ones), a staticlib linked into both kernel binaries with `--gc-sections`. It is ported bottom-up: C++ calls ported subsystems through `extern "C"` functions, and C++ classes forward to them until their callers are ported. It depends only on `sys`. Kernel-global state goes in `sync::Global`, which relies on kernel code running with interrupts disabled. Memory management (frame allocator, heap, paging), the GDT/TSS, the ELF loader, the IDT, exceptions, IRQ dispatch, the PIT, processes, the scheduler, syscalls and IPC are Rust (`kernel/src/memory`, `kernel/src/core`, the latter as module `system` since `core` is Rust's core library); frames come only from RAM between 1 MiB and the end of the direct map. In-QEMU kernel tests live in a `ktests` module next to the code, listed with `tests!` and added to `kernel_run_tests` in `kernel/src/lib.rs`; the test kernel runs them before the C++ tests.
+- Kernel/userspace shared definitions: `libs/sys`, crate `sys` (IPC `Message` and message types, syscall numbers, `ProcEntry`, `FramebufferInfo`, port I/O `Port`/`PortType`, the free-list `Heap` allocator). No global allocator, panic handler or syscalls; `cassio` re-exports them. Their tests pin every syscall number, message type and port.
+- Kernel: crate `kernel` (`kernel/Cargo.toml`, sources under `kernel/src`: `core` as module `system` since `core` is Rust's core library, `hardware`, `memory`), a staticlib linked with the three assembly files by `ld --gc-sections`. It depends only on `sys`. Kernel-global state goes in `sync::Global`, which relies on kernel code running with interrupts disabled (only sleep and the serial write enable them, outside any borrow); allocations sized by user input must be fallible. Frames come only from RAM between 1 MiB and the end of the direct map. The test kernel is the same crate built with the `ktest` feature: its `start()` runs the in-QEMU kernel tests, which live in `ktests` modules next to the code, listed with `tests!` and added to `KTESTS` in `kernel/src/lib.rs`.
 - `make test-rust` (part of `make test`) runs `cargo test` on the host. Put unit tests in `#[cfg(test)]` modules next to the code. Black-box tests of a service go in the in-QEMU runner `userspace/tests` (crate `usertest`, run by `make test-userspace`): one module per service, each listing its tests with `tests!`.
 - Format with `cargo fmt`. Copyright header as `//` comments. `main.rs` holds only the entry point and receive loop.
-- Hardware in a Rust service is owned by that service alone: `_start` constructs its device type (e.g. the mouse `Device`) once and keeps it local. The singleton rule above applies to the kernel.
+- Hardware in a Rust service is owned by that service alone: `_start` constructs its device type (e.g. the mouse `Device`) once and keeps it local. In the kernel, a device's state is a `static` in its module (e.g. `COM1`).
 
 ## Pull Request Policy
 
@@ -51,13 +46,13 @@ Never merge a pull request without explicit user approval. After opening a PR, s
 1. Keep it simple - NEVER over-engineer, ALWAYS simplify, NO unnecessary defensive programming. No extra features - focus on simplicity
 2. Be concise. Keep README minimal.
 3. NEVER use emojis.
-4. Use proper C++ classes, not C-style free function APIs. Follow existing patterns.
-5. Hardware-bound classes use singletons (private constructor, static instance, public getter). General-purpose classes take configuration via constructor and are wrapped by singletons for specific instances.
-6. I/O port addresses go in the `PortType` enum in `std/io.hpp` and `libs/sys/src/io.rs` -- no magic numbers. Do not add raw `u16` constructors to `Port`.
-7. Functions called from assembly (`ctors`, `start`) must be declared `extern "C"`.
+4. Follow existing patterns: types with methods, one module per concern.
+5. General-purpose types take their configuration when built (e.g. `Serial::new` with its ports); a specific device is a `static` of one (e.g. `COM1`).
+6. I/O port addresses go in the `PortType` enum in `libs/sys/src/io.rs` -- no magic numbers. Do not add raw `u16` constructors to `Port`.
+7. Functions called from assembly (`start`, `handleSyscall`, `handleInterrupt`, `handleException`) are `#[unsafe(no_mangle)] extern "C"`.
 8. Tests are part of the implementation, not separate work items. Everything testable must be tested within the same issue. Only skip tests when something genuinely can't be tested or the effort is disproportionate -- but make every effort not to skip. Never create separate issues for testing.
 9. Userspace services must have proper structure: logic split into modules under `src/`, with `main.rs` holding only the entry point and receive loop. Unit tests sit next to the code; black-box tests go in `userspace/tests`. For complex services like the shell, split further (e.g., `src/commands/`).
-10. Use the kernel heap (`operator new` in C++, `Box`/`Vec` in Rust) for dynamic data structures rather than defaulting to fixed-size arrays. Fixed arrays are appropriate only when the size is hardware-dictated (IDT, IRQ tables, page directories).
+10. Use the kernel heap (`Box`/`Vec`) for dynamic data structures rather than defaulting to fixed-size arrays. Fixed arrays are appropriate only when the size is hardware-dictated (IDT, IRQ tables, page directories).
 
 ## Working Documentation
 

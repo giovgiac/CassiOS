@@ -35,9 +35,11 @@ const ACCESS_USER_DATA: u8 = 0xF2;
 /// Present, 32-bit TSS, available.
 const ACCESS_TSS: u8 = 0x89;
 /// Set in the TSS descriptor's type by ltr.
+#[cfg(any(test, feature = "ktest"))]
 #[cfg(target_arch = "x86")]
 const TSS_BUSY: u8 = 0x02;
 /// Set by the CPU in a segment descriptor it loads.
+#[cfg(any(test, feature = "ktest"))]
 #[cfg(target_arch = "x86")]
 const ACCESSED: u8 = 0x01;
 
@@ -83,6 +85,7 @@ impl Descriptor {
         descriptor
     }
 
+    #[cfg(any(test, feature = "ktest"))]
     pub fn base(&self) -> u32 {
         u32::from_le_bytes([self.0[2], self.0[3], self.0[4], self.0[7]])
     }
@@ -212,12 +215,7 @@ mod imp {
         TSS.with(|tss| tss.esp0 = esp0);
     }
 
-    #[unsafe(no_mangle)]
-    extern "C" fn gdt_init() {
-        init();
-    }
-
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use super::*;
         use crate::ktest::Outcome;

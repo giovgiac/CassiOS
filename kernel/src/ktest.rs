@@ -6,8 +6,8 @@
 //
 // Each module lists its tests with `tests!`; a test returns Err with a
 // message when a `check!` or `check_eq!` fails. The report has the same
-// [PASS]/[FAIL] lines as the C++ kernel test runner. There is no
-// allocator yet, so a failure message is kept in a fixed buffer.
+// [PASS]/[FAIL] lines as the userspace runner; the test kernel's start()
+// prints the [DONE] summary. A failure message is kept in a fixed buffer.
 
 use core::fmt::{self, Write};
 
@@ -99,7 +99,6 @@ macro_rules! check_eq {
 
 /// Run every test of every group in order, writing one line per test to
 /// `out` and adding to the counts.
-#[cfg_attr(not(target_arch = "x86"), allow(dead_code))]
 pub fn run(groups: &[&[Test]], out: &mut dyn Write, passed: &mut u32, failed: &mut u32) {
     for test in groups.iter().flat_map(|group| group.iter()) {
         let _ = match (test.run)() {

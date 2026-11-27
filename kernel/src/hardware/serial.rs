@@ -17,13 +17,13 @@ const LINE_CONTROL_8N1: u8 = 0x03;
 /// Enable and clear both FIFOs, interrupt at 14 bytes.
 const FIFO_CONTROL_ENABLE: u8 = 0xC7;
 const MODEM_CONTROL_DTR_RTS: u8 = 0x03;
-#[cfg(not(test))]
+#[cfg(feature = "ktest")]
 const MODEM_CONTROL_LOOPBACK: u8 = 0x10;
-#[cfg(not(test))]
+#[cfg(feature = "ktest")]
 const LINE_STATUS_DATA_READY: u8 = 0x01;
 const LINE_STATUS_TRANSMIT_EMPTY: u8 = 0x20;
 /// Nothing left to send: the FIFO and the shift register are empty.
-#[cfg(not(test))]
+#[cfg(feature = "ktest")]
 const LINE_STATUS_TRANSMITTER_IDLE: u8 = 0x40;
 /// 115200 / 3 = 38400 baud.
 const BAUD_DIVISOR: u8 = 3;
@@ -104,22 +104,7 @@ impl fmt::Write for &Serial {
     }
 }
 
-#[cfg(not(test))]
-#[unsafe(no_mangle)]
-extern "C" fn com1_init() {
-    COM1.init();
-}
-
-/// # Safety
-///
-/// `buf` must point to `len` readable bytes.
-#[cfg(not(test))]
-#[unsafe(no_mangle)]
-unsafe extern "C" fn com1_write(buf: *const u8, len: usize) {
-    COM1.write(unsafe { core::slice::from_raw_parts(buf, len) });
-}
-
-#[cfg(not(test))]
+#[cfg(feature = "ktest")]
 pub mod ktests {
     use super::*;
     use crate::ktest::Outcome;

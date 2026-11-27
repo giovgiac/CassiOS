@@ -117,6 +117,7 @@ impl FrameBitmap {
         }
     }
 
+    #[cfg(any(test, feature = "ktest"))]
     pub fn is_used(&self, address: u32) -> bool {
         self.is_frame_used((address / FRAME_SIZE) as usize)
     }
@@ -223,20 +224,13 @@ mod imp {
         });
     }
 
-    #[unsafe(no_mangle)]
-    unsafe extern "C" fn physical_init(info: *const Info) {
-        unsafe { init(&*info) };
-    }
-
     /// Free the module images once their processes are loaded (the ELF
     /// loader copies each into the process's own frames).
     ///
     /// # Safety
     ///
     /// As for `init`; nothing may read the modules afterwards.
-    #[unsafe(no_mangle)]
-    unsafe extern "C" fn physical_release_modules(info: *const Info) {
-        let info = unsafe { &*info };
+    pub unsafe fn release_modules(info: &Info) {
         if info.flags & FLAG_MODS == 0 {
             return;
         }
@@ -253,7 +247,7 @@ mod imp {
         });
     }
 
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use super::PHYSICAL;
         use crate::ktest::Outcome;

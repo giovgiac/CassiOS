@@ -232,23 +232,7 @@ mod imp {
         })
     }
 
-    #[unsafe(no_mangle)]
-    unsafe extern "C" fn paging_init(info: *const Info) {
-        unsafe { init(&*info) };
-    }
-
-    /// 0 when memory is exhausted.
-    #[unsafe(no_mangle)]
-    extern "C" fn paging_create_address_space() -> u32 {
-        create_address_space().unwrap_or(0)
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn paging_destroy_address_space(directory: u32) {
-        destroy_address_space(directory);
-    }
-
-    #[cfg(not(test))]
+    #[cfg(feature = "ktest")]
     pub mod ktests {
         use alloc::boxed::Box;
 
