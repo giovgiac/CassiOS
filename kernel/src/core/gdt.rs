@@ -217,11 +217,6 @@ mod imp {
         init();
     }
 
-    #[unsafe(no_mangle)]
-    extern "C" fn gdt_set_kernel_stack(esp0: u32) {
-        set_kernel_stack(esp0);
-    }
-
     #[cfg(not(test))]
     pub mod ktests {
         use super::*;

@@ -11,8 +11,6 @@
 
 #include "core/elf.hpp"
 #include "core/process.hpp"
-#include "core/scheduler.hpp"
-#include "core/syscall.hpp"
 #include "hardware/pit.hpp"
 #include "hardware/serial.hpp"
 #include "memory/heap.hpp"
@@ -60,27 +58,15 @@ void start(void* multiboot, u32 magic) {
     PitTimer& pit = PitTimer::getTimer();
     pit.activate();
 
-    // Initialize scheduler and set up kernel task.
-    Scheduler& scheduler = Scheduler::getScheduler();
-    scheduler.init(gdt);
-
-    ProcessManager& pm = ProcessManager::getManager();
-    Process* kernelTask = pm.current();
-    kernelTask->state = ProcessState::Running;
-    kernelTask->cs = 0x08;
-    kernelTask->ds = 0x10;
-    kernelTask->pageDirectory = 0;
+    // The kernel task: the idle loop below, run when nothing else is ready.
+    ProcessManager::init();
 
     // Store framebuffer info from multiboot for the FramebufferInfo syscall.
     MultibootInfo* mb = (MultibootInfo*)multiboot;
     if (mb->flags & MULTIBOOT_FLAG_FRAMEBUFFER) {
-        os::FramebufferInfo fbInfo;
-        fbInfo.address = static_cast<u32>(mb->framebuffer_addr);
-        fbInfo.width = mb->framebuffer_width;
-        fbInfo.height = mb->framebuffer_height;
-        fbInfo.pitch = mb->framebuffer_pitch;
-        fbInfo.bpp = mb->framebuffer_bpp;
-        SyscallHandler::getSyscallHandler().setFramebufferInfo(fbInfo);
+        ProcessManager::setFramebuffer(static_cast<u32>(mb->framebuffer_addr),
+                                       mb->framebuffer_width, mb->framebuffer_height,
+                                       mb->framebuffer_pitch, mb->framebuffer_bpp);
     }
 
     // Load userspace processes from multiboot modules.
@@ -105,7 +91,9 @@ void start(void* multiboot, u32 magic) {
                 continue;
             }
 
-            pm.spawn(pdPhysical, elf.entryPoint, elf.heapStart, userCS, userDS);
+            if (!ProcessManager::spawn(pdPhysical, elf.entryPoint, elf.heapStart, userCS, userDS)) {
+                paging.destroyAddressSpace(pdPhysical);
+            }
         }
     }
 

@@ -19,12 +19,6 @@
 
 extern "C" void physical_init(const cassio::memory::MultibootInfo* info);
 extern "C" void physical_release_modules(const cassio::memory::MultibootInfo* info);
-extern "C" std::u32 physical_alloc_frame();
-extern "C" void physical_free_frame(std::u32 address);
-extern "C" bool physical_is_frame_used(std::u32 address);
-extern "C" std::u32 physical_total_frames();
-extern "C" std::u32 physical_free_frames();
-extern "C" std::u32 physical_used_frames();
 
 namespace cassio {
 namespace memory {
@@ -39,17 +33,6 @@ public:
 
     /** Frees the module images; call once every module is loaded. */
     void releaseModules(MultibootInfo* multibootInfo) { physical_release_modules(multibootInfo); }
-
-    /** A free frame's physical address, or null when memory is exhausted. */
-    void* allocFrame() { return reinterpret_cast<void*>(physical_alloc_frame()); }
-    void freeFrame(void* address) { physical_free_frame(reinterpret_cast<std::u32>(address)); }
-    bool isFrameUsed(void* address) const {
-        return physical_is_frame_used(reinterpret_cast<std::u32>(address));
-    }
-
-    std::u32 getTotalFrames() const { return physical_total_frames(); }
-    std::u32 getUsedFrames() const { return physical_used_frames(); }
-    std::u32 getFreeFrames() const { return physical_free_frames(); }
 
     PhysicalMemoryManager(const PhysicalMemoryManager&) = delete;
     PhysicalMemoryManager(PhysicalMemoryManager&&) = delete;

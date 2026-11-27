@@ -5,163 +5,49 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
+ * Processes, the scheduler and syscalls are Rust (kernel/src/core/).
+ * ProcessManager forwards to the entry points start() and the test kernel
+ * use until they are ported too.
+ *
  */
 
 #ifndef CORE_PROCESS_HPP_
 #define CORE_PROCESS_HPP_
 
-#include <std/collections/list.hpp>
-#include <std/ipc.hpp>
-#include <std/ptr.hpp>
 #include <std/types.hpp>
+
+/** Adds the kernel task (PID 0), running. */
+extern "C" void process_init();
+
+/** Starts a loaded module; returns its PID, or 0 on failure. */
+extern "C" std::u32 process_spawn(std::u32 directory, std::u32 entry, std::u32 heapStart,
+                                  std::u32 cs, std::u32 ds);
+
+/** Records the multiboot framebuffer for the FramebufferInfo syscall. */
+extern "C" void syscall_set_framebuffer(std::u32 address, std::u32 width, std::u32 height,
+                                        std::u32 pitch, std::u32 bpp);
 
 namespace cassio {
 namespace kernel {
 
-enum class ProcessState : std::u8 {
-    Empty,
-    Ready,
-    Running,
-    SendBlocked,
-    ReceiveBlocked,
-    WaitBlocked,
-};
-
-struct Process {
-    // Linked list node for heap-backed IPC send queue.
-    struct SendNode {
-        std::u32 senderPid;
-        SendNode* next;
-    };
-
-    // Linked list node for heap-backed IPC notification queue.
-    struct NotifyNode {
-        std::u32 senderPid;
-        std::ipc::Message msg;
-        std::ptr::Box<std::u8[]> data; // Heap-allocated copy of sender's bulk data.
-        std::u32 dataLen;              // Length of copied data.
-        NotifyNode* next;
-    };
-
-    std::u32 pid;
-    ProcessState state;
-    Process* next; // Intrusive list link for ProcessManager.
-
-    std::u32 eax, ebx, ecx, edx;
-    std::u32 esi, edi, ebp, esp;
-    std::u32 eip;
-    std::u32 eflags;
-    std::u32 cs, ds;
-
-    std::u32 pageDirectory;
-    std::u32 kernelEsp;
-    std::u32 heapBase;  // Initial heap address (set once at ELF load, for heap size).
-    std::u32 heapBreak; // Current top of process heap (page-aligned, for sbrk).
-
-    std::u32 waitPid; // PID being waited on (valid when state == WaitBlocked).
-
-    // IPC state.
-    std::ipc::Message msg; // Outgoing message (sender) or staging buffer.
-    std::u32 msgPtr;       // Userspace pointer: reply buffer (sender) or receive buffer (receiver).
-    std::u32 dataPtr;      // Userspace pointer to bulk data buffer.
-    std::u32 dataLen;      // Bulk data length (outgoing) or capacity (incoming).
-
-    // Send queue: PIDs of processes waiting to send to this process.
-    std::collections::LinkedList<SendNode> sendQueue;
-
-    bool sendQueuePush(std::u32 senderPid);
-    std::u32 sendQueuePop();
-
-    // Notification queue: fire-and-forget messages (no reply expected).
-    std::collections::LinkedList<NotifyNode> notifyQueue;
-
-    bool notifyPush(std::u32 senderPid, const std::ipc::Message& msg, const void* data = nullptr,
-                    std::u32 dataLen = 0);
-    bool notifyPop(std::u32& senderPid, std::ipc::Message& msg, void* dataDst = nullptr,
-                   std::u32 dataCapacity = 0);
-};
-
-/**
- * @brief Singleton that manages the process table as a heap-backed linked list.
- *
- * PID 0 is reserved for the kernel task and is stored as an embedded member
- * (initialized before the heap is ready). All other processes are heap-allocated.
- *
- */
-class ProcessManager {
+class ProcessManager final {
 public:
-    inline static ProcessManager& getManager() { return instance; }
+    /** Adds the kernel task (PID 0), running. */
+    static void init() { process_init(); }
 
-    /**
-     * @brief Creates a new process via heap allocation.
-     *
-     * Returns null if the heap is exhausted.
-     *
-     */
-    Process* create(std::u32 eip, std::u32 esp, std::u32 cs, std::u32 ds, std::u32 pageDirectory);
+    /** Starts a loaded module; returns its PID, or 0 on failure. */
+    static std::u32 spawn(std::u32 directory, std::u32 entry, std::u32 heapStart, std::u32 cs,
+                          std::u32 ds) {
+        return process_spawn(directory, entry, heapStart, cs, ds);
+    }
 
-    /**
-     * @brief Spawns a new userspace process from a loaded ELF.
-     *
-     * Allocates user stack, kernel stack, builds the initial interrupt
-     * frame, and creates the process. Returns the new Process, or null
-     * on failure (cleans up on error).
-     *
-     */
-    Process* spawn(std::u32 pdPhysical, std::u32 entryPoint, std::u32 heapStart, std::u32 userCS,
-                   std::u32 userDS);
+    /** Records the multiboot framebuffer for the FramebufferInfo syscall. */
+    static void setFramebuffer(std::u32 address, std::u32 width, std::u32 height, std::u32 pitch,
+                               std::u32 bpp) {
+        syscall_set_framebuffer(address, width, height, pitch, bpp);
+    }
 
-    /**
-     * @brief Destroys a process, freeing its IPC queues and the process itself.
-     *
-     */
-    void destroy(std::u32 pid);
-
-    /**
-     * @brief Returns the currently running process.
-     *
-     */
-    Process* current();
-
-    /**
-     * @brief Looks up a process by PID.
-     *
-     */
-    Process* get(std::u32 pid);
-
-    /**
-     * @brief Sets the given process as the current one.
-     *
-     */
-    void setCurrent(Process* process);
-
-    /**
-     * @brief Returns the head of the process list (for scheduler iteration).
-     *
-     */
-    Process* getHead();
-
-    /**
-     * @brief Returns the total number of processes (including kernel task).
-     *
-     */
-    std::u32 getProcessCount() const;
-
-    /** Deleted Methods */
-    ProcessManager(const ProcessManager&) = delete;
-    ProcessManager(ProcessManager&&) = delete;
-    ProcessManager& operator=(const ProcessManager&) = delete;
-    ProcessManager& operator=(ProcessManager&&) = delete;
-
-private:
-    ProcessManager();
-
-    static ProcessManager instance;
-
-    Process kernelTask;
-    std::collections::LinkedList<Process> processes;
-    Process* currentProcess;
-    std::u32 nextPid;
+    ProcessManager() = delete;
 };
 
 } // namespace kernel

@@ -86,6 +86,8 @@ mod imp {
     use crate::hardware::interrupt::set_gate;
     use crate::hardware::pit;
     use crate::sync::Global;
+    use crate::system::process::{PROCESSES, State, set_return};
+    use crate::system::syscall::write_message;
 
     static FORWARDING: Global<Forwarding> = Global::new(Forwarding::new());
 
@@ -113,11 +115,6 @@ mod imp {
         fn irq_stub_0x07();
         fn irq_stub_0x0F();
 
-        /// Deliver IrqNotify for `irq` to process `pid` if it is blocked
-        /// in receive (C++, kernel/src/hardware/irq.cpp, until processes
-        /// are ported). Returns 0 if there is no such process, 1 if it was
-        /// delivered, 2 if the process is not receiving.
-        fn process_deliver_irq(pid: u32, irq: u8) -> u32;
     }
 
     /// Point the IRQ vectors in use (timer, keyboard, mouse, primary ATA)
@@ -185,12 +182,35 @@ mod imp {
         }
 
         if let Some(pid) = FORWARDING.with(|f| f.target(irq)) {
-            // SAFETY: the C++ side only touches the process table.
-            if unsafe { process_deliver_irq(pid, irq) } == 2 {
+            if !deliver(pid, irq) {
                 FORWARDING.with(|f| f.set_pending(irq));
             }
         }
         esp
+    }
+
+    /// Hand IrqNotify for `irq` to `pid` at once if it is blocked in
+    /// receive. False if it is not receiving (the IRQ stays pending); a
+    /// process that is gone gets nothing.
+    fn deliver(pid: u32, irq: u8) -> bool {
+        PROCESSES.with(|table| {
+            let Some(process) = table.get_mut(pid) else {
+                return true;
+            };
+            if process.state != State::ReceiveBlocked {
+                return false;
+            }
+            let notify = Message {
+                kind: message_type::IRQ_NOTIFY,
+                arg1: irq as u32,
+                ..Message::default()
+            };
+            write_message(process.directory, process.msg_ptr, &notify);
+            // receive() returns 0: a kernel notification.
+            set_return(process, 0);
+            process.state = State::Ready;
+            true
+        })
     }
 
     /// Called by the stubs with the vector and the saved frame.
@@ -199,14 +219,9 @@ mod imp {
         dispatch(vector as u8, esp)
     }
 
-    #[unsafe(no_mangle)]
-    extern "C" fn irq_dispatch(vector: u8, esp: u32) -> u32 {
-        dispatch(vector, esp)
-    }
-
-    /// 0 on success, -1 if `irq` is not one of LINES.
-    #[unsafe(no_mangle)]
-    extern "C" fn irq_register_forward(irq: u32, pid: u32) -> i32 {
+    /// Forward `irq` to `pid` (0 stops it). 0, or -1 unless `irq` is one
+    /// of LINES.
+    pub fn register_forward(irq: u32, pid: u32) -> i32 {
         if FORWARDING.with(|f| f.register(irq, pid)) {
             0
         } else {
@@ -214,24 +229,9 @@ mod imp {
         }
     }
 
-    /// Fill `msg` with an IrqNotify for the lowest IRQ pending for `pid`.
-    /// False if none is pending.
-    ///
-    /// # Safety
-    ///
-    /// `msg` must be writable.
-    #[unsafe(no_mangle)]
-    unsafe extern "C" fn irq_deliver_pending(pid: u32, msg: *mut Message) -> bool {
-        let Some(irq) = FORWARDING.with(|f| f.take_pending(pid)) else {
-            return false;
-        };
-        let notify = Message {
-            kind: message_type::IRQ_NOTIFY,
-            arg1: irq as u32,
-            ..Message::default()
-        };
-        unsafe { msg.write(notify) };
-        true
+    /// Take the lowest IRQ pending for `pid`.
+    pub fn take_pending(pid: u32) -> Option<u8> {
+        FORWARDING.with(|f| f.take_pending(pid))
     }
 
     #[cfg(not(test))]

@@ -16,8 +16,6 @@
 #include <std/types.hpp>
 
 extern "C" void pit_activate();
-extern "C" std::u32 pit_ticks();
-extern "C" void pit_sleep(std::u32 ms);
 
 namespace cassio {
 namespace hardware {
@@ -28,12 +26,6 @@ public:
 
     /** Programs channel 0 to tick at TICK_FREQUENCY. */
     void activate() { pit_activate(); }
-
-    /** Ticks since activation. */
-    std::u32 getTicks() { return pit_ticks(); }
-
-    /** Waits at least ms milliseconds; interrupts must be enabled. */
-    void sleep(std::u32 ms) { pit_sleep(ms); }
 
     /** Deleted Methods */
     PitTimer(const PitTimer&) = delete;

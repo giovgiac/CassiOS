@@ -3,6 +3,7 @@
 
 #include <core/gdt.hpp>
 #include <core/kernel.hpp>
+#include <core/process.hpp>
 #include <hardware/interrupt.hpp>
 #include <hardware/serial.hpp>
 #include <memory/heap.hpp>
@@ -48,6 +49,8 @@ void start(void* multiboot, u32 magic) {
     paging.init((MultibootInfo*)multiboot);
 
     KernelHeap::init();
+
+    ProcessManager::init();
 
     test::init(kernel_write);
     u32 passed = 0, failed = 0;
