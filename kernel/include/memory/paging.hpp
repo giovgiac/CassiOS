@@ -26,6 +26,7 @@ extern "C" void paging_map_user_page(std::u32 directory, std::u32 virt, std::u32
                                      std::u32 flags);
 extern "C" void paging_destroy_address_space(std::u32 directory);
 extern "C" bool paging_user_range_mapped(std::u32 start, std::u32 len);
+extern "C" bool paging_range_unmapped(std::u32 directory, std::u32 start, std::u32 len);
 
 namespace cassio {
 namespace memory {
@@ -66,6 +67,11 @@ public:
     /** Whether every page of the range is mapped user-accessible in CR3. */
     bool userRangeMapped(std::u32 start, std::u32 len) {
         return paging_user_range_mapped(start, len);
+    }
+
+    /** Whether no page of the range is present in the directory. */
+    bool rangeUnmapped(std::u32 pdPhysical, std::u32 start, std::u32 len) {
+        return paging_range_unmapped(pdPhysical, start, len);
     }
 
     PagingManager(const PagingManager&) = delete;

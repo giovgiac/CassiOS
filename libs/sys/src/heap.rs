@@ -328,8 +328,9 @@ mod tests {
         let mut list = list(&mut region);
         let a = unsafe { list.allocate(512 - HEADER) };
         assert!(!a.is_null());
-        unsafe { list.extend(HEADER) };
-        // No block appeared past the region's end.
+        // Fewer bytes than a header: without the guard, the new block's
+        // size would underflow into a huge one.
+        unsafe { list.extend(4) };
         assert!(unsafe { list.allocate(4) }.is_null());
     }
 

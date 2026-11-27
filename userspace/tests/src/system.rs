@@ -24,6 +24,7 @@ tests!(
     syscall_kernel_buffers_rejected,
     syscall_wrapping_buffers_rejected,
     syscall_unmapped_buffers_rejected,
+    syscall_map_device_over_mapped_pages_rejected,
 );
 
 /// The kernel's own image, which no program may read or write through a
@@ -123,5 +124,15 @@ fn syscall_unmapped_buffers_rejected() -> Outcome {
     check_eq!(raw_syscall(PROC_LIST, unmapped, 4, 0, 0, 0), 0);
     // Two bytes before the program's first page and two inside it.
     check_eq!(raw_syscall(WRITE, 2, 0x003F_FFFE, 4, 0, 0) as i32, -1);
+    Ok(())
+}
+
+fn syscall_map_device_over_mapped_pages_rejected() -> Outcome {
+    use os::syscall::MAP_DEVICE;
+    // The program's own first page (linked at 0x400000) is in use.
+    check_eq!(
+        raw_syscall(MAP_DEVICE, 0xB8000, 0x0040_0000, 1, 0, 0) as i32,
+        -1
+    );
     Ok(())
 }

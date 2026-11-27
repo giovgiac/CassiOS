@@ -216,6 +216,20 @@ mod imp {
         })
     }
 
+    /// Whether no page of [start, start + len) is present in the directory
+    /// at `directory`.
+    pub fn range_unmapped(directory: u32, start: u32, len: u32) -> bool {
+        pages(start, len).all(|page| {
+            let entry = table(directory)[directory_index(page)];
+            entry & PAGE_PRESENT == 0 || table(entry)[table_index(page)] & PAGE_PRESENT == 0
+        })
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn paging_range_unmapped(directory: u32, start: u32, len: u32) -> bool {
+        range_unmapped(directory, start, len)
+    }
+
     #[unsafe(no_mangle)]
     unsafe extern "C" fn paging_init(info: *const Info) {
         unsafe { init(&*info) };
@@ -276,6 +290,7 @@ mod imp {
             paging_map_user_page_creates_a_user_mapping,
             paging_user_range_mapped_checks_every_page,
             paging_destroy_keeps_device_frames,
+            paging_range_unmapped_finds_any_present_page,
             paging_first_4_mib_use_the_boot_table,
         );
 
@@ -385,6 +400,23 @@ mod imp {
             map_user_page(directory, 0x1000_0000, kernel_frame, flags);
             destroy_address_space(directory);
             check!(PHYSICAL.with(|p| p.is_used(kernel_frame)));
+            Ok(())
+        }
+
+        fn paging_range_unmapped_finds_any_present_page() -> Outcome {
+            let directory = create_address_space().unwrap_or(0);
+            check!(directory != 0);
+            let frame = new_frame()?;
+            map_user_page(directory, 0x0040_1000, frame, PAGE_PRESENT | PAGE_USER);
+            let unmapped = |start, len| range_unmapped(directory, start, len);
+            let results = [
+                unmapped(0x0040_0000, 0x1000),
+                unmapped(0x0080_0000, 0x10_0000),
+                !unmapped(0x0040_0000, 0x1001),
+                !unmapped(0x0040_1FFF, 1),
+            ];
+            destroy_address_space(directory);
+            check_eq!(results, [true; 4]);
             Ok(())
         }
 

@@ -367,6 +367,13 @@ i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
     }
 
     memory::PagingManager& paging = memory::PagingManager::getManager();
+
+    // Mapping over pages in use would drop their frames without freeing
+    // them (device pages are never freed on exit).
+    if (!paging.rangeUnmapped(caller->pageDirectory, virt, size)) {
+        return -1;
+    }
+
     // The frames are the device's, so exiting must not free them.
     u16 flags =
         memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER | memory::PAGE_DEVICE;
