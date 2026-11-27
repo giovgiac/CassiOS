@@ -75,18 +75,38 @@ mod tests {
         assert_eq!(core::mem::size_of::<Message>(), 24);
     }
 
-    // Same values as libs/ipc/tests/test_ipc.cpp, so a number changed on
-    // one side only fails the tests.
+    // Every value, mirrored in libs/ipc/tests/test_ipc.cpp, so a number
+    // changed on one side only fails the tests.
     #[test]
     fn message_types_match_the_kernel() {
         assert_eq!(message_type::IRQ_NOTIFY, 1);
         assert_eq!(message_type::NS_REGISTER, 2);
+        assert_eq!(message_type::NS_LOOKUP, 3);
         assert_eq!(message_type::NS_LIST_ALL, 4);
         assert_eq!(message_type::KBD_READ, 5);
         assert_eq!(message_type::VFS_MKDIR, 6);
+        assert_eq!(message_type::VFS_REMOVE, 7);
+        assert_eq!(message_type::VFS_OPEN, 8);
+        assert_eq!(message_type::VFS_READ, 9);
+        assert_eq!(message_type::VFS_WRITE, 10);
+        assert_eq!(message_type::VFS_LIST, 11);
+        assert_eq!(message_type::VFS_STAT, 12);
         assert_eq!(message_type::VFS_CLOSE, 13);
         assert_eq!(message_type::MOUSE_READ, 14);
         assert_eq!(message_type::ATA_READ, 15);
+        assert_eq!(message_type::ATA_WRITE, 16);
+        assert_eq!(message_type::DISPLAY_FILL_RECT, 17);
+        assert_eq!(message_type::DISPLAY_DRAW_RECT, 18);
+        assert_eq!(message_type::DISPLAY_BLIT, 19);
+        assert_eq!(message_type::DISPLAY_SCROLL, 20);
+        assert_eq!(message_type::DISPLAY_FLUSH, 21);
+        assert_eq!(message_type::DISPLAY_GET_INFO, 22);
+        assert_eq!(message_type::DISPLAY_DRAW_CHAR, 23);
+        assert_eq!(message_type::TERMINAL_PUTCHAR, 24);
+        assert_eq!(message_type::TERMINAL_WRITE, 25);
+        assert_eq!(message_type::TERMINAL_CLEAR, 26);
+        assert_eq!(message_type::TERMINAL_SET_CURSOR, 27);
+        assert_eq!(message_type::TERMINAL_GET_CURSOR, 28);
         assert_eq!(message_type::TERMINAL_FLUSH, 29);
     }
 }

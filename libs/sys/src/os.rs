@@ -63,14 +63,24 @@ mod tests {
         assert_eq!(core::mem::size_of::<ProcEntry>(), 12);
     }
 
-    // Same values as libs/os/tests/test_os.cpp, so a number changed on
-    // one side only fails the tests.
+    // Every value, mirrored in libs/os/tests/test_os.cpp, so a number
+    // changed on one side only fails the tests.
     #[test]
     fn syscall_numbers_match_the_kernel() {
         assert_eq!(syscall::SEND, 0);
         assert_eq!(syscall::RECEIVE, 1);
         assert_eq!(syscall::REPLY, 2);
+        assert_eq!(syscall::IRQ_REGISTER, 3);
+        assert_eq!(syscall::WRITE, 4);
+        assert_eq!(syscall::SLEEP, 5);
+        assert_eq!(syscall::UPTIME, 6);
+        assert_eq!(syscall::REBOOT, 7);
+        assert_eq!(syscall::SHUTDOWN, 8);
         assert_eq!(syscall::EXIT, 9);
+        assert_eq!(syscall::MAP_DEVICE, 10);
+        assert_eq!(syscall::NOTIFY, 11);
+        assert_eq!(syscall::MEM_INFO, 12);
+        assert_eq!(syscall::SBRK, 13);
         assert_eq!(syscall::PROC_LIST, 14);
         assert_eq!(syscall::EXEC, 15);
         assert_eq!(syscall::WAIT_PID, 16);
