@@ -184,6 +184,13 @@ mod libmem {
         // Bytes compare unsigned.
         check!(cmp(&[0x80], &[0x01], 1) > 0);
         check_eq!(cmp(b"a", b"b", 0), 0);
+        // A difference in the last byte of a whole Buffer: the other tests
+        // compare Buffers through memcmp (bcmp forwards to it).
+        let (a, mut b) = (Buffer::counting(), Buffer::counting());
+        check_eq!(cmp(&a.0, &b.0, 64), 0);
+        b.0[63] += 1;
+        check!(cmp(&a.0, &b.0, 64) < 0);
+        check!(cmp(&b.0, &a.0, 64) > 0);
         Ok(())
     }
 }
