@@ -44,6 +44,9 @@ HandleInterruptRequest  0x00
 HandleInterruptRequest  0x01
 HandleInterruptRequest  0x0C
 HandleInterruptRequest  0x0E
+# Spurious IRQs (the PICs report them on their lowest-priority line).
+HandleInterruptRequest  0x07
+HandleInterruptRequest  0x0F
 
 # Stack layout after pusha + segment pushes (offsets from ESP):
 #   +0:  gs  +4:  fs  +8:  es  +12: ds

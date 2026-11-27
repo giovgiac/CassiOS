@@ -588,8 +588,7 @@ u32 SyscallHandler::handleSyscall(u32 esp) {
     case os::syscall::IrqRegister: {
         IrqManager& irqMgr = IrqManager::getManager();
         ProcessManager& pm = ProcessManager::getManager();
-        frame->eax = static_cast<u32>(
-            irqMgr.registerForward(static_cast<u8>(frame->ebx), pm.current()->pid));
+        frame->eax = static_cast<u32>(irqMgr.registerForward(frame->ebx, pm.current()->pid));
         return esp;
     }
     case os::syscall::Write:

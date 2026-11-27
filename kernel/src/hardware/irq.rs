@@ -18,6 +18,18 @@
 pub const IRQ_OFFSET: u8 = 0x20;
 const IRQS: usize = 16;
 
+/// The lines with a stub that are unmasked: timer, keyboard, mouse and
+/// primary ATA. Only these can be forwarded.
+pub const LINES: [u8; 4] = [0, 1, 12, 14];
+
+/// Whether IRQ `irq`, with `in_service` the in-service register of the
+/// PIC it came from, is spurious. A PIC reports a request that vanished
+/// before it was acknowledged on its lowest-priority line (7 on each PIC)
+/// without marking it in service.
+pub fn spurious(irq: u8, in_service: u8) -> bool {
+    (irq == 7 || irq == 15) && in_service & 0x80 == 0
+}
+
 /// Which process each IRQ is forwarded to, and IRQs it has yet to receive.
 pub struct Forwarding {
     pid: [u32; IRQS],
@@ -32,13 +44,13 @@ impl Forwarding {
         }
     }
 
-    /// Forward `irq` to `pid` (0 stops forwarding). False if `irq` is not
-    /// an IRQ.
-    pub fn register(&mut self, irq: u8, pid: u32) -> bool {
-        let Some(slot) = self.pid.get_mut(irq as usize) else {
+    /// Forward `irq` to `pid` (0 stops forwarding). False unless `irq` is
+    /// one of LINES.
+    pub fn register(&mut self, irq: u32, pid: u32) -> bool {
+        if !LINES.iter().any(|&line| line as u32 == irq) {
             return false;
-        };
-        *slot = pid;
+        }
+        self.pid[irq as usize] = pid;
         self.pending[irq as usize] = false;
         true
     }
@@ -80,6 +92,9 @@ mod imp {
     const SLAVE_COMMAND: Port<u8> = Port::new(PortType::SlavePicCommand);
     const SLAVE_DATA: Port<u8> = Port::new(PortType::SlavePicData);
     const END_OF_INTERRUPT: u8 = 0x20;
+    /// Makes the next read of the command port return the in-service
+    /// register.
+    const READ_IN_SERVICE: u8 = 0x0B;
     /// Unmasked lines: the timer (0), keyboard (1) and the slave's cascade
     /// (2); on the slave, the mouse (12) and the primary ATA channel (14).
     /// Only these have stubs; an IRQ on another line would reach the
@@ -93,6 +108,8 @@ mod imp {
         fn irq_stub_0x01();
         fn irq_stub_0x0C();
         fn irq_stub_0x0E();
+        fn irq_stub_0x07();
+        fn irq_stub_0x0F();
 
         /// Deliver IrqNotify for `irq` to process `pid` if it is blocked
         /// in receive (C++, kernel/src/hardware/irq.cpp, until processes
@@ -108,6 +125,8 @@ mod imp {
         set_gate(IRQ_OFFSET + 0x01, irq_stub_0x01, 0);
         set_gate(IRQ_OFFSET + 0x0C, irq_stub_0x0C, 0);
         set_gate(IRQ_OFFSET + 0x0E, irq_stub_0x0E, 0);
+        set_gate(IRQ_OFFSET + 0x07, irq_stub_0x07, 0);
+        set_gate(IRQ_OFFSET + 0x0F, irq_stub_0x0F, 0);
 
         // SAFETY: the kernel owns the PICs.
         unsafe {
@@ -131,6 +150,26 @@ mod imp {
     /// `esp`. Returns the context to resume (the PIT may switch process).
     pub fn dispatch(vector: u8, mut esp: u32) -> u32 {
         let irq = vector - IRQ_OFFSET;
+        if irq == 7 || irq == 15 {
+            let command = if irq == 7 {
+                &MASTER_COMMAND
+            } else {
+                &SLAVE_COMMAND
+            };
+            // SAFETY: the kernel owns the PICs.
+            let in_service = unsafe {
+                command.write_slow(READ_IN_SERVICE);
+                command.read()
+            };
+            if spurious(irq, in_service) {
+                // The slave's spurious IRQ still occupied the master's
+                // cascade line, which needs its end-of-interrupt.
+                if irq == 15 {
+                    unsafe { MASTER_COMMAND.write_slow(END_OF_INTERRUPT) };
+                }
+                return esp;
+            }
+        }
         if irq == 0 {
             esp = pit::tick(esp);
         }
@@ -163,9 +202,9 @@ mod imp {
         dispatch(vector, esp)
     }
 
-    /// 0 on success, -1 if `irq` is not an IRQ.
+    /// 0 on success, -1 if `irq` is not one of LINES.
     #[unsafe(no_mangle)]
-    extern "C" fn irq_register_forward(irq: u8, pid: u32) -> i32 {
+    extern "C" fn irq_register_forward(irq: u32, pid: u32) -> i32 {
         if FORWARDING.with(|f| f.register(irq, pid)) {
             0
         } else {
@@ -202,7 +241,18 @@ mod imp {
             irq_0_drives_the_pit,
             irq_without_a_handler_returns_the_frame,
             irq_only_lines_with_a_stub_are_unmasked,
+            irq_spurious_ones_are_dropped,
         );
+
+        fn irq_spurious_ones_are_dropped() -> Outcome {
+            // Nothing is in service in the test kernel, so both count as
+            // spurious: no PIT tick, the frame comes back unchanged.
+            let before = pit::ticks();
+            check_eq!(dispatch(IRQ_OFFSET + 7, 0x1234), 0x1234);
+            check_eq!(dispatch(IRQ_OFFSET + 15, 0x1234), 0x1234);
+            check_eq!(pit::ticks(), before);
+            Ok(())
+        }
 
         fn irq_only_lines_with_a_stub_are_unmasked() -> Outcome {
             let masks = unsafe { (MASTER_DATA.read(), SLAVE_DATA.read()) };
@@ -231,13 +281,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_irqs_0_to_15_can_be_forwarded() {
+    fn only_lines_in_use_can_be_forwarded() {
         let mut f = Forwarding::new();
-        assert!(f.register(15, 7));
-        assert!(!f.register(16, 7));
-        assert!(!f.register(255, 7));
-        assert_eq!(f.target(15), Some(7));
-        assert_eq!(f.target(16), None);
+        for line in LINES {
+            assert!(f.register(line as u32, 7));
+            assert_eq!(f.target(line), Some(7));
+        }
+        for irq in [2, 5, 7, 15, 16, 255, 256, u32::MAX] {
+            assert!(!f.register(irq, 7), "irq {irq}");
+        }
+        assert_eq!(f.target(5), None);
+    }
+
+    #[test]
+    fn spurious_irqs_are_those_not_in_service() {
+        assert!(spurious(7, 0x00));
+        assert!(spurious(15, 0x7F));
+        assert!(!spurious(7, 0x80));
+        assert!(!spurious(15, 0x80));
+        assert!(!spurious(1, 0x00));
     }
 
     #[test]
@@ -245,23 +307,23 @@ mod tests {
         let mut f = Forwarding::new();
         f.register(1, 7);
         f.register(12, 7);
-        f.register(5, 9);
+        f.register(14, 9);
         f.set_pending(12);
         f.set_pending(1);
-        f.set_pending(5);
+        f.set_pending(14);
         assert_eq!(f.take_pending(7), Some(1));
         assert_eq!(f.take_pending(7), Some(12));
         assert_eq!(f.take_pending(7), None);
-        assert_eq!(f.take_pending(9), Some(5));
+        assert_eq!(f.take_pending(9), Some(14));
     }
 
     #[test]
     fn unregistering_drops_pending_irqs() {
         let mut f = Forwarding::new();
-        f.register(3, 7);
-        f.set_pending(3);
-        f.register(3, 0);
-        assert_eq!(f.target(3), None);
+        f.register(1, 7);
+        f.set_pending(1);
+        f.register(1, 0);
+        assert_eq!(f.target(1), None);
         assert_eq!(f.take_pending(7), None);
         assert_eq!(f.take_pending(0), None);
     }

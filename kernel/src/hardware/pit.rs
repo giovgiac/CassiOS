@@ -21,9 +21,11 @@ pub const DIVISOR: u16 = (BASE_FREQUENCY / TICK_FREQUENCY) as u16;
 /// Channel 0, low then high byte, rate generator (mode 2).
 const CHANNEL0_RATE_GENERATOR: u8 = 0x34;
 
-/// Ticks to wait for `ms` milliseconds.
+/// Ticks to wait for `ms` milliseconds, capped at i32::MAX ticks (about
+/// 24.8 days): the tick counter wraps, so a wait is measured as a signed
+/// distance to its target.
 pub fn ticks_for(ms: u32) -> u32 {
-    (ms as u64 * TICK_FREQUENCY as u64 / 1000) as u32
+    (ms as u64 * TICK_FREQUENCY as u64 / 1000).min(i32::MAX as u64) as u32
 }
 
 #[cfg(target_arch = "x86")]
@@ -130,9 +132,8 @@ mod tests {
     fn ticks_for_converts_milliseconds() {
         assert_eq!(ticks_for(0), 0);
         assert_eq!(ticks_for(20), 20 * TICK_FREQUENCY / 1000);
-        assert_eq!(
-            ticks_for(u32::MAX),
-            (u32::MAX as u64 * TICK_FREQUENCY as u64 / 1000) as u32
-        );
+        assert_eq!(ticks_for(u32::MAX), i32::MAX as u32);
+        // The longest wait still compares as in the future.
+        assert!((ticks_for(u32::MAX) as i32) > 0);
     }
 }

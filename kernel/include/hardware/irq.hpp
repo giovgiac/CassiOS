@@ -17,7 +17,7 @@
 #include <std/types.hpp>
 
 extern "C" std::u32 irq_dispatch(std::u8 vector, std::u32 esp);
-extern "C" std::i32 irq_register_forward(std::u8 irq, std::u32 pid);
+extern "C" std::i32 irq_register_forward(std::u32 irq, std::u32 pid);
 extern "C" bool irq_deliver_pending(std::u32 pid, std::ipc::Message* msg);
 
 /**
@@ -42,10 +42,11 @@ public:
     /**
      * @brief Registers a userspace process to receive IRQ notifications.
      *
-     * One process per IRQ. Returns 0 on success, -1 if irq is out of range.
+     * One process per IRQ. Returns 0 on success, -1 unless irq is a line
+     * in use (timer 0, keyboard 1, mouse 12, primary ATA 14).
      *
      */
-    std::i32 registerForward(std::u8 irq, std::u32 pid) { return irq_register_forward(irq, pid); }
+    std::i32 registerForward(std::u32 irq, std::u32 pid) { return irq_register_forward(irq, pid); }
 
     /**
      * @brief Fills msg with the first IRQ pending for pid. Returns false
