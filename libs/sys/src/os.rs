@@ -23,6 +23,8 @@ pub mod syscall {
     pub const EXEC: u32 = 15;
     pub const WAIT_PID: u32 = 16;
     pub const FRAMEBUFFER_INFO: u32 = 17;
+    /// Number of syscalls; valid numbers are below it.
+    pub const COUNT: u32 = 18;
 }
 
 /// Timer ticks per second, as counted by `uptime`.
@@ -40,6 +42,7 @@ pub struct ProcEntry {
 }
 
 /// VESA framebuffer details reported by the boot loader.
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct FramebufferInfo {
     /// Physical address of the framebuffer.
@@ -58,5 +61,25 @@ mod tests {
     #[test]
     fn proc_entry_layout_matches_the_kernel() {
         assert_eq!(core::mem::size_of::<ProcEntry>(), 12);
+    }
+
+    // Same values as libs/os/tests/test_os.cpp, so a number changed on
+    // one side only fails the tests.
+    #[test]
+    fn syscall_numbers_match_the_kernel() {
+        assert_eq!(syscall::SEND, 0);
+        assert_eq!(syscall::RECEIVE, 1);
+        assert_eq!(syscall::REPLY, 2);
+        assert_eq!(syscall::EXIT, 9);
+        assert_eq!(syscall::PROC_LIST, 14);
+        assert_eq!(syscall::EXEC, 15);
+        assert_eq!(syscall::WAIT_PID, 16);
+        assert_eq!(syscall::FRAMEBUFFER_INFO, 17);
+        assert_eq!(syscall::COUNT, 18);
+    }
+
+    #[test]
+    fn framebuffer_info_is_20_bytes() {
+        assert_eq!(core::mem::size_of::<FramebufferInfo>(), 20);
     }
 }

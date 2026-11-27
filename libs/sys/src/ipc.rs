@@ -74,4 +74,19 @@ mod tests {
     fn message_is_24_bytes() {
         assert_eq!(core::mem::size_of::<Message>(), 24);
     }
+
+    // Same values as libs/ipc/tests/test_ipc.cpp, so a number changed on
+    // one side only fails the tests.
+    #[test]
+    fn message_types_match_the_kernel() {
+        assert_eq!(message_type::IRQ_NOTIFY, 1);
+        assert_eq!(message_type::NS_REGISTER, 2);
+        assert_eq!(message_type::NS_LIST_ALL, 4);
+        assert_eq!(message_type::KBD_READ, 5);
+        assert_eq!(message_type::VFS_MKDIR, 6);
+        assert_eq!(message_type::VFS_CLOSE, 13);
+        assert_eq!(message_type::MOUSE_READ, 14);
+        assert_eq!(message_type::ATA_READ, 15);
+        assert_eq!(message_type::TERMINAL_FLUSH, 29);
+    }
 }
