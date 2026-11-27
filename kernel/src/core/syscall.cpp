@@ -367,7 +367,9 @@ i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
     }
 
     memory::PagingManager& paging = memory::PagingManager::getManager();
-    u16 flags = memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER;
+    // The frames are the device's, so exiting must not free them.
+    u16 flags =
+        memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER | memory::PAGE_DEVICE;
 
     for (u32 i = 0; i < pages; ++i) {
         paging.mapUserPage(caller->pageDirectory, virt + i * 0x1000, physical + i * 0x1000, flags);

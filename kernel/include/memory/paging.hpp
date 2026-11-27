@@ -33,6 +33,8 @@ namespace memory {
 static constexpr std::u16 PAGE_PRESENT = 0x01;
 static constexpr std::u16 PAGE_READWRITE = 0x02;
 static constexpr std::u16 PAGE_USER = 0x04;
+/** Device mapping: destroyAddressSpace leaves its frame alone. */
+static constexpr std::u16 PAGE_DEVICE = 0x200;
 
 class PagingManager {
 public:

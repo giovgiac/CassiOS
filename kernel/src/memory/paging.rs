@@ -17,6 +17,9 @@
 pub const PAGE_PRESENT: u32 = 0x01;
 pub const PAGE_READWRITE: u32 = 0x02;
 pub const PAGE_USER: u32 = 0x04;
+/// Marks a device mapping (an available bit): its frame belongs to the
+/// device, not the allocator, so destroying the address space keeps it.
+pub const PAGE_DEVICE: u32 = 0x200;
 
 /// Entries in a directory or table.
 const ENTRIES: usize = 1024;
@@ -66,6 +69,11 @@ mod imp {
 
     static KERNEL_DIRECTORY: Global<Directory> = Global::new(Directory([0; ENTRIES]));
 
+    /// The kernel table for the first 4 MiB of the direct map. Static, so
+    /// mapping them needs no frame from the allocator while only the boot
+    /// mapping is reachable.
+    static BOOT_TABLE: Global<Directory> = Global::new(Directory([0; ENTRIES]));
+
     /// The table or directory at physical address `entry & ADDRESS_MASK`.
     fn table(entry: u32) -> &'static mut Table {
         // SAFETY: tables and directories are whole frames in the direct
@@ -83,9 +91,9 @@ mod imp {
     /// buffer, then switch to the kernel directory.
     ///
     /// Until the switch only the boot mapping (the first 4 MiB) is
-    /// reachable, and each new table frame must be zeroed through it. So
-    /// the first 4 MiB are mapped and the directory loaded first; the
-    /// frames for later tables then lie in memory already mapped.
+    /// reachable, so the first 4 MiB are mapped through the static
+    /// BOOT_TABLE and the directory loaded first. Frames for later tables
+    /// then lie in memory already mapped.
     ///
     /// # Safety
     ///
@@ -109,6 +117,10 @@ mod imp {
             }
         };
 
+        let boot_table = BOOT_TABLE.with(|t| t.0.as_ptr() as u32) - KERNEL_VBASE;
+        KERNEL_DIRECTORY.with(|d| {
+            d.0[directory_index(KERNEL_VBASE)] = boot_table | PAGE_PRESENT | PAGE_READWRITE;
+        });
         map_ram(0, BOOT_MAPPING_END);
         for page in (0xB8000..0xC0000).step_by(FRAME_SIZE as usize) {
             map_page(phys_to_virt(page) as u32, page, flags);
@@ -177,17 +189,16 @@ mod imp {
         table(*entry)[table_index(virt)] = (phys & ADDRESS_MASK) | (flags & 0xFFF);
     }
 
-    /// Free a directory, its user tables and every frame they map.
+    /// Free a directory, its user tables and every frame they map, except
+    /// device mappings.
     pub fn destroy_address_space(directory: u32) {
         for &entry in &table(directory)[..KERNEL_ENTRY] {
             if entry & PAGE_PRESENT == 0 {
                 continue;
             }
             for &page in table(entry).iter() {
-                // Device memory below 1 MiB is not the allocator's.
-                let frame = page & ADDRESS_MASK;
-                if page & PAGE_PRESENT != 0 && frame >= 0x10_0000 {
-                    PHYSICAL.with(|p| p.free(frame));
+                if page & (PAGE_PRESENT | PAGE_DEVICE) == PAGE_PRESENT {
+                    PHYSICAL.with(|p| p.free(page & ADDRESS_MASK));
                 }
             }
             PHYSICAL.with(|p| p.free(entry & ADDRESS_MASK));
@@ -264,6 +275,8 @@ mod imp {
             paging_address_space_shares_the_kernel_half,
             paging_map_user_page_creates_a_user_mapping,
             paging_user_range_mapped_checks_every_page,
+            paging_destroy_keeps_device_frames,
+            paging_first_4_mib_use_the_boot_table,
         );
 
         unsafe extern "C" {
@@ -359,6 +372,26 @@ mod imp {
             check_eq!(entry & (PAGE_PRESENT | PAGE_USER), PAGE_PRESENT | PAGE_USER);
             check_eq!(page & ADDRESS_MASK, frame);
             check_eq!(after, before + 3);
+            Ok(())
+        }
+
+        fn paging_destroy_keeps_device_frames() -> Outcome {
+            let directory = create_address_space().unwrap_or(0);
+            check!(directory != 0);
+            // A frame the kernel uses (its first code page), mapped as a
+            // device, as mapDevice would.
+            let kernel_frame = 0x10_0000;
+            let flags = PAGE_PRESENT | PAGE_READWRITE | PAGE_USER | PAGE_DEVICE;
+            map_user_page(directory, 0x1000_0000, kernel_frame, flags);
+            destroy_address_space(directory);
+            check!(PHYSICAL.with(|p| p.is_used(kernel_frame)));
+            Ok(())
+        }
+
+        fn paging_first_4_mib_use_the_boot_table() -> Outcome {
+            let entry = KERNEL_DIRECTORY.with(|d| d.0[directory_index(KERNEL_VBASE)]);
+            let boot_table = BOOT_TABLE.with(|t| t.0.as_ptr() as u32) - KERNEL_VBASE;
+            check_eq!(entry & ADDRESS_MASK, boot_table);
             Ok(())
         }
 

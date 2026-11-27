@@ -108,6 +108,9 @@ void start(void* multiboot, u32 magic) {
         }
     }
 
+    // Every process has its own copy of its image now.
+    pmm.releaseModules(mb);
+
     im.activate();
 
     // Kernel idle loop. Userspace services handle all I/O via IPC.

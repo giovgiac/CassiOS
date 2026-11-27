@@ -18,6 +18,7 @@
 #include <memory/multiboot.hpp>
 
 extern "C" void physical_init(const cassio::memory::MultibootInfo* info);
+extern "C" void physical_release_modules(const cassio::memory::MultibootInfo* info);
 extern "C" std::u32 physical_alloc_frame();
 extern "C" void physical_free_frame(std::u32 address);
 extern "C" bool physical_is_frame_used(std::u32 address);
@@ -35,6 +36,9 @@ public:
     inline static PhysicalMemoryManager& getManager() { return instance; }
 
     void init(MultibootInfo* multibootInfo) { physical_init(multibootInfo); }
+
+    /** Frees the module images; call once every module is loaded. */
+    void releaseModules(MultibootInfo* multibootInfo) { physical_release_modules(multibootInfo); }
 
     /** A free frame's physical address, or null when memory is exhausted. */
     void* allocFrame() { return reinterpret_cast<void*>(physical_alloc_frame()); }

@@ -98,6 +98,16 @@ impl FrameBitmap {
         None
     }
 
+    /// Return every frame overlapping [start, end) to the free pool, under
+    /// the same rule as `free`.
+    pub fn release(&mut self, start: u64, end: u64) {
+        let first = start / FRAME_SIZE as u64;
+        let last = end.div_ceil(FRAME_SIZE as u64);
+        for frame in first..last {
+            self.free((frame * FRAME_SIZE as u64) as u32);
+        }
+    }
+
     /// Return the frame at `address` to the free pool. Frames outside
     /// the range ever handed out (device memory a process mapped, for
     /// example) are ignored.
@@ -216,6 +226,31 @@ mod imp {
     #[unsafe(no_mangle)]
     unsafe extern "C" fn physical_init(info: *const Info) {
         unsafe { init(&*info) };
+    }
+
+    /// Free the module images once their processes are loaded (the ELF
+    /// loader copies each into the process's own frames).
+    ///
+    /// # Safety
+    ///
+    /// As for `init`; nothing may read the modules afterwards.
+    #[unsafe(no_mangle)]
+    unsafe extern "C" fn physical_release_modules(info: *const Info) {
+        let info = unsafe { &*info };
+        if info.flags & FLAG_MODS == 0 {
+            return;
+        }
+        let modules = unsafe {
+            core::slice::from_raw_parts(
+                phys_to_virt(info.mods_addr) as *const Module,
+                info.mods_count as usize,
+            )
+        };
+        PHYSICAL.with(|bitmap| {
+            for module in modules {
+                bitmap.release(module.start as u64, module.end as u64);
+            }
+        });
     }
 
     /// A free frame's physical address, or 0 when memory is exhausted
@@ -420,6 +455,18 @@ mod tests {
         assert!(b.is_used(0x1000));
         assert!(b.is_used(0xFD00_0000));
         assert_eq!(b.used_frames(), used);
+    }
+
+    #[test]
+    fn release_frees_every_overlapped_frame_it_may() {
+        let mut b = bitmap(&[ram(MIB, MIB)]);
+        b.reserve(MIB, MIB + 0x3000);
+        b.release(MIB + 0x800, MIB + 0x2001);
+        assert!(!b.is_used(MIB as u32));
+        assert!(!b.is_used(MIB as u32 + 0x2000));
+        // Low memory stays used.
+        b.release(0, 0x2000);
+        assert!(b.is_used(0x1000));
     }
 
     #[test]

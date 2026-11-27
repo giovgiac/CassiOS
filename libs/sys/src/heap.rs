@@ -322,6 +322,17 @@ mod tests {
         assert!(!unsafe { list.allocate(100) }.is_null());
     }
 
+    #[test]
+    fn extend_by_less_than_a_header_is_ignored() {
+        let mut region = Region([0; 1024]);
+        let mut list = list(&mut region);
+        let a = unsafe { list.allocate(512 - HEADER) };
+        assert!(!a.is_null());
+        unsafe { list.extend(HEADER) };
+        // No block appeared past the region's end.
+        assert!(unsafe { list.allocate(4) }.is_null());
+    }
+
     // A fake break over a static region, for the Heap tests only.
     #[repr(align(4096))]
     struct Arena([u8; 4 * PAGE]);
