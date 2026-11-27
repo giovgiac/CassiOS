@@ -59,13 +59,14 @@ void start(void* multiboot, u32 magic) {
     pit.activate();
 
     // The kernel task: the idle loop below, run when nothing else is ready.
-    process_init();
+    ProcessManager::init();
 
     // Store framebuffer info from multiboot for the FramebufferInfo syscall.
     MultibootInfo* mb = (MultibootInfo*)multiboot;
     if (mb->flags & MULTIBOOT_FLAG_FRAMEBUFFER) {
-        syscall_set_framebuffer(static_cast<u32>(mb->framebuffer_addr), mb->framebuffer_width,
-                                mb->framebuffer_height, mb->framebuffer_pitch, mb->framebuffer_bpp);
+        ProcessManager::setFramebuffer(static_cast<u32>(mb->framebuffer_addr),
+                                       mb->framebuffer_width, mb->framebuffer_height,
+                                       mb->framebuffer_pitch, mb->framebuffer_bpp);
     }
 
     // Load userspace processes from multiboot modules.
@@ -90,7 +91,7 @@ void start(void* multiboot, u32 magic) {
                 continue;
             }
 
-            if (!process_spawn(pdPhysical, elf.entryPoint, elf.heapStart, userCS, userDS)) {
+            if (!ProcessManager::spawn(pdPhysical, elf.entryPoint, elf.heapStart, userCS, userDS)) {
                 paging.destroyAddressSpace(pdPhysical);
             }
         }

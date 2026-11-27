@@ -141,8 +141,15 @@ impl Process {
         true
     }
 
-    /// Queue a notification, copying `data`. False if memory is exhausted.
+    /// Queue a notification, copying `data`. False if the queue is full
+    /// (MAX_NOTIFICATIONS, MAX_NOTIFICATION_DATA) or memory is exhausted.
     pub fn push_notification(&mut self, msg: Message, data: &[u8]) -> bool {
+        let queued: usize = self.notifications.iter().map(|n| n.data.len()).sum();
+        if self.notifications.len() >= MAX_NOTIFICATIONS
+            || queued + data.len() > MAX_NOTIFICATION_DATA
+        {
+            return false;
+        }
         let mut copy = Vec::new();
         if copy.try_reserve_exact(data.len()).is_err() || self.notifications.try_reserve(1).is_err()
         {
@@ -169,6 +176,11 @@ pub struct Table {
     /// Timer ticks the current process has run since it was chosen.
     pub ticks: u32,
 }
+
+/// Most notifications a process may have waiting, and most bytes of data
+/// in them: the kernel heap is 1 MiB, and no sender may fill it.
+pub const MAX_NOTIFICATIONS: usize = 1024;
+pub const MAX_NOTIFICATION_DATA: usize = 64 * 1024;
 
 /// Ticks a process runs before the scheduler may switch.
 pub const TIME_SLICE: u32 = 10;
@@ -250,14 +262,19 @@ impl Table {
         self.processes.iter_mut()
     }
 
-    /// The next Ready process after `pid` in table order, wrapping around;
-    /// `pid` itself if no other is ready.
+    /// The next Ready process after `pid` in table order, wrapping around
+    /// to `pid` itself last. The kernel task (the idle loop) only when no
+    /// other process is ready, and `pid` if not even it is.
     pub fn next_ready(&self, pid: u32) -> u32 {
         let start = self.index(pid).unwrap_or(0);
         let count = self.processes.len();
-        (1..count)
-            .map(|offset| &self.processes[(start + offset) % count])
-            .find(|p| p.state == State::Ready)
+        let ready = |p: &&Process| p.state == State::Ready;
+        let round = (1..=count).map(|offset| &self.processes[(start + offset) % count]);
+        round
+            .clone()
+            .filter(|p| p.pid != KERNEL_PID)
+            .find(ready)
+            .or_else(|| round.filter(|p| p.pid == KERNEL_PID).find(ready))
             .map_or(pid, |p| p.pid)
     }
 }
@@ -638,6 +655,37 @@ mod tests {
         assert_eq!(t.next_ready(1), 4);
         // Wraps past the end to pid 1.
         assert_eq!(t.next_ready(4), 1);
+    }
+
+    #[test]
+    fn the_idle_kernel_task_runs_only_when_nothing_else_is_ready() {
+        use State::*;
+        let mut t = table(&[Ready, Ready]);
+        t.get_mut(KERNEL_PID).unwrap().state = Ready;
+        // From 2 the kernel task is next in order, but pid 1 comes first.
+        assert_eq!(t.next_ready(2), 1);
+        // A process the scheduler just made Ready keeps the CPU over idle.
+        t.get_mut(1).unwrap().state = SendBlocked;
+        assert_eq!(t.next_ready(2), 2);
+        t.get_mut(2).unwrap().state = SendBlocked;
+        assert_eq!(t.next_ready(2), KERNEL_PID);
+    }
+
+    #[test]
+    fn notification_queues_are_capped() {
+        let mut p = Process::new(1, 0, 0, 0, 0);
+        for _ in 0..MAX_NOTIFICATIONS {
+            assert!(p.push_notification(Message::default(), &[]));
+        }
+        assert!(!p.push_notification(Message::default(), &[]));
+        let mut p = Process::new(1, 0, 0, 0, 0);
+        let half = [0u8; MAX_NOTIFICATION_DATA / 2];
+        assert!(p.push_notification(Message::default(), &half));
+        assert!(p.push_notification(Message::default(), &half));
+        assert!(!p.push_notification(Message::default(), &[0]));
+        // Taking one off makes room again.
+        p.notifications.pop_front();
+        assert!(p.push_notification(Message::default(), &[0]));
     }
 
     #[test]

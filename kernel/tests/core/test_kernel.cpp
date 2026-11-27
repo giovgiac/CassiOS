@@ -50,7 +50,7 @@ void start(void* multiboot, u32 magic) {
 
     KernelHeap::init();
 
-    process_init();
+    ProcessManager::init();
 
     test::init(kernel_write);
     u32 passed = 0, failed = 0;
