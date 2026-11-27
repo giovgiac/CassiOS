@@ -13,6 +13,7 @@ dependencies = [
 name = "cassio"
 version = "0.1.0"
 dependencies = [
+ "mem",
  "sys",
 ]
 
@@ -41,8 +42,13 @@ dependencies = [
 name = "kernel"
 version = "0.1.0"
 dependencies = [
+ "mem",
  "sys",
 ]
+
+[[package]]
+name = "mem"
+version = "0.1.0"
 
 [[package]]
 name = "mouse"

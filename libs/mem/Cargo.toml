@@ -1,0 +1,4 @@
+[package]
+name = "mem"
+edition.workspace = true
+version.workspace = true

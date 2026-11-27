@@ -1,10 +1,10 @@
 # CassiOS
 
-A microkernel operating system targeting i386 (32-bit x86), written in Rust and assembly (the port from C++ is finishing; see below). Boots via GRUB using the Multiboot specification.
+A microkernel operating system targeting i386 (32-bit x86), written in Rust and assembly. Boots via GRUB using the Multiboot specification.
 
 ## Technical Details
 
-- Toolchain: Rust (see below), `as` (with `--32`), `ld` (with `-melf_i386`); `g++` only for `libs/mem` (memcpy, memset, memmove, memcmp for the kernel and every program) until it is replaced
+- Toolchain: Rust (see below), `as` (with `--32`), `ld` (with `-melf_i386`)
 - Three-tier test framework: `make test` runs Rust host unit tests, then kernel unit tests and userspace integration tests in QEMU
 - Assembly uses AT&T syntax
 - When issues or bugs are encountered, start by reproducing the issue yourself, determine the root cause and only then attempt to fix. Once applied, verify and prove that the issue is no longer reproducible through testing
@@ -24,15 +24,16 @@ CassiOS is a microkernel. The kernel contains only: GDT/TSS, interrupt subsystem
 - **Kernel state**: each subsystem keeps its state in a `static` (`sync::Global`, e.g. the frame bitmap, the process table), reached by its functions.
 - **Serial**: COM1 (`kernel/src/hardware/serial.rs`) carries the kernel log, the serial write syscall and test output.
 
-## Rust (migration in progress)
+## Rust
 
-CassiOS is being ported to Rust phase by phase (issue #188, integration branch `refactor/188-rust-migration`). Userspace and the kernel are Rust; what remains is replacing `libs/mem` and the final cleanup.
+CassiOS was ported from C++ to Rust phase by phase (issue #188, integration branch `refactor/188-rust-migration`).
 
 - Toolchain pinned in `rust-toolchain.toml`; components target `i586-unknown-linux-gnu` as `#![no_std]` with `panic = "abort"` (no SSE). No external crates.
 - Each binary is a `staticlib` linked with the existing `ld` command and linker script (which must collect `.rodata*`, `.data*`, `.bss*`). Its Makefile runs `cargo build` and writes the same output path as before.
 - Shared userspace library: `libs/cassio`, crate `cassio` (`os`, `ipc`, `ns`, `ps2`, `gfx`, the `ata`, `display`, `kbd`, `terminal` and `vfs` clients, global allocator, panic handler). Syscall wrappers are only compiled for `target_arch = "x86"` so pure logic runs as host tests.
+- Memory functions: `libs/mem`, crate `mem` (`memcpy`, `memmove`, `memset`, `memcmp`, `bcmp`), built with `no_builtins` so its loops are not compiled back into calls to themselves. `kernel` and `cassio` link it with `extern crate mem as _`; the C symbols are only exported in the i586 build.
 - Kernel/userspace shared definitions: `libs/sys`, crate `sys` (IPC `Message` and message types, syscall numbers, `ProcEntry`, `FramebufferInfo`, port I/O `Port`/`PortType`, the free-list `Heap` allocator). No global allocator, panic handler or syscalls; `cassio` re-exports them. Their tests pin every syscall number, message type and port.
-- Kernel: crate `kernel` (`kernel/Cargo.toml`, sources under `kernel/src`: `core` as module `system` since `core` is Rust's core library, `hardware`, `memory`), a staticlib linked with the three assembly files by `ld --gc-sections`. It depends only on `sys`. Kernel-global state goes in `sync::Global`, which relies on kernel code running with interrupts disabled (only sleep and the serial write enable them, outside any borrow); allocations sized by user input must be fallible. Frames come only from RAM between 1 MiB and the end of the direct map. The test kernel is the same crate built with the `ktest` feature: its `start()` runs the in-QEMU kernel tests, which live in `ktests` modules next to the code, listed with `tests!` and added to `KTESTS` in `kernel/src/lib.rs`.
+- Kernel: crate `kernel` (`kernel/Cargo.toml`, sources under `kernel/src`: `core` as module `system` since `core` is Rust's core library, `hardware`, `memory`), a staticlib linked with the three assembly files by `ld --gc-sections`. It depends only on `mem` and `sys`. Kernel-global state goes in `sync::Global`, which relies on kernel code running with interrupts disabled (only sleep and the serial write enable them, outside any borrow); allocations sized by user input must be fallible. Frames come only from RAM between 1 MiB and the end of the direct map. The test kernel is the same crate built with the `ktest` feature: its `start()` runs the in-QEMU kernel tests, which live in `ktests` modules next to the code, listed with `tests!` and added to `KTESTS` in `kernel/src/lib.rs`.
 - `make test-rust` (part of `make test`) runs `cargo test` on the host. Put unit tests in `#[cfg(test)]` modules next to the code. Black-box tests of a service go in the in-QEMU runner `userspace/tests` (crate `usertest`, run by `make test-userspace`): one module per service, each listing its tests with `tests!`.
 - Format with `cargo fmt`. Copyright header as `//` comments. `main.rs` holds only the entry point and receive loop.
 - Hardware in a Rust service is owned by that service alone: `_start` constructs its device type (e.g. the mouse `Device`) once and keeps it local. In the kernel, a device's state is a `static` in its module (e.g. `COM1`).

@@ -13,4 +13,5 @@ crate-type = ["staticlib"]
 ktest = []
 
 [dependencies]
+mem = { path = "../libs/mem" }
 sys = { path = "../libs/sys" }

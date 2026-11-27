@@ -24,7 +24,6 @@ USERSHELL = bin/shell.elf
 HELLO = disk/bin/hello.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
-LIBSTD_MEM = lib/libstd_mem.a
 KERNEL_LIB = target/$(RUST_TARGET)/release/libkernel.a
 # The test kernel's library (feature ktest), in its own target directory.
 TEST_KERNEL_LIB = target/ktest/$(RUST_TARGET)/release/libkernel.a
@@ -40,9 +39,6 @@ obj/%.o: kernel/src/%.s
 	@mkdir -p $(dir $@)
 	as $(ASMFLAGS) -o $@ $<
 
-$(LIBSTD_MEM): FORCE
-	$(MAKE) -C libs/mem
-
 $(KERNEL_LIB): FORCE
 	cargo build --release --target $(RUST_TARGET) --target-dir target -p kernel
 
@@ -51,42 +47,42 @@ $(TEST_KERNEL_LIB): FORCE
 
 FORCE:
 
-kernel: kernel/src/linker.ld $(objects) $(KERNEL_LIB) $(LIBSTD_MEM)
+kernel: kernel/src/linker.ld $(objects) $(KERNEL_LIB)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(KERNEL_LIB) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(KERNEL_LIB)
 
-$(NAMESERVER): FORCE $(LIBSTD_MEM)
+$(NAMESERVER): FORCE
 	$(MAKE) -C userspace/core/ns
 
-$(KBD): FORCE $(LIBSTD_MEM)
+$(KBD): FORCE
 	$(MAKE) -C userspace/drivers/kbd
 
-$(VFS): FORCE $(LIBSTD_MEM)
+$(VFS): FORCE
 	$(MAKE) -C userspace/core/vfs
 
-$(MOUSE): FORCE $(LIBSTD_MEM)
+$(MOUSE): FORCE
 	$(MAKE) -C userspace/drivers/mouse
 
-$(ATA): FORCE $(LIBSTD_MEM)
+$(ATA): FORCE
 	$(MAKE) -C userspace/drivers/ata
 
-$(DISPLAY): FORCE $(LIBSTD_MEM)
+$(DISPLAY): FORCE
 	$(MAKE) -C userspace/drivers/display
 
-$(TERMINAL): FORCE $(LIBSTD_MEM)
+$(TERMINAL): FORCE
 	$(MAKE) -C userspace/core/terminal
 
-$(USERSHELL): FORCE $(LIBSTD_MEM)
+$(USERSHELL): FORCE
 	$(MAKE) -C userspace/core/shell
 
-$(HELLO): FORCE $(LIBSTD_MEM)
+$(HELLO): FORCE
 	$(MAKE) -C userspace/apps/hello
 
-$(TEST_KERNEL): kernel/src/linker.ld $(objects) $(TEST_KERNEL_LIB) $(LIBSTD_MEM)
+$(TEST_KERNEL): kernel/src/linker.ld $(objects) $(TEST_KERNEL_LIB)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(objects) $(TEST_KERNEL_LIB) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(objects) $(TEST_KERNEL_LIB)
 
-$(USERTEST): FORCE $(LIBSTD_MEM)
+$(USERTEST): FORCE
 	$(MAKE) -C userspace/tests
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
@@ -182,4 +178,4 @@ run: $(ISO) $(DISK)
 
 .PHONY: kernel clean run test test-rust test-kernel test-userspace
 clean:
-	rm -rf obj/ bin/ lib/ target/
+	rm -rf obj/ bin/ target/

@@ -14,12 +14,12 @@ A microkernel operating system targeting i386 (32-bit x86), written in Rust and 
 - **Syscall interface** via `int 0x80` (IPC, memory, process control, system info)
 - **Physical memory manager**, kernel heap (the Rust global allocator), paging
 - **Persistent FAT32 filesystem** -- 32 MiB disk image, on-demand FAT via LRU sector cache, directories, LFN, case-sensitive
-- **Libraries** -- `libs/sys`, the definitions and code the kernel and userspace share (IPC and syscall numbers, port I/O, the heap allocator), and `libs/cassio`, the Rust library userspace programs share (syscalls, IPC, service clients)
+- **Libraries** -- `libs/mem`, the memory functions (memcpy, memmove, memset, memcmp) the kernel and every program link, `libs/sys`, the definitions and code the kernel and userspace share (IPC and syscall numbers, port I/O, the heap allocator), and `libs/cassio`, the Rust library userspace programs share (syscalls, IPC, service clients)
 - **Three-tier test framework** -- Rust host unit tests, then kernel unit tests and userspace integration tests run headlessly via QEMU
 
 ## Prerequisites
 
-- `g++`, `as`, `ld` (GNU toolchain with 32-bit support)
+- `as`, `ld` (GNU binutils with 32-bit support)
 - `qemu-system-i386` (for running)
 - `grub-mkrescue` and `xorriso` (for building the bootable ISO)
 - `dosfstools` and `mtools` (for FAT32 disk image creation)
