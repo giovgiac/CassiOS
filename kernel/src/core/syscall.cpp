@@ -294,11 +294,8 @@ i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
     if (fd == 2) {
         // Polling the UART takes about 0.26 ms per character at 38400
         // baud, so interrupts stay enabled meanwhile (see load()).
-        Serial& serial = COM1::getSerial();
         asm volatile("sti");
-        for (u32 i = 0; i < len; ++i) {
-            serial.putchar(str[i]);
-        }
+        COM1::write(str, len);
         asm volatile("cli");
         return static_cast<i32>(len);
     }

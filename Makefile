@@ -7,7 +7,8 @@ DISK_SIZE_MB ?= 32
 ASMFLAGS = --32
 STD_INCLUDES = $(foreach dir,$(wildcard libs/*/include),-I$(dir))
 CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
-LDFLAGS = -melf_i386
+LDFLAGS = -melf_i386 --gc-sections
+RUST_TARGET = i586-unknown-linux-gnu
 
 KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
@@ -28,6 +29,7 @@ LIBSTD_STR = lib/libstd_str.a
 LIBSTD_ALLOC = lib/libstd_alloc.a
 LIBSTD_FMT = lib/libstd_fmt.a
 LIBSTD_TEST = lib/libstd_test.a
+KERNEL_LIB = target/$(RUST_TARGET)/release/libkernel.a
 
 
 # Discover all source files automatically.
@@ -70,11 +72,15 @@ $(LIBSTD_FMT): FORCE
 $(LIBSTD_TEST): FORCE
 	$(MAKE) -C libs/test
 
+# The Rust part of the kernel, linked into both kernel binaries.
+$(KERNEL_LIB): FORCE
+	cargo build --release --target $(RUST_TARGET) --target-dir target -p kernel
+
 FORCE:
 
-kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
+kernel: kernel/src/linker.ld $(objects) $(KERNEL_LIB) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(KERNEL_LIB) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(NAMESERVER): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/core/ns
@@ -112,9 +118,9 @@ obj/libs/%.o: libs/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
 
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_TEST)
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(KERNEL_LIB) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_TEST)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(KERNEL_LIB) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(USERTEST): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/tests
@@ -143,7 +149,7 @@ test-rust:
 
 test-kernel:
 	@$(MAKE) --no-print-directory $(TEST_KERNEL) > /tmp/cassio-build.log 2>&1 \
-	    || (cat /tmp/cassio-build.log; exit 1); \
+	    || { cat /tmp/cassio-build.log; exit 1; }; \
 	dd if=/dev/zero of=/tmp/cassio-test-disk.img bs=1M count=32 2>/dev/null; \
 	mkfs.fat -F 32 /tmp/cassio-test-disk.img >/dev/null 2>&1; \
 	qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
@@ -158,7 +164,7 @@ test-kernel:
 
 test-userspace:
 	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VFS) $(MOUSE) $(ATA) $(DISPLAY) $(TERMINAL) $(USERTEST) $(HELLO) \
-	    > /tmp/cassio-build.log 2>&1 || (cat /tmp/cassio-build.log; exit 1); \
+	    > /tmp/cassio-build.log 2>&1 || { cat /tmp/cassio-build.log; exit 1; }; \
 	dd if=/dev/zero of=/tmp/cassio-usertest-disk.img bs=1M count=32 2>/dev/null; \
 	mkfs.fat -F 32 /tmp/cassio-usertest-disk.img >/dev/null 2>&1; \
 	if [ -d disk ]; then \

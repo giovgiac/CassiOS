@@ -31,10 +31,9 @@ void ExceptionHandler::load() {
 }
 
 u32 ExceptionHandler::handle(u8 vector, u32 error_code, u32 esp) {
-    Serial& com1 = COM1::getSerial();
     char buf[48];
     fmt::format(buf, sizeof(buf), "EXCEPTION: vector={} error_code={}\n", (u32)vector, error_code);
-    com1.puts(buf);
+    COM1::puts(buf);
 
     while (true) {
         asm volatile("cli; hlt");

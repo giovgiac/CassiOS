@@ -27,8 +27,7 @@ void test::init(WriteFn fn) {
     write_fn = fn;
 }
 
-u32 test::run() {
-    u32 passed = 0, failed = 0;
+u32 test::run(u32 passed, u32 failed) {
     for (TestNode* t = test_list_head; t; t = t->next) {
         bool test_failed = false;
         t->fn(t->name, test_failed);

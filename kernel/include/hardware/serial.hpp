@@ -1,46 +1,44 @@
+/**
+ * serial.hpp
+ *
+ * Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
+ * Use of this source code is governed by a MIT-style
+ * license that can be found in the LICENSE file.
+ *
+ * The COM1 driver is Rust (kernel/src/hardware/serial.rs). COM1 forwards
+ * to it until its callers are ported.
+ *
+ */
+
 #ifndef HARDWARE_SERIAL_HPP_
 #define HARDWARE_SERIAL_HPP_
 
-#include <std/io.hpp>
 #include <std/types.hpp>
+
+extern "C" void com1_init();
+extern "C" void com1_write(const char* buf, std::u32 len);
 
 namespace cassio {
 namespace hardware {
 
-using std::io::Port;
-using std::io::PortType;
-
-class Serial {
-private:
-    Port<std::u8> data;
-    Port<std::u8> interrupt_enable;
-    Port<std::u8> fifo_control;
-    Port<std::u8> line_control;
-    Port<std::u8> modem_control;
-    Port<std::u8> line_status;
-
-public:
-    Serial(PortType data, PortType interrupt_enable, PortType fifo_control, PortType line_control,
-           PortType modem_control, PortType line_status);
-    ~Serial() = default;
-
-    void putchar(char ch);
-    void puts(const char* str);
-
-    Serial(const Serial&) = delete;
-    Serial(Serial&&) = delete;
-    Serial& operator=(const Serial&) = delete;
-    Serial& operator=(Serial&&) = delete;
-};
-
 class COM1 final {
-private:
-    static Serial instance;
+public:
+    /** Programs the UART. Must run before the first write. */
+    static void init() { com1_init(); }
+
+    static void putchar(char ch) { com1_write(&ch, 1); }
+
+    static void puts(const char* str) {
+        std::u32 len = 0;
+        while (str[len] != '\0') {
+            ++len;
+        }
+        com1_write(str, len);
+    }
+
+    static void write(const char* buf, std::u32 len) { com1_write(buf, len); }
 
     COM1() = delete;
-
-public:
-    inline static Serial& getSerial() { return instance; }
 };
 
 } // namespace hardware

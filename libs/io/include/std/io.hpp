@@ -5,6 +5,8 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
+ * Rust code uses the same port table from libs/sys; keep the two in step.
+ *
  */
 
 #ifndef STD_IO_HPP
