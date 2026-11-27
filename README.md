@@ -12,7 +12,7 @@ A microkernel operating system targeting i386 (32-bit x86), written in Rust and 
 - **Preemptive round-robin scheduler** driven by PIT timer (~1000 Hz)
 - **ELF32 loader** for statically linked userspace binaries via GRUB multiboot modules
 - **Syscall interface** via `int 0x80` (IPC, memory, process control, system info)
-- **Physical memory manager**, kernel heap with `new`/`delete`, paging
+- **Physical memory manager**, kernel heap (the Rust global allocator), paging
 - **Persistent FAT32 filesystem** -- 32 MiB disk image, on-demand FAT via LRU sector cache, directories, LFN, case-sensitive
 - **Libraries** -- `libs/sys`, the definitions and code the kernel and userspace share (IPC and syscall numbers, port I/O, the heap allocator), and `libs/cassio`, the Rust library userspace programs share (syscalls, IPC, service clients)
 - **Three-tier test framework** -- Rust host unit tests, then kernel unit tests and userspace integration tests run headlessly via QEMU

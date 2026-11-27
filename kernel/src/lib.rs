@@ -87,6 +87,7 @@ const KTESTS: [&[ktest::Test]; 13] = [
 #[cfg(feature = "ktest")]
 mod libmem {
     use core::ffi::c_void;
+    use core::hint::black_box;
 
     use crate::ktest::Outcome;
 
@@ -104,47 +105,70 @@ mod libmem {
         mem_compare_orders_bytes,
     );
 
+    /// A word-aligned buffer, so offsets choose which loops run: libs/mem
+    /// copies words only when both pointers have the same alignment.
+    #[repr(align(4))]
+    struct Buffer([u8; 64]);
+
+    impl Buffer {
+        /// 0, 1, 2, ...
+        fn counting() -> Self {
+            Buffer(core::array::from_fn(|i| i as u8))
+        }
+
+        /// The address of byte `offset`. Like every length below, it is
+        /// hidden from the compiler (black_box), which would otherwise
+        /// work out or inline a call instead of reaching libstd_mem.
+        fn at(&mut self, offset: usize) -> *mut c_void {
+            black_box(self.0[offset..].as_mut_ptr().cast())
+        }
+    }
+
     fn mem_copy_copies_and_returns_dst() -> Outcome {
-        // Odd lengths and offsets exercise the word and byte loops.
-        let src: [u8; 37] = core::array::from_fn(|i| i as u8 * 3);
-        let mut dst = [0u8; 40];
-        let out = unsafe { memcpy(dst[1..].as_mut_ptr().cast(), src.as_ptr().cast(), 37) };
-        check_eq!(out, dst[1..].as_mut_ptr().cast());
-        check!(dst[1..38] == src);
-        check_eq!((dst[0], dst[38]), (0, 0));
+        // (dst, src): same alignment (byte, word and byte loops), then
+        // different alignment (byte loop only).
+        for (dst, src) in [(1, 33), (1, 34)] {
+            let mut buf = Buffer::counting();
+            let expected = buf.0;
+            let out = unsafe { memcpy(buf.at(dst), buf.at(src).cast_const(), black_box(29)) };
+            check_eq!(out, buf.at(dst));
+            check!(buf.0[dst..dst + 29] == expected[src..src + 29]);
+            check_eq!((buf.0[0], buf.0[dst + 29]), (0, expected[dst + 29]));
+        }
         Ok(())
     }
 
     fn mem_move_handles_both_overlaps() -> Outcome {
-        let mut forward = [1u8, 2, 3, 4, 5];
-        unsafe { memmove(forward.as_mut_ptr().cast(), forward[2..].as_ptr().cast(), 3) };
-        check_eq!(forward, [3, 4, 5, 4, 5]);
-        let mut backward = [1u8, 2, 3, 4, 5];
-        let out = unsafe {
-            memmove(
-                backward[2..].as_mut_ptr().cast(),
-                backward.as_ptr().cast(),
-                3,
-            )
-        };
-        check_eq!(backward, [1, 2, 1, 2, 3]);
-        check_eq!(out, backward[2..].as_mut_ptr().cast());
+        // (dst, src): forward and backward, each with the same alignment
+        // (word loop) and a different one (byte loop).
+        for (dst, src) in [(1, 9), (2, 9), (9, 1), (9, 2)] {
+            let mut buf = Buffer::counting();
+            let expected = buf.0;
+            let out = unsafe { memmove(buf.at(dst), buf.at(src).cast_const(), black_box(27)) };
+            check_eq!(out, buf.at(dst));
+            check!(buf.0[dst..dst + 27] == expected[src..src + 27]);
+        }
         Ok(())
     }
 
     fn mem_set_fills_and_returns_dst() -> Outcome {
-        let mut buf = [0u8; 33];
-        let out = unsafe { memset(buf[1..].as_mut_ptr().cast(), 0x1AB, 31) };
-        check_eq!(out, buf[1..].as_mut_ptr().cast());
+        let mut buf = Buffer([0; 64]);
+        let out = unsafe { memset(buf.at(1), black_box(0x1AB), black_box(31)) };
+        check_eq!(out, buf.at(1));
         // Only the low byte of the value is stored.
-        check!(buf[1..32].iter().all(|&b| b == 0xAB));
-        check_eq!((buf[0], buf[32]), (0, 0));
+        check!(buf.0[1..32].iter().all(|&b| b == 0xAB));
+        check_eq!((buf.0[0], buf.0[32]), (0, 0));
         Ok(())
     }
 
     fn mem_compare_orders_bytes() -> Outcome {
-        let cmp =
-            |a: &[u8], b: &[u8], n| unsafe { memcmp(a.as_ptr().cast(), b.as_ptr().cast(), n) };
+        let cmp = |a: &[u8], b: &[u8], n| unsafe {
+            memcmp(
+                black_box(a.as_ptr().cast()),
+                black_box(b.as_ptr().cast()),
+                black_box(n),
+            )
+        };
         check_eq!(cmp(b"abc", b"abc", 3), 0);
         check!(cmp(b"abc", b"abd", 3) < 0);
         check!(cmp(b"abd", b"abc", 3) > 0);

@@ -1138,12 +1138,11 @@ mod imp {
         }
 
         fn syscall_write_to_other_fds_fails() -> Outcome {
+            // Called directly: through the gate, buffers_valid would reject
+            // this kernel buffer before the fd is looked at.
             let text = b"x";
             for fd in [1, 99] {
-                check_eq!(
-                    raw_syscall(syscall::WRITE, fd, text.as_ptr() as u32, 1) as i32,
-                    -1
-                );
+                check_eq!(write(fd, text.as_ptr() as u32, 1), -1);
             }
             Ok(())
         }
