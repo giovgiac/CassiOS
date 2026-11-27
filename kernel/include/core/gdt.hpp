@@ -27,6 +27,9 @@ public:
      * @brief Builds the GDT with null, kernel, user, and TSS segments,
      *        then loads it via lgdt and the TSS via ltr.
      *
+     * There is one table: every instance shares it, and only the first
+     * loads it.
+     *
      */
     GlobalDescriptorTable() { gdt_init(); }
 

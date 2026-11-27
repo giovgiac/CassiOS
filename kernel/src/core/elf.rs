@@ -43,8 +43,8 @@ pub enum Error {
     NotAnExecutable,
     /// A header or segment lies outside the file.
     Truncated,
-    /// A segment is larger in the file than in memory, or would reach
-    /// kernel space.
+    /// A segment is larger in the file than in memory, lies in the first
+    /// page or reaches kernel space; or the entry point is in no segment.
     BadSegment,
     /// No frame left to load into.
     OutOfMemory,
@@ -96,7 +96,9 @@ pub fn parse(data: &[u8]) -> Result<Program, Error> {
         return Err(Error::NotAnExecutable);
     }
 
+    let entry = u32_at(data, 24);
     let mut end = 0u64;
+    let mut entry_loaded = false;
     for header in program_headers(data) {
         let Some(segment) = header? else {
             continue;
@@ -105,13 +107,20 @@ pub fn parse(data: &[u8]) -> Result<Program, Error> {
             return Err(Error::Truncated);
         }
         let segment_end = segment.vaddr as u64 + segment.memsz as u64;
-        if segment.filesz > segment.memsz || segment_end > KERNEL_VBASE as u64 {
+        // The first page stays unmapped, so null pointers fault.
+        let in_user_space = segment.vaddr >= PAGE && segment_end <= KERNEL_VBASE as u64;
+        if segment.filesz > segment.memsz || !in_user_space {
             return Err(Error::BadSegment);
         }
+        entry_loaded |= (segment.vaddr as u64..segment_end).contains(&(entry as u64));
         end = end.max(segment_end);
     }
+    // Also rules out a program with no segments (and a heap at 0).
+    if !entry_loaded {
+        return Err(Error::BadSegment);
+    }
     Ok(Program {
-        entry: u32_at(data, 24),
+        entry,
         heap_start: end.next_multiple_of(PAGE as u64) as u32,
     })
 }
@@ -335,10 +344,33 @@ pub mod tests {
 
     #[test]
     fn other_segment_types_are_skipped() {
-        let mut image = executable(&[(0x0040_0000, &[1], 1)]);
-        set_u32(&mut image, SEGMENT, 0x6474_E551); // PT_GNU_STACK
+        let mut image = executable(&[(0x0040_0000, &[1], 1), (0x0050_0000, &[2], 1)]);
+        set_u32(&mut image, SEGMENT + PROGRAM_HEADER_SIZE, 0x6474_E551); // PT_GNU_STACK
         assert!(parse(&image).is_ok());
-        assert_eq!(segments(&image).count(), 0);
+        assert_eq!(segments(&image).count(), 1);
+    }
+
+    #[test]
+    fn the_entry_point_must_lie_in_a_segment() {
+        let mut image = executable(&[(0x0040_0000, &[1, 2], 0x10)]);
+        for (entry, ok) in [
+            (0x0040_000F, true),
+            (0x0040_0010, false),
+            (0xC010_0000, false),
+        ] {
+            set_u32(&mut image, 24, entry);
+            assert_eq!(parse(&image).is_ok(), ok, "entry {entry:#x}");
+        }
+        // No segment at all: nowhere to start, and the heap would be at 0.
+        set_u32(&mut image, SEGMENT, 0x6474_E551);
+        assert_eq!(parse(&image), Err(Error::BadSegment));
+    }
+
+    #[test]
+    fn segments_in_the_first_page_are_rejected() {
+        let null_page = executable(&[(0x0000_0800, &[1], 1)]);
+        assert_eq!(parse(&null_page), Err(Error::BadSegment));
+        assert!(parse(&executable(&[(0x1000, &[1], 1)])).is_ok());
     }
 
     #[test]

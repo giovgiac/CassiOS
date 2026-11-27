@@ -157,6 +157,7 @@ mod imp {
 
     static GDT: Global<Table> = Global::new(Table([Descriptor::NULL; ENTRIES]));
     static TSS: Global<TaskStateSegment> = Global::new(TaskStateSegment::new());
+    static LOADED: Global<bool> = Global::new(false);
 
     /// The operand of lgdt.
     #[repr(C, packed)]
@@ -166,8 +167,12 @@ mod imp {
     }
 
     /// Build the table, load it, reload every segment register and load
-    /// the TSS.
+    /// the TSS. There is one table: later calls do nothing (a second ltr
+    /// on the now busy TSS would fault).
     pub fn init() {
+        if LOADED.with(|loaded| core::mem::replace(loaded, true)) {
+            return;
+        }
         let tss = TSS.with(|tss| tss as *mut TaskStateSegment as u32);
         let pointer = GDT.with(|gdt| {
             gdt.0 = table(tss);
@@ -227,6 +232,7 @@ mod imp {
             gdt_task_register_holds_the_tss,
             gdt_loaded_table_is_ours,
             gdt_set_kernel_stack_reaches_the_tss,
+            gdt_init_again_changes_nothing,
         );
 
         fn gdt_segment_registers_hold_the_kernel_selectors() -> Outcome {
@@ -267,6 +273,13 @@ mod imp {
                 entries
             };
             check!(mask(*loaded()) == mask(table(tss)));
+            Ok(())
+        }
+
+        fn gdt_init_again_changes_nothing() -> Outcome {
+            let before = *loaded();
+            init();
+            check!(*loaded() == before);
             Ok(())
         }
 
