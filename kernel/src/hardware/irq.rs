@@ -80,6 +80,13 @@ mod imp {
     const SLAVE_COMMAND: Port<u8> = Port::new(PortType::SlavePicCommand);
     const SLAVE_DATA: Port<u8> = Port::new(PortType::SlavePicData);
     const END_OF_INTERRUPT: u8 = 0x20;
+    /// Unmasked lines: the timer (0), keyboard (1) and the slave's cascade
+    /// (2); on the slave, the mouse (12) and the primary ATA channel (14).
+    /// Only these have stubs; an IRQ on another line would reach the
+    /// ignoring stub, get no end-of-interrupt, and block every IRQ of
+    /// lower priority for good.
+    const MASTER_MASK: u8 = !0b0000_0111;
+    const SLAVE_MASK: u8 = !0b0101_0000;
 
     unsafe extern "C" {
         fn irq_stub_0x00();
@@ -112,11 +119,11 @@ mod imp {
             // The slave hangs off the master's IRQ 2.
             MASTER_DATA.write_slow(0x04);
             SLAVE_DATA.write_slow(0x02);
-            // 8086 mode, then unmask every IRQ.
+            // 8086 mode, then unmask the lines with a stub.
             MASTER_DATA.write_slow(0x01);
             SLAVE_DATA.write_slow(0x01);
-            MASTER_DATA.write_slow(0x00);
-            SLAVE_DATA.write_slow(0x00);
+            MASTER_DATA.write_slow(MASTER_MASK);
+            SLAVE_DATA.write_slow(SLAVE_MASK);
         }
     }
 
@@ -194,7 +201,14 @@ mod imp {
         tests!(
             irq_0_drives_the_pit,
             irq_without_a_handler_returns_the_frame,
+            irq_only_lines_with_a_stub_are_unmasked,
         );
+
+        fn irq_only_lines_with_a_stub_are_unmasked() -> Outcome {
+            let masks = unsafe { (MASTER_DATA.read(), SLAVE_DATA.read()) };
+            check_eq!(masks, (0xF8, 0xAF));
+            Ok(())
+        }
 
         fn irq_0_drives_the_pit() -> Outcome {
             let before = pit::ticks();

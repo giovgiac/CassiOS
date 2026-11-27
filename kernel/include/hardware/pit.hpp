@@ -17,7 +17,6 @@
 
 extern "C" void pit_activate();
 extern "C" std::u32 pit_ticks();
-extern "C" std::u32 pit_tick(std::u32 esp);
 extern "C" void pit_sleep(std::u32 ms);
 
 namespace cassio {
@@ -29,9 +28,6 @@ public:
 
     /** Programs channel 0 to tick at TICK_FREQUENCY. */
     void activate() { pit_activate(); }
-
-    /** Counts a tick and lets the scheduler switch process. */
-    std::u32 handleInterrupt(std::u32 esp) { return pit_tick(esp); }
 
     /** Ticks since activation. */
     std::u32 getTicks() { return pit_ticks(); }

@@ -81,11 +81,6 @@ public:
             asm volatile("outl %0, %1" : : "a"(data), "Nd"(number));
     }
 
-    void writeSlow(T data) {
-        static_assert(sizeof(T) == 1, "writeSlow is only valid for 8-bit ports");
-        asm volatile("outb %0, %1\njmp 1f\n1: jmp 1f\n1:" : : "a"(data), "Nd"(number));
-    }
-
 private:
     u16 number;
 };

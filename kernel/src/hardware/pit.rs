@@ -88,11 +88,6 @@ mod imp {
     }
 
     #[unsafe(no_mangle)]
-    extern "C" fn pit_tick(esp: u32) -> u32 {
-        tick(esp)
-    }
-
-    #[unsafe(no_mangle)]
     extern "C" fn pit_sleep(ms: u32) {
         sleep(ms);
     }

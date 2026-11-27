@@ -109,10 +109,6 @@ mod imp {
         unsafe { asm!("sti", options(nomem, nostack)) };
     }
 
-    pub fn disable() {
-        unsafe { asm!("cli", options(nomem, nostack)) };
-    }
-
     #[unsafe(no_mangle)]
     extern "C" fn interrupt_init() {
         init();
@@ -126,11 +122,6 @@ mod imp {
     #[unsafe(no_mangle)]
     extern "C" fn interrupt_enable() {
         enable();
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn interrupt_disable() {
-        disable();
     }
 
     #[cfg(not(test))]

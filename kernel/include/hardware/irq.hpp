@@ -32,9 +32,6 @@ extern "C" std::u32 process_deliver_irq(std::u32 pid, std::u8 irq);
 namespace cassio {
 namespace hardware {
 
-// Offset added to PIC IRQs to avoid conflict with CPU exceptions.
-constexpr std::u8 IRQ_OFFSET = 0x20;
-
 class IrqManager final {
 public:
     inline static IrqManager& getManager() { return instance; }

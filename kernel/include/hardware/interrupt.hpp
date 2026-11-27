@@ -20,7 +20,6 @@
 extern "C" void interrupt_init();
 extern "C" void interrupt_set_gate(std::u8 vector, void (*handler)(), std::u8 dpl);
 extern "C" void interrupt_enable();
-extern "C" void interrupt_disable();
 
 namespace cassio {
 namespace hardware {
@@ -31,9 +30,6 @@ public:
 
     /** Enables hardware interrupts (sti). */
     void activate() { interrupt_enable(); }
-
-    /** Disables hardware interrupts (cli). */
-    void deactivate() { interrupt_disable(); }
 
     /**
      * @brief Sets an interrupt gate at the given vector. Interrupts are
