@@ -213,7 +213,7 @@ pub fn short_name_text(entry: &Entry, out: &mut [u8; NAME_MAX]) -> usize {
 /// The 8.3 name first tried for `name`: uppercased, truncated, characters
 /// that 8.3 forbids replaced by '_', and marked with "~N" when a long name
 /// is stored too and the base is long, has an extension or lost characters
-/// (N from the name length, as the C++ driver did). `create` numbers it
+/// (N from the name length). `create` numbers it
 /// further when another entry holds it. A plain upper-case 8.3 name is
 /// stored as is: it has no long name, so a "~N" would make it unreachable
 /// by its own name.
@@ -448,8 +448,8 @@ mod tests {
 
     #[test]
     fn plain_upper_case_names_keep_their_short_name() {
-        // The C++ driver stored README~2TXT with no long name here, so the
-        // file read back as README~2.TXT.
+        // Stored as README~2TXT with no long name, the file would read back
+        // as README~2.TXT.
         assert_eq!(&short_name(b"README.TXT"), b"README  TXT");
         assert_eq!(&short_name(b"NOTE.TXT"), b"NOTE    TXT");
     }

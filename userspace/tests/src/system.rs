@@ -5,8 +5,8 @@
 // license that can be found in the LICENSE file.
 //
 // The heap tests go through the global allocator (cassio's free list on
-// sbrk). Zero-sized allocations never reach it in Rust, so the C++ test
-// for alloc(0) has no counterpart.
+// sbrk). Zero-sized allocations never reach it in Rust, so there is no
+// test for allocating 0 bytes.
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;

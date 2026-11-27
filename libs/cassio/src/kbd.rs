@@ -5,8 +5,7 @@
 // license that can be found in the LICENSE file.
 //
 // The keyboard service delivers one byte per key. Printable keys are
-// their ASCII character; the constants below name the others, matching
-// std::kbd::KeyCode in the C++ client.
+// their ASCII character; the constants below name the others.
 
 pub const BACKSPACE: u8 = 0x08;
 pub const TAB: u8 = 0x09;

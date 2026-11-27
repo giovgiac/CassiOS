@@ -9,7 +9,7 @@ A microkernel operating system targeting i386 (32-bit x86), written in Rust and 
 - Assembly uses AT&T syntax
 - When issues or bugs are encountered, start by reproducing the issue yourself, determine the root cause and only then attempt to fix. Once applied, verify and prove that the issue is no longer reproducible through testing
 - Manual testing: `make run` boots with all services in QEMU
-- For headless/automated testing, use the QEMU monitor with `screendump` to capture VGA screenshots (see `docs/DEBUGGING.md` for the full test script and techniques)
+- For headless/automated testing, use the QEMU monitor with `screendump` to capture screenshots (see `docs/DEBUGGING.md` for the full test script and techniques)
 
 ## Architecture
 
@@ -57,6 +57,6 @@ Never merge a pull request without explicit user approval. After opening a PR, s
 
 ## Working Documentation
 
-All documents for planning, working with and executing this project are in the docs/ directory.
+All documents for planning, working with and executing this project are in the docs/ directory. `docs/plans` and `docs/reviews` are dated records written before the Rust port, so they describe the C++ code.
 Check @docs/WORKFLOW.md for instructions on how to use the project tooling, such as GitHub Issues and Git.
 ALWAYS CHECK docs/DEBUGGING.md for the methodology to follow when fixing bugs and issues.

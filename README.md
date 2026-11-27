@@ -6,8 +6,8 @@ A microkernel operating system targeting i386 (32-bit x86), written in Rust and 
 
 - **Microkernel architecture** -- kernel provides IPC, scheduling, memory management, and interrupt routing; everything else runs as userspace services
 - **Synchronous IPC** -- message passing (send/receive/reply) and fire-and-forget notify between processes
-- **Userspace drivers** -- PS/2 keyboard, PS/2 mouse, VGA terminal, ATA PIO disk, all as separate services
-- **Userspace services** -- nameserver for service discovery, FAT32 filesystem with long filename support, interactive shell with 16 commands
+- **Userspace drivers** -- PS/2 keyboard, PS/2 mouse, VESA framebuffer display, ATA PIO disk, all as separate services
+- **Userspace services** -- nameserver for service discovery, FAT32 filesystem with long filename support, graphical terminal, interactive shell with 18 commands
 - **Higher-half kernel** mapped at 0xC0000000+ with per-process address spaces
 - **Preemptive round-robin scheduler** driven by PIT timer (~1000 Hz)
 - **ELF32 loader** for statically linked userspace binaries via GRUB multiboot modules

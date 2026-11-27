@@ -4,8 +4,8 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 //
-// First-fit free-list allocator with block splitting and coalescing,
-// ported from std::alloc::HeapAllocator. `Heap` wraps it as a global
+// First-fit free-list allocator with block splitting and coalescing.
+// `Heap` wraps it as a global
 // allocator that grows through a break function: sbrk in userspace, a
 // fixed region in the kernel.
 
