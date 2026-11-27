@@ -58,6 +58,9 @@ mod imp {
 
     type Table = [u32; ENTRIES];
 
+    /// What loader.s maps before paging is set up.
+    const BOOT_MAPPING_END: u64 = 0x40_0000;
+
     #[repr(C, align(4096))]
     struct Directory(Table);
 
@@ -79,6 +82,11 @@ mod imp {
     /// Direct-map the available RAM below DIRECT_MAP_END and the VGA text
     /// buffer, then switch to the kernel directory.
     ///
+    /// Until the switch only the boot mapping (the first 4 MiB) is
+    /// reachable, and each new table frame must be zeroed through it. So
+    /// the first 4 MiB are mapped and the directory loaded first; the
+    /// frames for later tables then lie in memory already mapped.
+    ///
     /// # Safety
     ///
     /// `info` must be the boot loader's information; the physical
@@ -91,22 +99,24 @@ mod imp {
             core::slice::from_raw_parts(phys_to_virt(info.mmap_addr), info.mmap_length as usize)
         };
         let flags = PAGE_PRESENT | PAGE_READWRITE;
-        for region in regions(map).filter(|r| r.kind == MMAP_AVAILABLE) {
-            let start = region.base & ADDRESS_MASK as u64;
-            let end = region
-                .base
-                .saturating_add(region.length)
-                .min(DIRECT_MAP_END);
-            for page in (start..end).step_by(FRAME_SIZE as usize) {
-                map_page(phys_to_virt(page as u32) as u32, page as u32, flags);
+        let map_ram = |from: u64, to: u64| {
+            for region in regions(map).filter(|r| r.kind == MMAP_AVAILABLE) {
+                let start = (region.base & ADDRESS_MASK as u64).max(from);
+                let end = region.base.saturating_add(region.length).min(to);
+                for page in (start..end).step_by(FRAME_SIZE as usize) {
+                    map_page(phys_to_virt(page as u32) as u32, page as u32, flags);
+                }
             }
-        }
+        };
+
+        map_ram(0, BOOT_MAPPING_END);
         for page in (0xB8000..0xC0000).step_by(FRAME_SIZE as usize) {
             map_page(phys_to_virt(page) as u32, page, flags);
         }
-
         let directory = KERNEL_DIRECTORY.with(|d| d.0.as_ptr() as u32) - KERNEL_VBASE;
         unsafe { asm!("mov cr3, {}", in(reg) directory) };
+
+        map_ram(BOOT_MAPPING_END, DIRECT_MAP_END);
     }
 
     /// Map `virt` to `phys` in the kernel directory, adding a table if

@@ -12,8 +12,10 @@
 // (kernel/include/memory/physical.hpp) forwards here until its callers
 // are ported.
 
+use core::mem::size_of;
+
 use super::DIRECT_MAP_END;
-use super::multiboot::{MMAP_AVAILABLE, Region};
+use super::multiboot::{FLAG_MMAP, FLAG_MODS, Info, MMAP_AVAILABLE, Module, Region};
 
 pub const FRAME_SIZE: u32 = 4096;
 
@@ -96,9 +98,13 @@ impl FrameBitmap {
         None
     }
 
-    /// Return the frame at `address` to the free pool.
+    /// Return the frame at `address` to the free pool. Frames outside
+    /// the range ever handed out (device memory a process mapped, for
+    /// example) are ignored.
     pub fn free(&mut self, address: u32) {
-        self.set((address / FRAME_SIZE) as usize, false);
+        if (LOW_MEMORY_END..DIRECT_MAP_END).contains(&(address as u64)) {
+            self.set((address / FRAME_SIZE) as usize, false);
+        }
     }
 
     pub fn is_used(&self, address: u32) -> bool {
@@ -130,14 +136,33 @@ impl FrameBitmap {
     }
 }
 
+/// What the boot loader handed over, as physical [start, end) ranges: the
+/// information block at `info_address`, the memory map, the module list
+/// and each module.
+pub fn handed_over<'a>(
+    info: &'a Info,
+    info_address: u32,
+    modules: &'a [Module],
+) -> impl Iterator<Item = (u64, u64)> + 'a {
+    let span = |start: u32, length: usize| (start as u64, start as u64 + length as u64);
+    let mut ranges = [None; 3];
+    ranges[0] = Some(span(info_address, size_of::<Info>()));
+    if info.flags & FLAG_MMAP != 0 {
+        ranges[1] = Some(span(info.mmap_addr, info.mmap_length as usize));
+    }
+    if info.flags & FLAG_MODS != 0 {
+        ranges[2] = Some(span(info.mods_addr, modules.len() * size_of::<Module>()));
+    }
+    let images = modules.iter().map(|m| (m.start as u64, m.end as u64));
+    ranges.into_iter().flatten().chain(images)
+}
+
 #[cfg(target_arch = "x86")]
 pub use imp::*;
 
 #[cfg(target_arch = "x86")]
 mod imp {
-    use core::mem::size_of;
-
-    use super::FrameBitmap;
+    use super::{FrameBitmap, handed_over};
     use crate::memory::multiboot::{FLAG_MMAP, FLAG_MODS, Info, Module, regions};
     use crate::memory::{KERNEL_VBASE, phys_to_virt};
     use crate::sync::Global;
@@ -151,47 +176,39 @@ mod imp {
 
     /// Build the bitmap from the boot loader's memory map, then reserve
     /// the kernel image and everything the boot loader handed over.
+    /// Without a memory map every frame stays used.
     ///
     /// # Safety
     ///
     /// `info` must be the boot loader's information, with its addresses
     /// reachable through the direct map.
     pub unsafe fn init(info: &Info) {
-        if info.flags & FLAG_MMAP == 0 {
-            return;
-        }
-        let map = unsafe {
-            core::slice::from_raw_parts(phys_to_virt(info.mmap_addr), info.mmap_length as usize)
+        let map: &[u8] = if info.flags & FLAG_MMAP != 0 {
+            unsafe {
+                core::slice::from_raw_parts(phys_to_virt(info.mmap_addr), info.mmap_length as usize)
+            }
+        } else {
+            &[]
         };
+        let modules: &[Module] = if info.flags & FLAG_MODS != 0 {
+            unsafe {
+                core::slice::from_raw_parts(
+                    phys_to_virt(info.mods_addr) as *const Module,
+                    info.mods_count as usize,
+                )
+            }
+        } else {
+            &[]
+        };
+        let physical = |symbol: *const u8| (symbol as u32 - KERNEL_VBASE) as u64;
+        // The kernel image includes the bitmap itself (in .bss).
+        let kernel = unsafe { (physical(&_kernel_start), physical(&_kernel_end)) };
+        let info_address = info as *const Info as u32 - KERNEL_VBASE;
+
         PHYSICAL.with(|bitmap| {
             bitmap.reset(regions(map));
-
-            let physical = |symbol: *const u8| (symbol as u32 - KERNEL_VBASE) as u64;
-            let span = |start: u32, length: usize| (start as u64, start as u64 + length as u64);
-            // The kernel image includes the bitmap itself (in .bss).
-            let kernel = unsafe { (physical(&_kernel_start), physical(&_kernel_end)) };
-            let info_address = info as *const Info as u32 - KERNEL_VBASE;
-            for (start, end) in [
-                kernel,
-                span(info_address, size_of::<Info>()),
-                span(info.mmap_addr, info.mmap_length as usize),
-            ] {
+            for (start, end) in handed_over(info, info_address, modules).chain([kernel]) {
                 bitmap.reserve(start, end);
-            }
-
-            if info.flags & FLAG_MODS != 0 {
-                let count = info.mods_count as usize;
-                let (start, end) = span(info.mods_addr, count * size_of::<Module>());
-                bitmap.reserve(start, end);
-                let modules = unsafe {
-                    core::slice::from_raw_parts(
-                        phys_to_virt(info.mods_addr) as *const Module,
-                        count,
-                    )
-                };
-                for module in modules {
-                    bitmap.reserve(module.start as u64, module.end as u64);
-                }
             }
         });
     }
@@ -385,6 +402,61 @@ mod tests {
         assert_eq!(b.alloc(), Some(MIB as u32));
         assert_eq!(b.alloc(), Some(MIB as u32 + 0x2000));
         assert_eq!(b.alloc(), None);
+    }
+
+    #[test]
+    fn without_a_memory_map_every_frame_is_used() {
+        let mut b = bitmap(&[]);
+        assert_eq!(b.total_frames(), 0);
+        assert_eq!(b.alloc(), None);
+    }
+
+    #[test]
+    fn frees_outside_the_handed_out_range_are_ignored() {
+        let mut b = bitmap(&[ram(MIB, MIB)]);
+        let used = b.used_frames();
+        b.free(0x1000);
+        b.free(0xFD00_0000);
+        assert!(b.is_used(0x1000));
+        assert!(b.is_used(0xFD00_0000));
+        assert_eq!(b.used_frames(), used);
+    }
+
+    #[test]
+    fn handed_over_covers_the_boot_loader_data() {
+        // SAFETY: Info is plain integers.
+        let mut info: Info = unsafe { core::mem::zeroed() };
+        info.flags = FLAG_MMAP | FLAG_MODS;
+        info.mmap_addr = 0x9000;
+        info.mmap_length = 144;
+        info.mods_addr = 0x3_2C00;
+        let modules = [
+            Module {
+                start: 0x32_D000,
+                end: 0x33_1598,
+                string: 0,
+                reserved: 0,
+            },
+            Module {
+                start: 0x33_2000,
+                end: 0x33_7A28,
+                string: 0,
+                reserved: 0,
+            },
+        ];
+        let ranges: Vec<_> = handed_over(&info, 0x9500, &modules).collect();
+        assert_eq!(
+            ranges,
+            [
+                (0x9500, 0x9500 + size_of::<Info>() as u64),
+                (0x9000, 0x9090),
+                (0x3_2C00, 0x3_2C20),
+                (0x32_D000, 0x33_1598),
+                (0x33_2000, 0x33_7A28),
+            ]
+        );
+        info.flags = 0;
+        assert_eq!(handed_over(&info, 0x9500, &[]).count(), 1);
     }
 
     #[test]
