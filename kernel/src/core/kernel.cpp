@@ -101,6 +101,7 @@ void start(void* multiboot, u32 magic) {
 
             ElfLoadResult elf = ElfLoader::load(pdPhysical, elfData, elfSize);
             if (!elf.success) {
+                paging.destroyAddressSpace(pdPhysical);
                 continue;
             }
 

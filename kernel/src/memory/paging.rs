@@ -81,7 +81,8 @@ mod imp {
         unsafe { &mut *(phys_to_virt(entry & ADDRESS_MASK) as *mut Table) }
     }
 
-    fn zeroed_frame() -> Option<u32> {
+    /// A free frame, zeroed; its physical address.
+    pub fn zeroed_frame() -> Option<u32> {
         let frame = PHYSICAL.with(|p| p.alloc())?;
         table(frame).fill(0);
         Some(frame)
@@ -214,6 +215,17 @@ mod imp {
             let entry = table(directory)[directory_index(page)];
             entry & user == user && table(entry)[table_index(page)] & user == user
         })
+    }
+
+    /// The physical address of the page `virt` lies in, if it is present
+    /// in the directory at `directory`.
+    pub fn translate(directory: u32, virt: u32) -> Option<u32> {
+        let entry = table(directory)[directory_index(virt)];
+        if entry & PAGE_PRESENT == 0 {
+            return None;
+        }
+        let page = table(entry)[table_index(virt)];
+        (page & PAGE_PRESENT != 0).then_some(page & ADDRESS_MASK)
     }
 
     /// Whether no page of [start, start + len) is present in the directory

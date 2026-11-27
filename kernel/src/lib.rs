@@ -19,6 +19,13 @@ mod ktest;
 #[cfg(target_arch = "x86")]
 mod sync;
 
+// kernel/src/core; `core` itself names Rust's core library.
+#[path = "core"]
+mod system {
+    pub mod elf;
+    pub mod gdt;
+}
+
 mod hardware {
     #[cfg(target_arch = "x86")]
     pub mod serial;
@@ -52,9 +59,11 @@ extern "C" fn kernel_run_tests(passed: &mut u32, failed: &mut u32) {
     let mut out = &hardware::serial::COM1;
     let groups = [
         hardware::serial::ktests::TESTS,
+        system::gdt::ktests::TESTS,
         memory::physical::ktests::TESTS,
         memory::heap::ktests::TESTS,
         memory::paging::ktests::TESTS,
+        system::elf::ktests::TESTS,
     ];
     ktest::run(&groups, &mut out, passed, failed);
 }
