@@ -6,9 +6,7 @@
 //
 // Loads 32-bit i386 executables into a user address space: every PT_LOAD
 // segment is copied into fresh frames, the rest of its memory zeroed. The
-// program's heap starts at the first page after its segments. The C++
-// ElfLoader (kernel/include/core/elf.hpp) forwards here until its callers
-// are ported.
+// program's heap starts at the first page after its segments.
 
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]

@@ -38,8 +38,7 @@ SECTIONS {
     }
     _kernel_end = .;
 
-    /* Nothing unwinds: C++ is built without exceptions, Rust with
-       panic = "abort". */
+    /* Nothing unwinds: the kernel is built with panic = "abort". */
     /DISCARD/ :
     {
         *(.fini_array*)

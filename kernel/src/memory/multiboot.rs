@@ -4,8 +4,8 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 //
-// Layouts mirror kernel/include/memory/multiboot.hpp. Every address in
-// them is physical.
+// Layouts follow the Multiboot specification. Every address in them is
+// physical.
 
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]

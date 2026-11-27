@@ -5,8 +5,7 @@
 // license that can be found in the LICENSE file.
 //
 // COM1 carries the kernel's log, the serial write syscall and the test
-// reports. The C++ COM1 class (kernel/include/hardware/serial.hpp)
-// forwards to com1_init and com1_write until its callers are ported.
+// reports.
 
 use core::fmt;
 

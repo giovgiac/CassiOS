@@ -7,8 +7,7 @@
 // The IPC message layout, message types, syscall numbers, the structures
 // syscalls return, port I/O and the heap allocator. No global allocator,
 // panic handler or syscalls, so both the kernel and userspace can depend
-// on it. Until the kernel is
-// ported, libs/ipc, libs/os and libs/io hold C++ copies; keep them in step.
+// on it.
 
 #![no_std]
 

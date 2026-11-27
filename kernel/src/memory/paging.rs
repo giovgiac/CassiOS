@@ -7,9 +7,7 @@
 // The kernel directory maps physical memory at KERNEL_VBASE (the direct
 // map). Each process gets a directory whose kernel half (entries
 // 768-1023) is copied from the kernel's, so kernel mappings are shared.
-// Tables and directories are reached through the direct map. The C++
-// PagingManager (kernel/include/memory/paging.hpp) forwards here until
-// its callers are ported.
+// Tables and directories are reached through the direct map.
 
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]

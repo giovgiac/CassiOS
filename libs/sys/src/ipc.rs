@@ -75,8 +75,8 @@ mod tests {
         assert_eq!(core::mem::size_of::<Message>(), 24);
     }
 
-    // Every value, mirrored in libs/ipc/tests/test_ipc.cpp, so a number
-    // changed on one side only fails the tests.
+    // Every value: programs and the kernel are built separately, so a
+    // change here is a deliberate ABI change.
     #[test]
     fn message_types_match_the_kernel() {
         assert_eq!(message_type::IRQ_NOTIFY, 1);

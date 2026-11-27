@@ -510,7 +510,7 @@ mod imp {
         }
 
         fn process_create_beyond_old_limit() -> Outcome {
-            // The C++ table once held 16 processes.
+            // More than the 16 the table once held.
             with_table(|table| {
                 let mut frame = Frame::default();
                 for _ in 0..40 {
@@ -715,7 +715,7 @@ mod tests {
 
     #[test]
     fn senders_queue_in_order_past_the_old_limit() {
-        // The C++ queue once held 8, then 32 entries.
+        // More than the 8, then 32 entries the queue once held.
         let mut p = Process::new(1, 0, 0, 0, 0);
         for sender in 2..42 {
             assert!(p.push_sender(sender));

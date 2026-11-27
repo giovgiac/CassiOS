@@ -5,9 +5,7 @@
 // license that can be found in the LICENSE file.
 //
 // Flat segments for the kernel and for user mode, and one TSS whose esp0
-// is the kernel stack the CPU switches to on entry from ring 3. The C++
-// GlobalDescriptorTable (kernel/include/core/gdt.hpp) forwards here until
-// its callers are ported.
+// is the kernel stack the CPU switches to on entry from ring 3.
 
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]
@@ -17,11 +15,7 @@ use core::mem::size_of;
 /// Segment selectors: byte offsets of the descriptors in the table.
 pub const KERNEL_CODE: u16 = 0x08;
 pub const KERNEL_DATA: u16 = 0x10;
-// The user selectors are only used from C++ (kernel.cpp) until the
-// process code is ported.
-#[allow(dead_code)]
 pub const USER_CODE: u16 = 0x18;
-#[allow(dead_code)]
 pub const USER_DATA: u16 = 0x20;
 pub const TSS_SELECTOR: u16 = 0x28;
 
@@ -226,7 +220,16 @@ mod imp {
             gdt_loaded_table_is_ours,
             gdt_set_kernel_stack_reaches_the_tss,
             gdt_init_again_changes_nothing,
+            gdt_user_selectors_name_ring_3_segments,
         );
+
+        fn gdt_user_selectors_name_ring_3_segments() -> Outcome {
+            // Processes run with these, ORed with ring 3.
+            let table = loaded();
+            let access = |selector: u16| table[selector as usize / 8].0[5] & !ACCESSED;
+            check_eq!((access(USER_CODE), access(USER_DATA)), (0xFA, 0xF2));
+            Ok(())
+        }
 
         fn gdt_segment_registers_hold_the_kernel_selectors() -> Outcome {
             let (cs, ds, ss): (u16, u16, u16);

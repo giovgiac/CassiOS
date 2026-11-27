@@ -8,9 +8,7 @@
 // the frame is in use. Only available RAM between 1 MiB and the end of the
 // kernel's direct map is ever handed out: below 1 MiB lie BIOS data, the
 // boot loader's structures and device memory, and the kernel reaches
-// frames through the direct map. The C++ PhysicalMemoryManager
-// (kernel/include/memory/physical.hpp) forwards here until its callers
-// are ported.
+// frames through the direct map.
 
 use core::mem::size_of;
 
@@ -100,6 +98,7 @@ impl FrameBitmap {
 
     /// Return every frame overlapping [start, end) to the free pool, under
     /// the same rule as `free`.
+    #[cfg(any(test, not(feature = "ktest")))]
     pub fn release(&mut self, start: u64, end: u64) {
         let first = start / FRAME_SIZE as u64;
         let last = end.div_ceil(FRAME_SIZE as u64);
@@ -230,6 +229,7 @@ mod imp {
     /// # Safety
     ///
     /// As for `init`; nothing may read the modules afterwards.
+    #[cfg(not(feature = "ktest"))]
     pub unsafe fn release_modules(info: &Info) {
         if info.flags & FLAG_MODS == 0 {
             return;

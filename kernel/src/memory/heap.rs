@@ -6,8 +6,7 @@
 //
 // A fixed region of contiguous frames, reached through the direct map,
 // managed by the shared free-list allocator. It is the crate's global
-// allocator, and C++ operator new and delete forward to kernel_alloc and
-// kernel_free.
+// allocator.
 
 use core::ptr::null_mut;
 

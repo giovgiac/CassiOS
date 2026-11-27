@@ -137,8 +137,8 @@ mod imp {
 mod tests {
     use super::PortType;
 
-    // Every value, mirrored in libs/io/tests/test_io.cpp, so a port changed
-    // on one side only fails the tests.
+    // Every value: programs and the kernel are built separately, so a
+    // change here is a deliberate ABI change.
     #[test]
     fn port_numbers_match_the_kernel() {
         assert_eq!(PortType::MasterPicCommand as u16, 0x20);
