@@ -51,15 +51,18 @@ void SyscallHandler::load() {
     im.setInterruptGate(0x80, &syscallEntry, 3);
 }
 
-// Whether [ptr, ptr + len) lies in user space without wrapping.
+// Whether [ptr, ptr + len) lies in user space without wrapping, with every
+// page mapped and user-accessible in the caller's address space.
 static bool inUserSpace(u32 ptr, u32 len) {
     u32 end = ptr + len;
-    return end >= ptr && end <= KERNEL_VBASE;
+    return end >= ptr && end <= KERNEL_VBASE &&
+           memory::PagingManager::getManager().userRangeMapped(ptr, len);
 }
 
-// Whether every buffer a syscall names lies in user space, so a program
-// cannot make the kernel read or write kernel memory for it. Callers in
-// ring 0 (the kernel tests) pass kernel buffers and are trusted.
+// Whether every buffer a syscall names is user memory of the caller, so a
+// program can neither make the kernel touch kernel memory for it nor fault
+// it on an unmapped address. Callers in ring 0 (the kernel tests) pass
+// kernel buffers and are trusted.
 static bool userBuffersValid(const SyscallFrame* frame) {
     if ((frame->cs & 3) != 3) {
         return true;
@@ -364,7 +367,16 @@ i32 SyscallHandler::mapDevice(u32 physical, u32 virt, u32 pages) {
     }
 
     memory::PagingManager& paging = memory::PagingManager::getManager();
-    u16 flags = memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER;
+
+    // Mapping over pages in use would drop their frames without freeing
+    // them (device pages are never freed on exit).
+    if (!paging.rangeUnmapped(caller->pageDirectory, virt, size)) {
+        return -1;
+    }
+
+    // The frames are the device's, so exiting must not free them.
+    u16 flags =
+        memory::PAGE_PRESENT | memory::PAGE_READWRITE | memory::PAGE_USER | memory::PAGE_DEVICE;
 
     for (u32 i = 0; i < pages; ++i) {
         paging.mapUserPage(caller->pageDirectory, virt + i * 0x1000, physical + i * 0x1000, flags);

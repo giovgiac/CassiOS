@@ -5,6 +5,9 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
+ * The frame allocator is Rust (kernel/src/memory/physical.rs).
+ * PhysicalMemoryManager forwards to it until its callers are ported.
+ *
  */
 
 #ifndef MEMORY_PHYSICAL_HPP_
@@ -14,25 +17,39 @@
 
 #include <memory/multiboot.hpp>
 
+extern "C" void physical_init(const cassio::memory::MultibootInfo* info);
+extern "C" void physical_release_modules(const cassio::memory::MultibootInfo* info);
+extern "C" std::u32 physical_alloc_frame();
+extern "C" void physical_free_frame(std::u32 address);
+extern "C" bool physical_is_frame_used(std::u32 address);
+extern "C" std::u32 physical_total_frames();
+extern "C" std::u32 physical_free_frames();
+extern "C" std::u32 physical_used_frames();
+
 namespace cassio {
 namespace memory {
 
 static constexpr std::u32 FRAME_SIZE = 4096;
-static constexpr std::u32 BITMAP_SIZE = 131072;
 
 class PhysicalMemoryManager {
 public:
     inline static PhysicalMemoryManager& getManager() { return instance; }
 
-    void init(MultibootInfo* multibootInfo);
+    void init(MultibootInfo* multibootInfo) { physical_init(multibootInfo); }
 
-    void* allocFrame();
-    void freeFrame(void* address);
-    bool isFrameUsed(void* address) const;
+    /** Frees the module images; call once every module is loaded. */
+    void releaseModules(MultibootInfo* multibootInfo) { physical_release_modules(multibootInfo); }
 
-    std::u32 getTotalFrames() const;
-    std::u32 getUsedFrames() const;
-    std::u32 getFreeFrames() const;
+    /** A free frame's physical address, or null when memory is exhausted. */
+    void* allocFrame() { return reinterpret_cast<void*>(physical_alloc_frame()); }
+    void freeFrame(void* address) { physical_free_frame(reinterpret_cast<std::u32>(address)); }
+    bool isFrameUsed(void* address) const {
+        return physical_is_frame_used(reinterpret_cast<std::u32>(address));
+    }
+
+    std::u32 getTotalFrames() const { return physical_total_frames(); }
+    std::u32 getUsedFrames() const { return physical_used_frames(); }
+    std::u32 getFreeFrames() const { return physical_free_frames(); }
 
     PhysicalMemoryManager(const PhysicalMemoryManager&) = delete;
     PhysicalMemoryManager(PhysicalMemoryManager&&) = delete;
@@ -40,15 +57,9 @@ public:
     PhysicalMemoryManager& operator=(PhysicalMemoryManager&&) = delete;
 
 private:
-    PhysicalMemoryManager();
-
-    void markRegionUsed(std::u32 base, std::u32 length);
-    void markRegionFree(std::u32 base, std::u32 length);
+    PhysicalMemoryManager() = default;
 
     static PhysicalMemoryManager instance;
-
-    std::u8 bitmap[BITMAP_SIZE];
-    std::u32 totalFrames;
 };
 
 } // namespace memory

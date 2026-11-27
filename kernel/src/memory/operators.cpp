@@ -5,32 +5,32 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
+ * Global new and delete, backed by the Rust kernel heap.
+ *
  */
 
 #include "memory/heap.hpp"
 
-using namespace cassio::memory;
-
 void* operator new(std::usize size) {
-    return KernelHeap::getAllocator().allocate(size);
+    return kernel_alloc(size);
 }
 
 void* operator new[](std::usize size) {
-    return KernelHeap::getAllocator().allocate(size);
+    return kernel_alloc(size);
 }
 
 void operator delete(void* ptr) {
-    KernelHeap::getAllocator().free(ptr);
+    kernel_free(ptr);
 }
 
 void operator delete[](void* ptr) {
-    KernelHeap::getAllocator().free(ptr);
+    kernel_free(ptr);
 }
 
 void operator delete(void* ptr, std::usize) {
-    KernelHeap::getAllocator().free(ptr);
+    kernel_free(ptr);
 }
 
 void operator delete[](void* ptr, std::usize) {
-    KernelHeap::getAllocator().free(ptr);
+    kernel_free(ptr);
 }
