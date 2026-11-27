@@ -134,3 +134,7 @@ u32 Scheduler::exitCurrent(u32 currentEsp) {
 void Scheduler::reset() {
     tickCount = 0;
 }
+
+u32 scheduler_schedule(u32 esp) {
+    return Scheduler::getScheduler().schedule(esp);
+}

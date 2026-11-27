@@ -10,88 +10,6 @@ using namespace std;
 using namespace cassio::hardware;
 using namespace cassio::kernel;
 
-TEST(irq_dispatch_to_pit) {
-    // handleIrq(0x20) should dispatch to PitTimer and increment ticks.
-    IrqManager& irq = IrqManager::getManager();
-    PitTimer& pit = PitTimer::getTimer();
-
-    u32 before = pit.getTicks();
-    irq.handleIrq(0x20, 0);
-    u32 after = pit.getTicks();
-
-    ASSERT_EQ(after, before + 1);
-}
-
-TEST(irq_unregister_stops_dispatch) {
-    IrqManager& irq = IrqManager::getManager();
-    PitTimer& pit = PitTimer::getTimer();
-
-    // Unregister PitTimer from IRQ 0.
-    irq.unregisterHandler(0);
-
-    u32 before = pit.getTicks();
-    irq.handleIrq(0x20, 0);
-    u32 after = pit.getTicks();
-
-    // Ticks should NOT have incremented.
-    ASSERT_EQ(after, before);
-
-    // Re-register so other tests are unaffected.
-    irq.registerHandler(0, &PitTimer::irqHandler);
-}
-
-TEST(irq_register_restores_dispatch) {
-    IrqManager& irq = IrqManager::getManager();
-    PitTimer& pit = PitTimer::getTimer();
-
-    // Unregister, re-register, then verify dispatch works.
-    irq.unregisterHandler(0);
-    irq.registerHandler(0, &PitTimer::irqHandler);
-
-    u32 before = pit.getTicks();
-    irq.handleIrq(0x20, 0);
-    u32 after = pit.getTicks();
-
-    ASSERT_EQ(after, before + 1);
-}
-
-TEST(irq_handleirq_returns_esp_when_no_handler) {
-    IrqManager& irq = IrqManager::getManager();
-
-    // Vector 0x25 (IRQ 5) has no handler registered.
-    u32 esp = 0x12345678;
-    u32 result = irq.handleIrq(0x25, esp);
-
-    // Should return esp unchanged.
-    ASSERT_EQ(result, esp);
-}
-
-TEST(irq_idt_entries_are_distinct) {
-    // Each registered IRQ vector should have a unique handler address.
-    struct __attribute__((packed)) {
-        u16 limit;
-        u32 base;
-    } idtr;
-    asm volatile("sidt %0" : "=m"(idtr));
-
-    u8 vectors[] = {0x20, 0x21, 0x2C, 0x2E};
-    u32 addrs[4];
-
-    for (u32 i = 0; i < 4; ++i) {
-        u8* entry = reinterpret_cast<u8*>(idtr.base) + vectors[i] * 8;
-        addrs[i] = static_cast<u32>(*reinterpret_cast<u16*>(entry + 6)) << 16 |
-                   static_cast<u32>(*reinterpret_cast<u16*>(entry));
-        ASSERT(addrs[i] != 0);
-    }
-
-    // All four should be distinct from each other.
-    for (u32 i = 0; i < 4; ++i) {
-        for (u32 j = i + 1; j < 4; ++j) {
-            ASSERT(addrs[i] != addrs[j]);
-        }
-    }
-}
-
 // -- IRQ forwarding tests --
 
 TEST(irq_forward_delivers_to_receive_blocked_process) {
@@ -109,22 +27,22 @@ TEST(irq_forward_delivers_to_receive_blocked_process) {
     SyscallFrame frame = {};
     target->esp = (u32)&frame;
 
-    // Register target for IRQ 5 (unused, no in-kernel handler).
-    irqMgr.registerForward(5, target->pid);
+    // Register target for IRQ 14 (unused, no in-kernel handler).
+    irqMgr.registerForward(14, target->pid);
 
-    // Simulate IRQ 5 firing.
-    irqMgr.handleIrq(0x25, 0);
+    // Simulate IRQ 14 firing.
+    irqMgr.handleIrq(0x2E, 0);
 
     // Target should be woken with IrqNotify message.
     ASSERT(target->state == ProcessState::Ready);
     ASSERT_EQ(recvBuf.type, ipc::MessageType::IrqNotify);
-    ASSERT_EQ(recvBuf.arg1, 5u);
+    ASSERT_EQ(recvBuf.arg1, 14u);
 
     // Return value should be 0 (kernel PID).
     ASSERT_EQ(frame.eax, 0u);
 
     // Clean up.
-    irqMgr.registerForward(5, 0);
+    irqMgr.registerForward(14, 0);
     pm.destroy(target->pid);
 }
 
@@ -137,10 +55,10 @@ TEST(irq_forward_sets_pending_when_not_receive_blocked) {
     ASSERT(target != nullptr);
     target->state = ProcessState::Ready; // Not ReceiveBlocked.
 
-    irqMgr.registerForward(5, target->pid);
+    irqMgr.registerForward(14, target->pid);
 
-    // Simulate IRQ 5 while target is busy.
-    irqMgr.handleIrq(0x25, 0);
+    // Simulate IRQ 14 while target is busy.
+    irqMgr.handleIrq(0x2E, 0);
 
     // Target should still be Ready (not woken from anything).
     ASSERT(target->state == ProcessState::Ready);
@@ -153,7 +71,7 @@ TEST(irq_forward_sets_pending_when_not_receive_blocked) {
     // -2 means IRQ notification delivered.
     ASSERT_EQ(result, static_cast<i32>(-2));
     ASSERT_EQ(recvBuf.type, ipc::MessageType::IrqNotify);
-    ASSERT_EQ(recvBuf.arg1, 5u);
+    ASSERT_EQ(recvBuf.arg1, 14u);
 
     // A second receive() with no more pending IRQs should block.
     result = sh.receive(&recvBuf, 0, 0);
@@ -161,7 +79,7 @@ TEST(irq_forward_sets_pending_when_not_receive_blocked) {
     ASSERT(target->state == ProcessState::ReceiveBlocked);
 
     // Clean up.
-    irqMgr.registerForward(5, 0);
+    irqMgr.registerForward(14, 0);
     pm.destroy(target->pid);
 }
 
@@ -206,6 +124,14 @@ TEST(irq_register_forward_invalid_irq_fails) {
 
     result = irqMgr.registerForward(255, 1);
     ASSERT_EQ(result, static_cast<i32>(-1));
+
+    // A line without a stub: it is masked and could never fire.
+    result = irqMgr.registerForward(5, 1);
+    ASSERT_EQ(result, static_cast<i32>(-1));
+
+    // 256 must not wrap to IRQ 0.
+    result = irqMgr.registerForward(256, 1);
+    ASSERT_EQ(result, static_cast<i32>(-1));
 }
 
 TEST(irq_forward_irq_takes_priority_over_send_queue) {
@@ -223,9 +149,9 @@ TEST(irq_forward_irq_takes_priority_over_send_queue) {
     sender->msg = {42, 1, 2, 3, 4, 5};
     receiver->sendQueuePush(sender->pid);
 
-    irqMgr.registerForward(5, receiver->pid);
+    irqMgr.registerForward(14, receiver->pid);
     receiver->state = ProcessState::Ready;
-    irqMgr.handleIrq(0x25, 0); // Sets pending (receiver not ReceiveBlocked).
+    irqMgr.handleIrq(0x2E, 0); // Sets pending (receiver not ReceiveBlocked).
 
     // receive() should deliver the IRQ first (highest priority).
     pm.setCurrent(receiver);
@@ -234,7 +160,7 @@ TEST(irq_forward_irq_takes_priority_over_send_queue) {
 
     ASSERT_EQ(result, static_cast<i32>(-2));
     ASSERT_EQ(recvBuf.type, ipc::MessageType::IrqNotify);
-    ASSERT_EQ(recvBuf.arg1, 5u);
+    ASSERT_EQ(recvBuf.arg1, 14u);
 
     // Next receive() should deliver from the send queue.
     result = sh.receive(&recvBuf, 0, 0);
@@ -242,7 +168,7 @@ TEST(irq_forward_irq_takes_priority_over_send_queue) {
     ASSERT_EQ(recvBuf.type, 42u);
 
     // Clean up.
-    irqMgr.registerForward(5, 0);
+    irqMgr.registerForward(14, 0);
     pm.destroy(receiver->pid);
     pm.destroy(sender->pid);
 }

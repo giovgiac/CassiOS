@@ -5,109 +5,44 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
+ * The IDT is Rust (kernel/src/hardware/interrupt.rs). InterruptManager
+ * forwards to it until its callers are ported.
+ *
  */
 
 #ifndef HARDWARE_INTERRUPT_HPP_
 #define HARDWARE_INTERRUPT_HPP_
 
-#include <std/io.hpp>
 #include <std/types.hpp>
 
 #include <core/gdt.hpp>
 
+extern "C" void interrupt_init();
+extern "C" void interrupt_set_gate(std::u8 vector, void (*handler)(), std::u8 dpl);
+extern "C" void interrupt_enable();
+
 namespace cassio {
 namespace hardware {
 
-/**
- * @brief Flag constants used when building IDT gate descriptors.
- *
- */
-enum InterruptFlags : std::u8 { IDT_DESCRIPTOR_PRESENT = 0x80, IDT_INTERRUPT_GATE = 0xE };
-
-/**
- * @brief Singleton that owns the IDT. Delegates to ExceptionHandler, IrqManager, and
- * SyscallHandler.
- *
- */
 class InterruptManager final {
-private:
-    /**
-     * @brief An 8-byte packed IDT entry pointing to an interrupt handler.
-     *
-     */
-    struct __attribute__((packed)) GateDescriptor {
-        std::u16 handler_low;
-        std::u16 code_offset;
-        std::u8 reserved;
-        std::u8 access;
-        std::u16 handler_high;
-    };
-
-    /**
-     * @brief Pointer structure passed to the lidt instruction (size + base address).
-     *
-     */
-    struct __attribute__((packed)) InterruptDescriptorTable {
-        std::u16 size;
-        std::u32 base;
-    };
-
-private:
-    GateDescriptor idt[256];
-    std::u16 code_offset;
-
-    static InterruptManager instance;
-
-private:
-    /**
-     * @brief Constructs the manager.
-     *
-     */
-    InterruptManager();
-
-    /**
-     * @brief Destroys the interrupt manager.
-     *
-     */
-    ~InterruptManager() = default;
-
-    /**
-     * @brief Writes a gate descriptor entry into the IDT at the given index.
-     *
-     */
-    void setInterrupt(std::u8 number, std::u16 code_offset, void (*handler)(), std::u8 access,
-                      std::u8 flags);
-
 public:
-    /**
-     * @brief Returns the singleton InterruptManager instance.
-     *
-     */
     inline static InterruptManager& getManager() { return instance; }
 
-    static void ignoreInterruptRequest();
-
-    /**
-     * @brief Enables hardware interrupts by executing the sti instruction.
-     *
-     */
-    void activate();
-
-    /**
-     * @brief Disables hardware interrupts by executing the cli instruction.
-     *
-     */
-    void deactivate();
+    /** Enables hardware interrupts (sti). */
+    void activate() { interrupt_enable(); }
 
     /**
      * @brief Sets an interrupt gate at the given vector. Interrupts are
      * disabled while its handler runs. DPL 3 lets user mode raise it.
      *
      */
-    void setInterruptGate(std::u8 vector, void (*handler)(), std::u8 dpl = 0);
+    void setInterruptGate(std::u8 vector, void (*handler)(), std::u8 dpl = 0) {
+        interrupt_set_gate(vector, handler, dpl);
+    }
 
     /**
-     * @brief Populates the IDT, delegates to sub-managers, and loads the IDT via lidt.
+     * @brief Fills and loads the IDT (exceptions, IRQs with the PICs
+     * remapped, the syscall gate). The GDT must be loaded.
      *
      */
     void load(cassio::kernel::GlobalDescriptorTable& gdt);
@@ -117,6 +52,11 @@ public:
     InterruptManager(InterruptManager&&) = delete;
     InterruptManager& operator=(const InterruptManager&) = delete;
     InterruptManager& operator=(InterruptManager&&) = delete;
+
+private:
+    InterruptManager() = default;
+
+    static InterruptManager instance;
 };
 
 } // namespace hardware
