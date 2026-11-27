@@ -4,7 +4,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 //
-// Syscall wrappers, IPC, nameserver protocol, heap allocator and panic
+// Syscall wrappers, IPC, nameserver protocol, global allocator and panic
 // handler for Rust userspace programs. Everything that executes int 0x80
 // is only compiled for the i586 target, so the pure logic can be tested
 // on the host with `cargo test`.
@@ -18,7 +18,6 @@ pub mod ata;
 #[cfg(target_arch = "x86")]
 pub mod display;
 pub mod gfx;
-pub mod heap;
 pub use sys::io;
 pub mod ipc;
 pub mod kbd;
@@ -54,7 +53,8 @@ mod rt {
     }
 
     #[global_allocator]
-    static HEAP: crate::heap::Heap = crate::heap::Heap::new();
+    static HEAP: sys::heap::Heap =
+        sys::heap::Heap::with_sbrk(|increment| os::sbrk(increment as u32));
 
     // libstd_mem provides memcmp but not bcmp, which LLVM emits for
     // slice equality.

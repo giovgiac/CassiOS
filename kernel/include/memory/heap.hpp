@@ -5,29 +5,29 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
+ * The heap is Rust (kernel/src/memory/heap.rs). KernelHeap and operator
+ * new/delete (operators.cpp) forward to it until their callers are ported.
+ *
  */
 
 #ifndef MEMORY_HEAP_HPP_
 #define MEMORY_HEAP_HPP_
 
-#include <std/alloc.hpp>
+#include <std/types.hpp>
+
+extern "C" void heap_init();
+extern "C" void* kernel_alloc(std::usize size);
+extern "C" void kernel_free(void* ptr);
 
 namespace cassio {
 namespace memory {
 
-static constexpr std::u32 KERNEL_HEAP_FRAMES = 256;
-static constexpr std::u32 KERNEL_HEAP_SIZE = KERNEL_HEAP_FRAMES * 4096;
-
 class KernelHeap final {
 public:
-    inline static std::alloc::HeapAllocator& getAllocator() { return *instance; }
-
-    static void init();
+    /** Reserves the heap region; allocations fail until this runs. */
+    static void init() { heap_init(); }
 
     KernelHeap() = delete;
-
-private:
-    static std::alloc::HeapAllocator* instance;
 };
 
 } // namespace memory

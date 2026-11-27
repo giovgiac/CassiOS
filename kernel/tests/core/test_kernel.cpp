@@ -41,10 +41,13 @@ void start(void* multiboot, u32 magic) {
     PhysicalMemoryManager& pmm = PhysicalMemoryManager::getManager();
     pmm.init((MultibootInfo*)multiboot);
 
-    KernelHeap::init();
-
+    // Paging first: until it is up only the first 4 MiB are mapped, and
+    // its page tables come from just above the kernel. The heap's region
+    // after them is reached through the direct map paging sets up.
     PagingManager& paging = PagingManager::getManager();
     paging.init((MultibootInfo*)multiboot);
+
+    KernelHeap::init();
 
     test::init(kernel_write);
     u32 passed = 0, failed = 0;

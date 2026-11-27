@@ -26,7 +26,6 @@ ISO = bin/cassio.iso
 DISK = bin/disk.img
 LIBSTD_MEM = lib/libstd_mem.a
 LIBSTD_STR = lib/libstd_str.a
-LIBSTD_ALLOC = lib/libstd_alloc.a
 LIBSTD_FMT = lib/libstd_fmt.a
 LIBSTD_TEST = lib/libstd_test.a
 KERNEL_LIB = target/$(RUST_TARGET)/release/libkernel.a
@@ -63,9 +62,6 @@ $(LIBSTD_MEM): FORCE
 $(LIBSTD_STR): FORCE
 	$(MAKE) -C libs/str
 
-$(LIBSTD_ALLOC): FORCE
-	$(MAKE) -C libs/alloc
-
 $(LIBSTD_FMT): FORCE
 	$(MAKE) -C libs/fmt
 
@@ -78,9 +74,9 @@ $(KERNEL_LIB): FORCE
 
 FORCE:
 
-kernel: kernel/src/linker.ld $(objects) $(KERNEL_LIB) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
+kernel: kernel/src/linker.ld $(objects) $(KERNEL_LIB) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_FMT)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(KERNEL_LIB) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(KERNEL_LIB) $(LIBSTD_FMT) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(NAMESERVER): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/core/ns
@@ -118,9 +114,9 @@ obj/libs/%.o: libs/%.cpp
 	@mkdir -p $(dir $@)
 	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
 
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(KERNEL_LIB) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_TEST)
+$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(KERNEL_LIB) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_FMT) $(LIBSTD_TEST)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(KERNEL_LIB) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(KERNEL_LIB) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_STR) $(LIBSTD_MEM)
 
 $(USERTEST): FORCE $(LIBSTD_MEM)
 	$(MAKE) -C userspace/tests

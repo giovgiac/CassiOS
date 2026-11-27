@@ -1,12 +1,13 @@
-// heap.rs -- userspace heap allocator
+// heap.rs -- heap allocator shared by the kernel and userspace
 //
 // Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 //
 // First-fit free-list allocator with block splitting and coalescing,
-// ported from std::alloc::HeapAllocator. `Heap` wraps it as the global
-// allocator and grows it via sbrk, like libstd_heap.
+// ported from std::alloc::HeapAllocator. `Heap` wraps it as a global
+// allocator that grows through a break function: sbrk in userspace, a
+// fixed region in the kernel.
 
 use core::alloc::{GlobalAlloc, Layout};
 use core::cell::UnsafeCell;
@@ -20,7 +21,8 @@ struct BlockHeader {
     next: *mut BlockHeader,
 }
 
-const HEADER: usize = size_of::<BlockHeader>();
+/// Bytes of bookkeeping in front of every block.
+pub const HEADER: usize = size_of::<BlockHeader>();
 
 /// Alignment every block payload has without extra work.
 const MIN_ALIGN: usize = align_of::<BlockHeader>();
@@ -30,11 +32,18 @@ const MIN_BLOCK_SIZE: usize = HEADER + MIN_ALIGN;
 /// Free-list allocator over a contiguous region the caller owns.
 pub struct FreeList {
     head: *mut BlockHeader,
+    /// The managed region, to ignore frees of pointers outside it.
+    start: *mut u8,
+    end: *mut u8,
 }
 
 impl FreeList {
     pub const fn empty() -> Self {
-        Self { head: null_mut() }
+        Self {
+            head: null_mut(),
+            start: null_mut(),
+            end: null_mut(),
+        }
     }
 
     /// Start managing `size` bytes at `base`, which must be aligned to
@@ -52,6 +61,8 @@ impl FreeList {
             })
         };
         self.head = head;
+        self.start = base;
+        self.end = unsafe { base.add(size) };
     }
 
     pub fn is_initialized(&self) -> bool {
@@ -92,11 +103,16 @@ impl FreeList {
     }
 
     /// Free a pointer returned by `allocate` and merge adjacent free blocks.
+    /// Pointers outside the region and blocks already free are ignored.
     pub unsafe fn free(&mut self, ptr: *mut u8) {
-        if ptr.is_null() {
+        let inside = ptr as usize >= self.start as usize + HEADER && ptr < self.end;
+        if !inside {
             return;
         }
         let block = unsafe { &mut *(ptr.sub(HEADER) as *mut BlockHeader) };
+        if block.free {
+            return;
+        }
         block.free = true;
 
         let mut current = self.head;
@@ -135,6 +151,7 @@ impl FreeList {
                 });
                 (*last).next = block;
             }
+            self.end = self.end.add(additional);
         }
     }
 }
@@ -145,17 +162,13 @@ pub struct Heap {
     sbrk: fn(usize) -> *mut u8,
 }
 
-// Userspace processes are single-threaded.
+// Userspace processes are single-threaded, and the kernel only allocates
+// with interrupts disabled on its one CPU.
 unsafe impl Sync for Heap {}
 
 const PAGE: usize = 4096;
 
 impl Heap {
-    #[cfg(target_arch = "x86")]
-    pub const fn new() -> Self {
-        Self::with_sbrk(|increment| crate::os::sbrk(increment as u32))
-    }
-
     /// Build a heap over a custom break function (returns the old break,
     /// or null on failure).
     pub const fn with_sbrk(sbrk: fn(usize) -> *mut u8) -> Self {
@@ -165,7 +178,9 @@ impl Heap {
         }
     }
 
-    unsafe fn allocate(&self, size: usize) -> *mut u8 {
+    /// Allocate `size` bytes aligned to MIN_ALIGN, growing the heap when
+    /// needed. Returns null when the break cannot grow.
+    pub unsafe fn allocate(&self, size: usize) -> *mut u8 {
         let list = unsafe { &mut *self.list.get() };
         if !list.is_initialized() {
             let base = (self.sbrk)(PAGE);
@@ -189,6 +204,13 @@ impl Heap {
             list.extend(needed);
             list.allocate(size)
         }
+    }
+}
+
+impl Heap {
+    /// Free a pointer returned by `allocate`.
+    pub unsafe fn free(&self, ptr: *mut u8) {
+        unsafe { (*self.list.get()).free(ptr) };
     }
 }
 
@@ -269,6 +291,24 @@ mod tests {
         // Both blocks merged back into one that fits almost the whole region.
         let c = unsafe { list.allocate(400) };
         assert_eq!(c, a);
+    }
+
+    #[test]
+    fn double_and_foreign_frees_are_ignored() {
+        let mut region = Region([0; 1024]);
+        let mut list = list(&mut region);
+        let a = unsafe { list.allocate(64) };
+        let b = unsafe { list.allocate(64) };
+        let mut outside = 0u8;
+        unsafe {
+            list.free(a);
+            // b stays allocated: a second free of a must not merge it.
+            list.free(a);
+            list.free(&mut outside);
+            list.free(null_mut());
+        }
+        assert_eq!(unsafe { list.allocate(64) }, a);
+        assert_ne!(unsafe { list.allocate(64) }, b);
     }
 
     #[test]

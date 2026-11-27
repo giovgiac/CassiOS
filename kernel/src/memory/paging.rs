@@ -1,0 +1,404 @@
+// paging.rs -- page directories and tables
+//
+// Copyright (c) 2019-2026 Giovanni Giacomo. All Rights Reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+//
+// The kernel directory maps physical memory at KERNEL_VBASE (the direct
+// map). Each process gets a directory whose kernel half (entries
+// 768-1023) is copied from the kernel's, so kernel mappings are shared.
+// Tables and directories are reached through the direct map. The C++
+// PagingManager (kernel/include/memory/paging.hpp) forwards here until
+// its callers are ported.
+
+// Most of it is only used by the i586 build.
+#![cfg_attr(not(target_arch = "x86"), allow(dead_code))]
+
+pub const PAGE_PRESENT: u32 = 0x01;
+pub const PAGE_READWRITE: u32 = 0x02;
+pub const PAGE_USER: u32 = 0x04;
+
+/// Entries in a directory or table.
+const ENTRIES: usize = 1024;
+/// First directory entry of the kernel half.
+const KERNEL_ENTRY: usize = 768;
+const ADDRESS_MASK: u32 = 0xFFFF_F000;
+
+fn directory_index(virt: u32) -> usize {
+    (virt >> 22) as usize
+}
+
+fn table_index(virt: u32) -> usize {
+    ((virt >> 12) & 0x3FF) as usize
+}
+
+/// The first address of each page that [start, start + len) touches.
+fn pages(start: u32, len: u32) -> impl Iterator<Item = u32> {
+    let first = start & ADDRESS_MASK;
+    let count = if len == 0 {
+        0
+    } else {
+        (((start as u64 + len as u64 - 1) & ADDRESS_MASK as u64) - first as u64) / 4096 + 1
+    };
+    (0..count).map(move |i| first + i as u32 * 4096)
+}
+
+#[cfg(target_arch = "x86")]
+pub use imp::*;
+
+#[cfg(target_arch = "x86")]
+mod imp {
+    use core::arch::asm;
+
+    use super::*;
+    use crate::memory::multiboot::{FLAG_MMAP, Info, MMAP_AVAILABLE, regions};
+    use crate::memory::physical::{FRAME_SIZE, PHYSICAL};
+    use crate::memory::{DIRECT_MAP_END, KERNEL_VBASE, phys_to_virt};
+    use crate::sync::Global;
+
+    type Table = [u32; ENTRIES];
+
+    #[repr(C, align(4096))]
+    struct Directory(Table);
+
+    static KERNEL_DIRECTORY: Global<Directory> = Global::new(Directory([0; ENTRIES]));
+
+    /// The table or directory at physical address `entry & ADDRESS_MASK`.
+    fn table(entry: u32) -> &'static mut Table {
+        // SAFETY: tables and directories are whole frames in the direct
+        // map, used one at a time (see Global).
+        unsafe { &mut *(phys_to_virt(entry & ADDRESS_MASK) as *mut Table) }
+    }
+
+    fn zeroed_frame() -> Option<u32> {
+        let frame = PHYSICAL.with(|p| p.alloc())?;
+        table(frame).fill(0);
+        Some(frame)
+    }
+
+    /// Direct-map the available RAM below DIRECT_MAP_END and the VGA text
+    /// buffer, then switch to the kernel directory.
+    ///
+    /// # Safety
+    ///
+    /// `info` must be the boot loader's information; the physical
+    /// allocator must be initialized.
+    pub unsafe fn init(info: &Info) {
+        if info.flags & FLAG_MMAP == 0 {
+            return;
+        }
+        let map = unsafe {
+            core::slice::from_raw_parts(phys_to_virt(info.mmap_addr), info.mmap_length as usize)
+        };
+        let flags = PAGE_PRESENT | PAGE_READWRITE;
+        for region in regions(map).filter(|r| r.kind == MMAP_AVAILABLE) {
+            let start = region.base & ADDRESS_MASK as u64;
+            let end = region
+                .base
+                .saturating_add(region.length)
+                .min(DIRECT_MAP_END);
+            for page in (start..end).step_by(FRAME_SIZE as usize) {
+                map_page(phys_to_virt(page as u32) as u32, page as u32, flags);
+            }
+        }
+        for page in (0xB8000..0xC0000).step_by(FRAME_SIZE as usize) {
+            map_page(phys_to_virt(page) as u32, page, flags);
+        }
+
+        let directory = KERNEL_DIRECTORY.with(|d| d.0.as_ptr() as u32) - KERNEL_VBASE;
+        unsafe { asm!("mov cr3, {}", in(reg) directory) };
+    }
+
+    /// Map `virt` to `phys` in the kernel directory, adding a table if
+    /// needed. Does nothing if no frame is left for the table.
+    pub fn map_page(virt: u32, phys: u32, flags: u32) {
+        let new_table = KERNEL_DIRECTORY.with(|directory| {
+            let entry = &mut directory.0[directory_index(virt)];
+            let new_table = *entry & PAGE_PRESENT == 0;
+            if new_table {
+                let Some(frame) = zeroed_frame() else {
+                    return None;
+                };
+                *entry = frame | PAGE_PRESENT | PAGE_READWRITE;
+            }
+            table(*entry)[table_index(virt)] = (phys & ADDRESS_MASK) | (flags & 0xFFF);
+            Some(new_table)
+        });
+        // A stale TLB entry from a former table could linger.
+        if new_table == Some(true) {
+            flush_tlb(virt);
+        }
+    }
+
+    pub fn unmap_page(virt: u32) {
+        KERNEL_DIRECTORY.with(|directory| {
+            let entry = directory.0[directory_index(virt)];
+            if entry & PAGE_PRESENT != 0 {
+                table(entry)[table_index(virt)] = 0;
+            }
+        });
+        flush_tlb(virt);
+    }
+
+    pub fn flush_tlb(virt: u32) {
+        unsafe { asm!("invlpg [{}]", in(reg) virt, options(nostack)) };
+    }
+
+    /// A new directory sharing the kernel half; its physical address, or
+    /// None when memory is exhausted.
+    pub fn create_address_space() -> Option<u32> {
+        let frame = zeroed_frame()?;
+        KERNEL_DIRECTORY.with(|kernel| {
+            table(frame)[KERNEL_ENTRY..].copy_from_slice(&kernel.0[KERNEL_ENTRY..]);
+        });
+        Some(frame)
+    }
+
+    /// Map `virt` to `phys` in the directory at `directory`, adding a user
+    /// table if needed.
+    pub fn map_user_page(directory: u32, virt: u32, phys: u32, flags: u32) {
+        let entry = &mut table(directory)[directory_index(virt)];
+        if *entry & PAGE_PRESENT == 0 {
+            let Some(frame) = zeroed_frame() else {
+                return;
+            };
+            *entry = frame | PAGE_PRESENT | PAGE_READWRITE | PAGE_USER;
+        }
+        table(*entry)[table_index(virt)] = (phys & ADDRESS_MASK) | (flags & 0xFFF);
+    }
+
+    /// Free a directory, its user tables and every frame they map.
+    pub fn destroy_address_space(directory: u32) {
+        for &entry in &table(directory)[..KERNEL_ENTRY] {
+            if entry & PAGE_PRESENT == 0 {
+                continue;
+            }
+            for &page in table(entry).iter() {
+                // Device memory below 1 MiB is not the allocator's.
+                let frame = page & ADDRESS_MASK;
+                if page & PAGE_PRESENT != 0 && frame >= 0x10_0000 {
+                    PHYSICAL.with(|p| p.free(frame));
+                }
+            }
+            PHYSICAL.with(|p| p.free(entry & ADDRESS_MASK));
+        }
+        PHYSICAL.with(|p| p.free(directory));
+    }
+
+    /// Whether every page of [start, start + len) is present and
+    /// user-accessible in the directory at `directory`.
+    pub fn user_range_mapped(directory: u32, start: u32, len: u32) -> bool {
+        let user = PAGE_PRESENT | PAGE_USER;
+        pages(start, len).all(|page| {
+            let entry = table(directory)[directory_index(page)];
+            entry & user == user && table(entry)[table_index(page)] & user == user
+        })
+    }
+
+    #[unsafe(no_mangle)]
+    unsafe extern "C" fn paging_init(info: *const Info) {
+        unsafe { init(&*info) };
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn paging_map_page(virt: u32, phys: u32, flags: u32) {
+        map_page(virt, phys, flags);
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn paging_unmap_page(virt: u32) {
+        unmap_page(virt);
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn paging_flush_tlb(virt: u32) {
+        flush_tlb(virt);
+    }
+
+    /// 0 when memory is exhausted.
+    #[unsafe(no_mangle)]
+    extern "C" fn paging_create_address_space() -> u32 {
+        create_address_space().unwrap_or(0)
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn paging_map_user_page(directory: u32, virt: u32, phys: u32, flags: u32) {
+        map_user_page(directory, virt, phys, flags);
+    }
+
+    #[unsafe(no_mangle)]
+    extern "C" fn paging_destroy_address_space(directory: u32) {
+        destroy_address_space(directory);
+    }
+
+    /// Checks the current directory (CR3).
+    #[unsafe(no_mangle)]
+    extern "C" fn paging_user_range_mapped(start: u32, len: u32) -> bool {
+        let directory: u32;
+        unsafe { asm!("mov {}, cr3", out(reg) directory, options(nomem, nostack)) };
+        user_range_mapped(directory, start, len)
+    }
+
+    #[cfg(not(test))]
+    pub mod ktests {
+        use alloc::boxed::Box;
+
+        use super::*;
+        use crate::ktest::Outcome;
+
+        tests!(
+            paging_kernel_runs_in_the_higher_half,
+            paging_vga_memory_is_mapped,
+            paging_cr3_holds_the_kernel_directory,
+            paging_map_page_maps_a_frame,
+            paging_address_space_shares_the_kernel_half,
+            paging_map_user_page_creates_a_user_mapping,
+            paging_user_range_mapped_checks_every_page,
+        );
+
+        unsafe extern "C" {
+            static _kernel_start: u8;
+            static _kernel_end: u8;
+        }
+
+        fn cr3() -> u32 {
+            let value: u32;
+            unsafe { asm!("mov {}, cr3", out(reg) value, options(nomem, nostack)) };
+            value
+        }
+
+        fn new_frame() -> Result<u32, crate::ktest::Failure> {
+            let frame = PHYSICAL.with(|p| p.alloc());
+            check!(frame.is_some());
+            Ok(frame.unwrap())
+        }
+
+        fn paging_kernel_runs_in_the_higher_half() -> Outcome {
+            let (start, end) = unsafe { (&_kernel_start as *const u8, &_kernel_end as *const u8) };
+            let stack = 0u32;
+            let heap = Box::new(0u32);
+            check!(start as u32 >= KERNEL_VBASE && end > start);
+            check!(&stack as *const u32 as u32 >= KERNEL_VBASE);
+            check!(&*heap as *const u32 as u32 >= KERNEL_VBASE);
+            Ok(())
+        }
+
+        fn paging_vga_memory_is_mapped() -> Outcome {
+            let vga = phys_to_virt(0xB8000) as *mut u16;
+            let value = unsafe {
+                let original = vga.read_volatile();
+                vga.write_volatile(0x0741);
+                let value = vga.read_volatile();
+                vga.write_volatile(original);
+                value
+            };
+            check_eq!(value, 0x0741);
+            Ok(())
+        }
+
+        fn paging_cr3_holds_the_kernel_directory() -> Outcome {
+            let kernel = KERNEL_DIRECTORY.with(|d| d.0.as_ptr() as u32);
+            check_eq!(cr3(), kernel - KERNEL_VBASE);
+            Ok(())
+        }
+
+        fn paging_map_page_maps_a_frame() -> Outcome {
+            let frame = new_frame()?;
+            let virt = phys_to_virt(frame) as u32;
+            map_page(virt, frame, PAGE_PRESENT | PAGE_READWRITE);
+            flush_tlb(virt);
+            let value = unsafe {
+                (virt as *mut u32).write_volatile(0x1234_5678);
+                (virt as *const u32).read_volatile()
+            };
+            PHYSICAL.with(|p| p.free(frame));
+            check_eq!(value, 0x1234_5678);
+            Ok(())
+        }
+
+        fn paging_address_space_shares_the_kernel_half() -> Outcome {
+            let directory = create_address_space();
+            check!(directory.is_some());
+            let directory = directory.unwrap();
+            let entries = *table(directory);
+            let kernel = KERNEL_DIRECTORY.with(|d| d.0);
+            destroy_address_space(directory);
+            check!((directory as u64) < DIRECT_MAP_END);
+            check!(entries[..KERNEL_ENTRY].iter().all(|&e| e == 0));
+            check!(entries[KERNEL_ENTRY..] == kernel[KERNEL_ENTRY..]);
+            Ok(())
+        }
+
+        fn paging_map_user_page_creates_a_user_mapping() -> Outcome {
+            let directory = create_address_space().unwrap_or(0);
+            check!(directory != 0);
+            let frame = new_frame()?;
+            let virt = 0x0040_0000;
+            map_user_page(
+                directory,
+                virt,
+                frame,
+                PAGE_PRESENT | PAGE_READWRITE | PAGE_USER,
+            );
+            let entry = table(directory)[directory_index(virt)];
+            let page = table(entry)[table_index(virt)];
+            let before = PHYSICAL.with(|p| p.free_frames());
+            // Frees the frame, the table and the directory.
+            destroy_address_space(directory);
+            let after = PHYSICAL.with(|p| p.free_frames());
+            check_eq!(entry & (PAGE_PRESENT | PAGE_USER), PAGE_PRESENT | PAGE_USER);
+            check_eq!(page & ADDRESS_MASK, frame);
+            check_eq!(after, before + 3);
+            Ok(())
+        }
+
+        fn paging_user_range_mapped_checks_every_page() -> Outcome {
+            let directory = create_address_space().unwrap_or(0);
+            check!(directory != 0);
+            let frame = new_frame()?;
+            let user = PAGE_PRESENT | PAGE_READWRITE | PAGE_USER;
+            map_user_page(directory, 0x0040_0000, frame, user);
+            // Present but kernel-only.
+            let kernel_only = new_frame()?;
+            map_user_page(directory, 0x0040_1000, kernel_only, PAGE_PRESENT);
+            let mapped = |start, len| user_range_mapped(directory, start, len);
+            let results = [
+                mapped(0x0040_0000, 0x1000),
+                mapped(0x0040_0FFF, 1),
+                mapped(0x0040_0000, 0),
+                !mapped(0x0040_0000, 0x1001),
+                !mapped(0x003F_FFFF, 2),
+                !mapped(0x0080_0000, 1),
+                !mapped(KERNEL_VBASE + 0x10_0000, 1),
+            ];
+            destroy_address_space(directory);
+            check_eq!(results, [true; 7]);
+            Ok(())
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn indices_split_the_address() {
+        assert_eq!(directory_index(0xC010_2345), 768);
+        assert_eq!(table_index(0xC010_2345), 0x102);
+        assert_eq!(directory_index(0x0040_0000), 1);
+        assert_eq!(table_index(0x0040_0000), 0);
+    }
+
+    #[test]
+    fn pages_covers_every_touched_page() {
+        assert_eq!(pages(0x1000, 0).count(), 0);
+        assert_eq!(pages(0x1FFF, 1).collect::<Vec<_>>(), [0x1000]);
+        assert_eq!(pages(0x1FFF, 2).collect::<Vec<_>>(), [0x1000, 0x2000]);
+        assert_eq!(pages(0x1000, 0x2000).collect::<Vec<_>>(), [0x1000, 0x2000]);
+        assert_eq!(
+            pages(0xFFFF_F000, 0x1000).collect::<Vec<_>>(),
+            [0xFFFF_F000]
+        );
+    }
+}
