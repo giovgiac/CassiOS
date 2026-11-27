@@ -253,7 +253,7 @@ mod imp {
             unsafe { (msg as *mut Message).write_unaligned(notify) };
             return Received::Notification;
         }
-        if let Some(n) = table.current().notifications.pop_front() {
+        if let Some(n) = table.current().pop_notification() {
             unsafe { (msg as *mut Message).write_unaligned(n.msg) };
             if data != 0 && capacity > 0 && !n.data.is_empty() {
                 let len = n.data.len().min(capacity as usize);

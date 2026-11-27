@@ -107,6 +107,8 @@ pub struct Process {
     /// Processes blocked sending to this one, in order.
     pub senders: VecDeque<u32>,
     pub notifications: VecDeque<Notification>,
+    /// Bytes of data in `notifications`.
+    notification_bytes: usize,
 }
 
 impl Process {
@@ -128,6 +130,7 @@ impl Process {
             data_len: 0,
             senders: VecDeque::new(),
             notifications: VecDeque::new(),
+            notification_bytes: 0,
         }
     }
 
@@ -144,9 +147,8 @@ impl Process {
     /// Queue a notification, copying `data`. False if the queue is full
     /// (MAX_NOTIFICATIONS, MAX_NOTIFICATION_DATA) or memory is exhausted.
     pub fn push_notification(&mut self, msg: Message, data: &[u8]) -> bool {
-        let queued: usize = self.notifications.iter().map(|n| n.data.len()).sum();
         if self.notifications.len() >= MAX_NOTIFICATIONS
-            || queued + data.len() > MAX_NOTIFICATION_DATA
+            || self.notification_bytes + data.len() > MAX_NOTIFICATION_DATA
         {
             return false;
         }
@@ -156,9 +158,17 @@ impl Process {
             return false;
         }
         copy.extend_from_slice(data);
+        self.notification_bytes += copy.len();
         self.notifications
             .push_back(Notification { msg, data: copy });
         true
+    }
+
+    /// Take the oldest notification.
+    pub fn pop_notification(&mut self) -> Option<Notification> {
+        let notification = self.notifications.pop_front()?;
+        self.notification_bytes -= notification.data.len();
+        Some(notification)
     }
 
     /// Bytes of heap grown by sbrk.
@@ -178,8 +188,10 @@ pub struct Table {
 }
 
 /// Most notifications a process may have waiting, and most bytes of data
-/// in them: the kernel heap is 1 MiB, and no sender may fill it.
-pub const MAX_NOTIFICATIONS: usize = 1024;
+/// in them: the kernel heap is 1 MiB, and no sender may fill it. The count
+/// covers a full-screen redraw, which the terminal sends to the display as
+/// one notification per character (8192 entries are about 300 KiB).
+pub const MAX_NOTIFICATIONS: usize = 8192;
 pub const MAX_NOTIFICATION_DATA: usize = 64 * 1024;
 
 /// Ticks a process runs before the scheduler may switch.
@@ -684,8 +696,9 @@ mod tests {
         assert!(p.push_notification(Message::default(), &half));
         assert!(!p.push_notification(Message::default(), &[0]));
         // Taking one off makes room again.
-        p.notifications.pop_front();
-        assert!(p.push_notification(Message::default(), &[0]));
+        assert_eq!(p.pop_notification().map(|n| n.data.len()), Some(half.len()));
+        assert!(p.push_notification(Message::default(), &half));
+        assert!(!p.push_notification(Message::default(), &[0]));
     }
 
     #[test]
