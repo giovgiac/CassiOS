@@ -3,6 +3,8 @@
 # license that can be found in the LICENSE file.
 
 DISK_SIZE_MB ?= 32
+# Seconds a QEMU test run may take; a hung run fails instead of blocking.
+TEST_TIMEOUT ?= 120
 
 ASMFLAGS = --32
 STD_INCLUDES = $(foreach dir,$(wildcard libs/*/include),-I$(dir))
@@ -148,7 +150,7 @@ test-kernel:
 	    || { cat /tmp/cassio-build.log; exit 1; }; \
 	dd if=/dev/zero of=/tmp/cassio-test-disk.img bs=1M count=32 2>/dev/null; \
 	mkfs.fat -F 32 /tmp/cassio-test-disk.img >/dev/null 2>&1; \
-	qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
+	timeout $(TEST_TIMEOUT) qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -drive file=/tmp/cassio-test-disk.img,format=raw,if=ide \
@@ -173,7 +175,7 @@ test-userspace:
 	        mcopy -i /tmp/cassio-usertest-disk.img "$$f" "::/$${rel}"; \
 	    done; \
 	fi; \
-	qemu-system-i386 -machine pc -kernel $(KERNEL) \
+	timeout $(TEST_TIMEOUT) qemu-system-i386 -machine pc -kernel $(KERNEL) \
 	    -initrd "$(NAMESERVER),$(KBD),$(VFS),$(MOUSE),$(ATA),$(DISPLAY),$(TERMINAL),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \

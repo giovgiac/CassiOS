@@ -25,6 +25,7 @@ tests!(
     syscall_wrapping_buffers_rejected,
     syscall_unmapped_buffers_rejected,
     syscall_map_device_over_mapped_pages_rejected,
+    faulting_program_ends_alone,
 );
 
 /// The kernel's own image, which no program may read or write through a
@@ -134,5 +135,43 @@ fn syscall_map_device_over_mapped_pages_rejected() -> Outcome {
         raw_syscall(MAP_DEVICE, 0xB8000, 0x0040_0000, 1, 0, 0) as i32,
         -1
     );
+    Ok(())
+}
+
+/// A minimal i386 executable: one segment at 0x00400000 whose code is
+/// `code`.
+fn executable(code: &[u8]) -> Vec<u8> {
+    const HEADER: usize = 52;
+    const PROGRAM_HEADER: usize = 32;
+    let base: u32 = 0x0040_0000;
+    let offset = (HEADER + PROGRAM_HEADER) as u32;
+    let mut image = alloc::vec![0u8; HEADER + PROGRAM_HEADER];
+    image[..6].copy_from_slice(b"\x7FELF\x01\x01");
+    let mut put = |at: usize, bytes: &[u8]| image[at..at + bytes.len()].copy_from_slice(bytes);
+    put(16, &2u16.to_le_bytes()); // ET_EXEC
+    put(18, &3u16.to_le_bytes()); // EM_386
+    put(24, &(base + offset).to_le_bytes()); // entry: the code
+    put(28, &(HEADER as u32).to_le_bytes()); // e_phoff
+    put(42, &(PROGRAM_HEADER as u16).to_le_bytes());
+    put(44, &1u16.to_le_bytes()); // e_phnum
+    let size = offset + code.len() as u32;
+    // PT_LOAD of the whole file at `base`, so the code sits at base + offset.
+    for (i, field) in [1, 0, base, base, size, size].iter().enumerate() {
+        put(HEADER + i * 4, &field.to_le_bytes());
+    }
+    image.extend_from_slice(code);
+    image
+}
+
+fn faulting_program_ends_alone() -> Outcome {
+    // ud2: an invalid opcode in user mode.
+    let program = executable(&[0x0F, 0x0B]);
+    let pid = os::exec(&program);
+    check!(pid != 0);
+    // The kernel ends the child (waking us) instead of halting.
+    check_eq!(os::waitpid(pid), 0);
+    let mut entries = [os::ProcEntry::default(); 32];
+    let n = os::proc_list(&mut entries);
+    check!(entries[..n].iter().all(|e| e.pid != pid));
     Ok(())
 }
