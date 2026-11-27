@@ -5,8 +5,8 @@
  * Use of this source code is governed by a MIT-style
  * license that can be found in the LICENSE file.
  *
- * Shared by the kernel and the kernel tests. Userspace programs use
- * the Rust wrappers in libs/cassio.
+ * Shared by the kernel and the kernel tests. Rust code uses the same
+ * definitions from libs/sys; keep the two in step.
  *
  */
 
