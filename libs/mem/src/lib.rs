@@ -15,6 +15,13 @@
 #![no_std]
 #![no_builtins]
 
+use core::mem::MaybeUninit;
+
+// Copies move bytes as MaybeUninit: what they copy may hold padding or
+// other uninitialized bytes, which must not be read as integers.
+type Byte = MaybeUninit<u8>;
+type Word = MaybeUninit<u32>;
+
 const WORD: usize = core::mem::size_of::<u32>();
 
 fn misalignment(p: *const u8) -> usize {
@@ -32,16 +39,16 @@ pub unsafe fn copy(dst: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     unsafe {
         if misalignment(d) == misalignment(s) {
             while n > 0 && misalignment(d) != 0 {
-                *d = *s;
+                *(d as *mut Byte) = *(s as *const Byte);
                 (d, s, n) = (d.add(1), s.add(1), n - 1);
             }
             while n >= WORD {
-                *(d as *mut u32) = *(s as *const u32);
+                *(d as *mut Word) = *(s as *const Word);
                 (d, s, n) = (d.add(WORD), s.add(WORD), n - WORD);
             }
         }
         while n > 0 {
-            *d = *s;
+            *(d as *mut Byte) = *(s as *const Byte);
             (d, s, n) = (d.add(1), s.add(1), n - 1);
         }
     }
@@ -63,16 +70,16 @@ pub unsafe fn copy_overlapping(dst: *mut u8, src: *const u8, n: usize) -> *mut u
         if misalignment(d) == misalignment(s) {
             while n > 0 && misalignment(d) != 0 {
                 (d, s, n) = (d.sub(1), s.sub(1), n - 1);
-                *d = *s;
+                *(d as *mut Byte) = *(s as *const Byte);
             }
             while n >= WORD {
                 (d, s, n) = (d.sub(WORD), s.sub(WORD), n - WORD);
-                *(d as *mut u32) = *(s as *const u32);
+                *(d as *mut Word) = *(s as *const Word);
             }
         }
         while n > 0 {
             (d, s, n) = (d.sub(1), s.sub(1), n - 1);
-            *d = *s;
+            *(d as *mut Byte) = *(s as *const Byte);
         }
     }
     dst
