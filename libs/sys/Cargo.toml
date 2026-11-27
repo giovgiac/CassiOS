@@ -1,0 +1,4 @@
+[package]
+name = "sys"
+edition.workspace = true
+version.workspace = true

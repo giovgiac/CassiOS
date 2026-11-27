@@ -1,35 +1,36 @@
 # CassiOS
 
-A microkernel operating system targeting i386 (32-bit x86), written in C++ and assembly. Boots via GRUB using the Multiboot specification. Built from scratch with a custom modular standard library -- every component from the GDT to the IPC layer is hand-written.
+A microkernel operating system targeting i386 (32-bit x86), written in Rust and assembly. Boots via GRUB using the Multiboot specification. Built from scratch -- every component from the GDT to the IPC layer is hand-written.
 
 ## Features
 
 - **Microkernel architecture** -- kernel provides IPC, scheduling, memory management, and interrupt routing; everything else runs as userspace services
 - **Synchronous IPC** -- message passing (send/receive/reply) and fire-and-forget notify between processes
-- **Userspace drivers** -- PS/2 keyboard, PS/2 mouse, VGA terminal, ATA PIO disk, all as separate services
-- **Userspace services** -- nameserver for service discovery, FAT32 filesystem with long filename support, interactive shell with 16 commands
+- **Userspace drivers** -- PS/2 keyboard, PS/2 mouse, VESA framebuffer display, ATA PIO disk, all as separate services
+- **Userspace services** -- nameserver for service discovery, FAT32 filesystem with long filename support, graphical terminal, interactive shell with 18 commands
 - **Higher-half kernel** mapped at 0xC0000000+ with per-process address spaces
 - **Preemptive round-robin scheduler** driven by PIT timer (~1000 Hz)
 - **ELF32 loader** for statically linked userspace binaries via GRUB multiboot modules
 - **Syscall interface** via `int 0x80` (IPC, memory, process control, system info)
-- **Physical memory manager**, kernel heap with `new`/`delete`, paging
+- **Physical memory manager**, kernel heap (the Rust global allocator), paging
 - **Persistent FAT32 filesystem** -- 32 MiB disk image, on-demand FAT via LRU sector cache, directories, LFN, case-sensitive
-- **Modular standard library** -- 17 modules under `libs/` (`std::` namespace), from core types/mem/str to service clients (`std::vga`, `std::vfs`, `std::kbd`, etc.)
-- **Two-tier test framework** -- 247 kernel unit tests + 97 userspace integration tests, run headlessly via QEMU
+- **Libraries** -- `libs/mem`, the memory functions (memcpy, memmove, memset, memcmp) the kernel and every program link, `libs/sys`, the definitions and code the kernel and userspace share (IPC and syscall numbers, port I/O, the heap allocator), and `libs/cassio`, the Rust library userspace programs share (syscalls, IPC, service clients)
+- **Three-tier test framework** -- Rust host unit tests, then kernel unit tests and userspace integration tests run headlessly via QEMU
 
 ## Prerequisites
 
-- `g++`, `as`, `ld` (GNU toolchain with 32-bit support)
+- `as`, `ld` (GNU binutils with 32-bit support)
 - `qemu-system-i386` (for running)
 - `grub-mkrescue` and `xorriso` (for building the bootable ISO)
 - `dosfstools` and `mtools` (for FAT32 disk image creation)
+- `rustup` (installs the pinned Rust toolchain and i586 target from `rust-toolchain.toml`)
 
 ## Build
 
 ```sh
 make kernel    # compile and link the kernel binary
 make run       # build and launch in QEMU with all services
-make test      # build and run all tests (kernel + userspace)
-make iso       # build a bootable ISO
+make test      # build and run all tests (Rust host + kernel + userspace)
+make bin/cassio.iso  # build a bootable ISO
 make clean     # remove build artifacts
 ```

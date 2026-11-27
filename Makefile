@@ -3,12 +3,12 @@
 # license that can be found in the LICENSE file.
 
 DISK_SIZE_MB ?= 32
+# Seconds a QEMU test run may take; a hung run fails instead of blocking.
+TEST_TIMEOUT ?= 120
 
 ASMFLAGS = --32
-STD_INCLUDES = $(foreach dir,$(wildcard libs/*/include),-I$(dir))
-CXXFLAGS = -m32 -mno-sse -mno-sse2 -fno-use-cxa-atexit -nostdlib -fno-builtin -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
-COMMON_CXXFLAGS = -m32 -mno-sse -mno-sse2 -ffreestanding -nostdlib -fno-rtti -fno-exceptions -fno-leading-underscore -fno-stack-protector -MMD -MP
-LDFLAGS = -melf_i386
+LDFLAGS = -melf_i386 --gc-sections
+RUST_TARGET = i586-unknown-linux-gnu
 
 KERNEL = bin/cassio.bin
 TEST_KERNEL = bin/cassio-test.bin
@@ -24,159 +24,66 @@ USERSHELL = bin/shell.elf
 HELLO = disk/bin/hello.elf
 ISO = bin/cassio.iso
 DISK = bin/disk.img
-LIBSTD_MEM = lib/libstd_mem.a
-LIBSTD_STR = lib/libstd_str.a
-LIBSTD_ALLOC = lib/libstd_alloc.a
-LIBSTD_HEAP = lib/libstd_heap.a
-LIBSTD_FMT = lib/libstd_fmt.a
-LIBSTD_TEST = lib/libstd_test.a
-LIBSTD_OS = lib/libstd_os.a
-LIBSTD_IPC = lib/libstd_ipc.a
-LIBSTD_NS = lib/libstd_ns.a
-LIBSTD_VFS = lib/libstd_vfs.a
-LIBSTD_ATA = lib/libstd_ata.a
-LIBSTD_KBD = lib/libstd_kbd.a
-LIBSTD_MOUSE = lib/libstd_mouse.a
-LIBSTD_GFX = lib/libstd_gfx.a
-LIBSTD_DISPLAY = lib/libstd_display.a
-LIBSTD_TERMINAL = lib/libstd_terminal.a
+KERNEL_LIB = target/$(RUST_TARGET)/release/libkernel.a
+# The test kernel's library (feature ktest), in its own target directory.
+TEST_KERNEL_LIB = target/ktest/$(RUST_TARGET)/release/libkernel.a
 
 
-# Discover all source files automatically.
-cpp_sources = $(shell find kernel/src/ -name '*.cpp')
+# The kernel is Rust plus three assembly files: the multiboot loader and
+# the interrupt and syscall entry stubs.
 asm_sources = $(shell find kernel/src/ -name '*.s')
-objects = $(patsubst kernel/src/%.cpp, obj/%.o, $(cpp_sources)) $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
-
-# Shared objects for the test kernel (everything except kernel.o).
-shared_objects = $(filter-out obj/core/kernel.o, $(objects))
-
-# Test objects are discovered from kernel/tests/**/test_*.cpp and libs/**/tests/test_*.cpp.
-test_sources = $(shell find kernel/tests/ -name 'test_*.cpp')
-test_objects = $(patsubst kernel/tests/%.cpp, obj/tests/%.o, $(test_sources))
-lib_test_sources = $(shell find libs/ -path '*/tests/test_*.cpp' 2>/dev/null)
-lib_test_objects = $(patsubst libs/%.cpp, obj/libs/%.o, $(lib_test_sources))
-
-# Userspace test: runner + all service tests + all service impls (excluding main.cpp).
-usertest_sources = userspace/test.cpp \
-    $(shell find userspace/ -path '*/tests/test_*.cpp' 2>/dev/null) \
-    $(shell find userspace/ -path '*/src/*.cpp' -not -name 'main.cpp' 2>/dev/null)
-usertest_objects = $(patsubst userspace/%.cpp, obj/userspace/usertest/%.o, $(usertest_sources))
-USERTEST_CXXFLAGS = $(COMMON_CXXFLAGS) -fno-use-cxa-atexit \
-    $(STD_INCLUDES) \
-    $(foreach dir,$(shell find userspace/ -type d -name include),-I$(dir))
-
-# Compile C++ source files.
-obj/%.o: kernel/src/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
+objects = $(patsubst kernel/src/%.s, obj/%.o, $(asm_sources))
 
 # Compile assembly source files.
 obj/%.o: kernel/src/%.s
 	@mkdir -p $(dir $@)
 	as $(ASMFLAGS) -o $@ $<
 
-$(LIBSTD_MEM): FORCE
-	$(MAKE) -C libs/mem
+$(KERNEL_LIB): FORCE
+	cargo build --release --target $(RUST_TARGET) --target-dir target -p kernel
 
-$(LIBSTD_STR): FORCE
-	$(MAKE) -C libs/str
-
-$(LIBSTD_ALLOC): FORCE
-	$(MAKE) -C libs/alloc
-
-$(LIBSTD_HEAP): FORCE
-	$(MAKE) -C libs/heap
-
-$(LIBSTD_FMT): FORCE
-	$(MAKE) -C libs/fmt
-
-$(LIBSTD_TEST): FORCE
-	$(MAKE) -C libs/test
-
-$(LIBSTD_OS): FORCE
-	$(MAKE) -C libs/os
-
-$(LIBSTD_IPC): FORCE
-	$(MAKE) -C libs/ipc
-
-$(LIBSTD_NS): FORCE
-	$(MAKE) -C libs/ns
-
-$(LIBSTD_VFS): FORCE
-	$(MAKE) -C libs/vfs
-
-$(LIBSTD_ATA): FORCE
-	$(MAKE) -C libs/ata
-
-$(LIBSTD_KBD): FORCE
-	$(MAKE) -C libs/kbd
-
-$(LIBSTD_MOUSE): FORCE
-	$(MAKE) -C libs/mouse
-
-$(LIBSTD_GFX): FORCE
-	$(MAKE) -C libs/gfx
-
-$(LIBSTD_DISPLAY): FORCE
-	$(MAKE) -C libs/display
-
-$(LIBSTD_TERMINAL): FORCE
-	$(MAKE) -C libs/terminal
+$(TEST_KERNEL_LIB): FORCE
+	cargo build --release --target $(RUST_TARGET) --target-dir target/ktest -p kernel --features ktest
 
 FORCE:
 
-kernel: kernel/src/linker.ld $(objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT)
+kernel: kernel/src/linker.ld $(objects) $(KERNEL_LIB)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(KERNEL) $(objects) $(KERNEL_LIB)
 
-$(NAMESERVER): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(NAMESERVER): FORCE
 	$(MAKE) -C userspace/core/ns
 
-$(KBD): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(KBD): FORCE
 	$(MAKE) -C userspace/drivers/kbd
 
-$(VFS): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_ATA)
+$(VFS): FORCE
 	$(MAKE) -C userspace/core/vfs
 
-$(MOUSE): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(MOUSE): FORCE
 	$(MAKE) -C userspace/drivers/mouse
 
-$(ATA): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS)
+$(ATA): FORCE
 	$(MAKE) -C userspace/drivers/ata
 
-$(DISPLAY): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_GFX)
+$(DISPLAY): FORCE
 	$(MAKE) -C userspace/drivers/display
 
-$(TERMINAL): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_GFX) $(LIBSTD_DISPLAY)
+$(TERMINAL): FORCE
 	$(MAKE) -C userspace/core/terminal
 
-$(USERSHELL): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_TERMINAL) $(LIBSTD_VFS)
+$(USERSHELL): FORCE
 	$(MAKE) -C userspace/core/shell
 
-$(HELLO): FORCE $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_TERMINAL)
+$(HELLO): FORCE
 	$(MAKE) -C userspace/apps/hello
 
-# Compile test files from the kernel/tests/ directory.
-obj/tests/%.o: kernel/tests/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES) -Ikernel/tests/
-
-obj/libs/%.o: libs/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(CXXFLAGS) -o $@ -c $< -Ikernel/include/ $(STD_INCLUDES)
-
-$(TEST_KERNEL): kernel/src/linker.ld $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_FMT) $(LIBSTD_GFX) $(LIBSTD_TEST)
+$(TEST_KERNEL): kernel/src/linker.ld $(objects) $(TEST_KERNEL_LIB)
 	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(shared_objects) $(test_objects) $(lib_test_objects) $(LIBSTD_TEST) $(LIBSTD_GFX) $(LIBSTD_FMT) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+	ld $(LDFLAGS) -T $< -o $(TEST_KERNEL) $(objects) $(TEST_KERNEL_LIB)
 
-# Compile userspace test files (runner + service tests + service impls).
-obj/userspace/usertest/%.o: userspace/%.cpp
-	@mkdir -p $(dir $@)
-	g++ $(USERTEST_CXXFLAGS) -o $@ -c $<
-
-$(USERTEST): userspace/test.ld $(usertest_objects) $(LIBSTD_MEM) $(LIBSTD_STR) $(LIBSTD_ALLOC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_IPC) $(LIBSTD_NS) $(LIBSTD_KBD) $(LIBSTD_MOUSE) $(LIBSTD_TERMINAL) $(LIBSTD_VFS) $(LIBSTD_ATA) $(LIBSTD_DISPLAY) $(LIBSTD_GFX) $(LIBSTD_FMT) $(LIBSTD_TEST)
-	@mkdir -p bin
-	ld $(LDFLAGS) -T $< -o $@ $(usertest_objects) $(LIBSTD_TEST) $(LIBSTD_FMT) $(LIBSTD_DISPLAY) $(LIBSTD_GFX) $(LIBSTD_ATA) $(LIBSTD_VFS) $(LIBSTD_TERMINAL) $(LIBSTD_MOUSE) $(LIBSTD_KBD) $(LIBSTD_NS) $(LIBSTD_IPC) $(LIBSTD_HEAP) $(LIBSTD_OS) $(LIBSTD_ALLOC) $(LIBSTD_STR) $(LIBSTD_MEM)
+$(USERTEST): FORCE
+	$(MAKE) -C userspace/tests
 
 disk_files = $(shell find disk/ -type f 2>/dev/null)
 $(DISK): $(disk_files) $(HELLO)
@@ -194,14 +101,18 @@ $(DISK): $(disk_files) $(HELLO)
 	    done; \
 	fi
 
-test: test-kernel test-userspace
+test: test-rust test-kernel test-userspace
+
+# Host unit tests for the Rust crates.
+test-rust:
+	@cargo test --workspace --tests
 
 test-kernel:
 	@$(MAKE) --no-print-directory $(TEST_KERNEL) > /tmp/cassio-build.log 2>&1 \
-	    || (cat /tmp/cassio-build.log; exit 1); \
+	    || { cat /tmp/cassio-build.log; exit 1; }; \
 	dd if=/dev/zero of=/tmp/cassio-test-disk.img bs=1M count=32 2>/dev/null; \
 	mkfs.fat -F 32 /tmp/cassio-test-disk.img >/dev/null 2>&1; \
-	qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
+	timeout $(TEST_TIMEOUT) qemu-system-i386 -machine pc -kernel $(TEST_KERNEL) \
 	    -display none -serial file:/tmp/cassio-test-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 	    -drive file=/tmp/cassio-test-disk.img,format=raw,if=ide \
@@ -212,8 +123,8 @@ test-kernel:
 	[ $$EXIT_CODE -eq 1 ]
 
 test-userspace:
-	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VFS) $(MOUSE) $(ATA) $(DISPLAY) $(TERMINAL) $(USERTEST) \
-	    > /tmp/cassio-build.log 2>&1 || (cat /tmp/cassio-build.log; exit 1); \
+	@$(MAKE) --no-print-directory kernel $(NAMESERVER) $(KBD) $(VFS) $(MOUSE) $(ATA) $(DISPLAY) $(TERMINAL) $(USERTEST) $(HELLO) \
+	    > /tmp/cassio-build.log 2>&1 || { cat /tmp/cassio-build.log; exit 1; }; \
 	dd if=/dev/zero of=/tmp/cassio-usertest-disk.img bs=1M count=32 2>/dev/null; \
 	mkfs.fat -F 32 /tmp/cassio-usertest-disk.img >/dev/null 2>&1; \
 	if [ -d disk ]; then \
@@ -226,7 +137,7 @@ test-userspace:
 	        mcopy -i /tmp/cassio-usertest-disk.img "$$f" "::/$${rel}"; \
 	    done; \
 	fi; \
-	qemu-system-i386 -machine pc -kernel $(KERNEL) \
+	timeout $(TEST_TIMEOUT) qemu-system-i386 -machine pc -kernel $(KERNEL) \
 	    -initrd "$(NAMESERVER),$(KBD),$(VFS),$(MOUSE),$(ATA),$(DISPLAY),$(TERMINAL),$(USERTEST)" \
 	    -display none -serial file:/tmp/cassio-usertest-results.txt \
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
@@ -265,12 +176,6 @@ run: $(ISO) $(DISK)
 	qemu-system-i386 -machine pc -cdrom $(ISO) -boot d \
 	    -drive file=$(DISK),format=raw,if=ide
 
-# Include auto-generated header dependencies (produced by -MMD -MP).
--include $(objects:.o=.d)
--include $(test_objects:.o=.d)
--include $(lib_test_objects:.o=.d)
--include $(usertest_objects:.o=.d)
-
-.PHONY: kernel clean run test test-kernel test-userspace
+.PHONY: kernel clean run test test-rust test-kernel test-userspace
 clean:
-	rm -rf obj/ bin/ lib/
+	rm -rf obj/ bin/ target/

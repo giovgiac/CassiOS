@@ -20,30 +20,32 @@ SECTIONS {
     _kernel_start = .;
     .text : AT(ADDR(.text) - KERNEL_VBASE)
     {
-        *(.multiboot)
+        KEEP(*(.multiboot))
         *(.text*)
-        *(.rodata)
+        *(.rodata*)
     }
 
     .data : AT(ADDR(.data) - KERNEL_VBASE)
     {
-        start_ctors = .;
-        KEEP(*(.init_array));
-        KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*)));
-        end_ctors = .;
-
-        *(.data)
+        *(.data*)
+        *(.got*)
     }
 
     .bss : AT(ADDR(.bss) - KERNEL_VBASE)
     {
-        *(.bss)
+        *(.bss*)
+        *(COMMON)
     }
     _kernel_end = .;
 
+    /* Nothing unwinds: the kernel is built with panic = "abort". */
     /DISCARD/ :
     {
         *(.fini_array*)
         *(.comment)
+        *(.eh_frame*)
     }
 }
+
+/* loader.s maps only the first 4 MiB before paging is set up. */
+ASSERT(_kernel_end - KERNEL_VBASE <= 0x400000, "kernel does not fit the 4 MiB boot mapping")

@@ -18,7 +18,7 @@ Examine the reproduction output to identify the root cause.
 
 - **Isolate first, theorize second.** Comment out code, add/remove components one at a time, and re-run to narrow the scope. Do this BEFORE reading disassembly, inspecting memory dumps, or forming theories about what might be wrong. The fastest path to a root cause is binary search through the code, not deep analysis of a single hypothesis.
 - Compare actual output against expected output in detail.
-- Inspect raw data (e.g., VGA memory bytes, register values, interrupt logs) rather than relying on visual inspection alone.
+- Inspect raw data (e.g., memory bytes, register values, interrupt logs, the serial log) rather than relying on visual inspection alone.
 - Question assumptions -- the first hypothesis is often wrong. Example: garbled VGA text that looked like a string corruption bug turned out to be leftover BIOS text that the kernel never cleared. Example: a keyboard driver that appeared broken was actually hitting a GPF caused by a GDT layout issue completely unrelated to the driver code.
 - Do not get distracted by side issues. If you notice something suspicious but unrelated to the bug you're tracking, note it and move on. Fix one bug at a time.
 
@@ -73,14 +73,14 @@ Key flags:
 - `-no-reboot` -- halts on triple fault instead of rebooting (makes crashes visible)
 - `-display none` -- headless mode for automated testing
 
-### Capturing VGA screenshots
+### Capturing screenshots
 
 Use QEMU's monitor to take screenshots for automated/headless testing:
 
 ```bash
 #!/bin/bash
 # qemu-test.sh [name] [sendkeys...]
-# Takes a screenshot of VGA output, optionally after sending keystrokes.
+# Takes a screenshot of the screen, optionally after sending keystrokes.
 set -e
 SOCK=/tmp/cassio-test/mon.sock
 NAME=${1:-test}; shift 2>/dev/null || true
@@ -112,15 +112,15 @@ echo "/tmp/cassio-test/${NAME}.png"
 
 Usage: `./qemu-test.sh boot` or `./qemu-test.sh typing h e l l o`
 
-### Dumping raw VGA memory
+### Dumping raw memory
 
-Use the QEMU monitor to read VGA memory directly (each character is 2 bytes: char + attribute):
+Use the QEMU monitor to read memory directly: `xp` takes a physical address, `x` a virtual one in the current address space.
 
 ```
-printf 'xp /160xb 0xb8000\n' | socat - "UNIX-CONNECT:$SOCK"
+printf 'xp /16xw 0x100000\n' | socat - "UNIX-CONNECT:$SOCK"
 ```
 
-This dumps the first row (80 chars x 2 bytes). Useful for distinguishing between rendering bugs and data bugs -- you can see exact character values and attributes.
+This dumps 16 words at 1 MiB. Useful for distinguishing between rendering bugs and data bugs -- you can see the exact values a structure or buffer holds.
 
 ### Inspecting CPU state
 
@@ -132,7 +132,7 @@ printf 'info registers\n' | socat - "UNIX-CONNECT:$SOCK"
 
 Key things to look for:
 - **ESP in the wrong range** -- if ESP points into .text or data sections instead of the stack (BSS), the stack has been corrupted
-- **EIP in a non-code section** -- if EIP is in .data or vtable area, the CPU is executing data (crash)
+- **EIP in a non-code section** -- if EIP is in .data or .rodata, the CPU is executing data (crash)
 - **Segment registers** -- after loading a new GDT, check that CS/DS/SS use valid selectors. A mismatch between the selector value and the new GDT layout causes GPFs on the next interrupt return
 
 ### Interrupt and exception tracing
@@ -159,14 +159,14 @@ qemu-system-i386 -machine pc -kernel bin/cassio.bin \
     -no-reboot -display none -d in_asm -D /tmp/asm_log.txt
 ```
 
-Then check: `grep "0x0010" /tmp/asm_log.txt | head` to see if kernel-space code executes.
+Then check: `grep "0xc01" /tmp/asm_log.txt | head` to see if kernel code (linked at 0xC0100000) executes.
 
 ### Isolation by elimination
 
 The single most effective technique: **comment out code and re-test.**
 
-- System hangs after `im.activate()`? Comment out driver loading and test again. Still hangs? The problem is in the interrupt infrastructure. Works now? Add drivers back one at a time.
-- VGA output is garbled? Comment out all printing except one line. Still garbled? The issue is in VGA memory state, not the print logic.
-- Keyboard not working? Check if the interrupt fires at all (interrupt log), then check if the handler runs (add a VGA write in the handler).
+- System hangs after `interrupt::enable()`? Comment out module loading and test again. Still hangs? The problem is in the interrupt infrastructure. Works now? Add drivers back one at a time.
+- Screen output is garbled? Comment out all drawing except one line. Still garbled? The issue is in the framebuffer or display state, not the print logic.
+- Keyboard not working? Check if the interrupt fires at all (interrupt log), then check if the handler runs (add a serial write in the handler).
 
 This is faster and more reliable than reading disassembly or forming theories. **Always narrow the scope before diving deep.**

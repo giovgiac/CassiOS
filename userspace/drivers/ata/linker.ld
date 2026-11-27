@@ -20,11 +20,12 @@ SECTIONS {
     }
 
     .data : {
-        *(.data)
+        *(.data*)
     }
 
     .bss : {
-        *(.bss)
+        *(.bss*)
+        *(COMMON)
     }
 
     /DISCARD/ : {

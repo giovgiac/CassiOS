@@ -1,0 +1,17 @@
+[package]
+name = "kernel"
+edition.workspace = true
+version.workspace = true
+autobins = false
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["staticlib"]
+
+[features]
+# The test kernel: start() runs the kernel tests instead of booting.
+ktest = []
+
+[dependencies]
+mem = { path = "../libs/mem" }
+sys = { path = "../libs/sys" }
