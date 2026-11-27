@@ -19,6 +19,9 @@ const PAGE: u32 = 4096;
 const HEADER_SIZE: usize = 52;
 const PROGRAM_HEADER_SIZE: usize = 32;
 const PT_LOAD: u32 = 1;
+/// The page below KERNEL_VBASE holds the user stack (see
+/// ProcessManager::spawn); segments end before it.
+pub const USER_STACK_BOTTOM: u32 = KERNEL_VBASE - PAGE;
 
 /// A segment to load: `filesz` bytes from `offset` in the file to
 /// `vaddr`, then zeros up to `memsz`.
@@ -44,7 +47,7 @@ pub enum Error {
     /// A header or segment lies outside the file.
     Truncated,
     /// A segment is larger in the file than in memory, lies in the first
-    /// page or reaches kernel space; or the entry point is in no segment.
+    /// page or reaches the user stack; or the entry point is in no segment.
     BadSegment,
     /// No frame left to load into.
     OutOfMemory,
@@ -108,7 +111,7 @@ pub fn parse(data: &[u8]) -> Result<Program, Error> {
         }
         let segment_end = segment.vaddr as u64 + segment.memsz as u64;
         // The first page stays unmapped, so null pointers fault.
-        let in_user_space = segment.vaddr >= PAGE && segment_end <= KERNEL_VBASE as u64;
+        let in_user_space = segment.vaddr >= PAGE && segment_end <= USER_STACK_BOTTOM as u64;
         if segment.filesz > segment.memsz || !in_user_space {
             return Err(Error::BadSegment);
         }
@@ -412,14 +415,14 @@ pub mod tests {
     }
 
     #[test]
-    fn segments_reaching_kernel_space_are_rejected() {
+    fn segments_reaching_the_stack_or_kernel_space_are_rejected() {
         let kernel = executable(&[(KERNEL_VBASE, &[1], 1)]);
         assert_eq!(parse(&kernel), Err(Error::BadSegment));
-        let straddling = executable(&[(KERNEL_VBASE - 0x1000, &[1], 0x1001)]);
-        assert_eq!(parse(&straddling), Err(Error::BadSegment));
+        let stack = executable(&[(USER_STACK_BOTTOM - 0x1000, &[1], 0x1001)]);
+        assert_eq!(parse(&stack), Err(Error::BadSegment));
         let wrapping = executable(&[(0xFFFF_F000, &[1], 0x2000)]);
         assert_eq!(parse(&wrapping), Err(Error::BadSegment));
-        let last_user_page = executable(&[(KERNEL_VBASE - 0x1000, &[1], 0x1000)]);
-        assert!(parse(&last_user_page).is_ok());
+        let below_the_stack = executable(&[(USER_STACK_BOTTOM - 0x1000, &[1], 0x1000)]);
+        assert!(parse(&below_the_stack).is_ok());
     }
 }
