@@ -6,7 +6,7 @@
 //
 // Every vector gets an interrupt gate (interrupts stay disabled while its
 // handler runs): CPU exceptions, the remapped PIC IRQs, the syscall gate
-// (set by the C++ SyscallHandler), and an ignoring stub for the rest. The
+// (kernel/src/core/syscall.rs), and an ignoring stub for the rest. The
 // entry stubs are in stub.s and syscall_stub.s. The C++ InterruptManager
 // (kernel/include/hardware/interrupt.hpp) forwards here until its callers
 // are ported.
@@ -98,6 +98,7 @@ mod imp {
         IDT.with(|idt| idt.0 = [ignore; VECTORS]);
         exception::install();
         irq::install();
+        crate::system::syscall::install();
         let pointer = IDT.with(|idt| Pointer {
             limit: (size_of::<Table>() - 1) as u16,
             base: idt.0.as_ptr() as u32,
@@ -112,11 +113,6 @@ mod imp {
     #[unsafe(no_mangle)]
     extern "C" fn interrupt_init() {
         init();
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn interrupt_set_gate(vector: u8, handler: unsafe extern "C" fn(), dpl: u8) {
-        set_gate(vector, handler, dpl);
     }
 
     #[unsafe(no_mangle)]

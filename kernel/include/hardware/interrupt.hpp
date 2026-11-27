@@ -18,7 +18,6 @@
 #include <core/gdt.hpp>
 
 extern "C" void interrupt_init();
-extern "C" void interrupt_set_gate(std::u8 vector, void (*handler)(), std::u8 dpl);
 extern "C" void interrupt_enable();
 
 namespace cassio {
@@ -30,15 +29,6 @@ public:
 
     /** Enables hardware interrupts (sti). */
     void activate() { interrupt_enable(); }
-
-    /**
-     * @brief Sets an interrupt gate at the given vector. Interrupts are
-     * disabled while its handler runs. DPL 3 lets user mode raise it.
-     *
-     */
-    void setInterruptGate(std::u8 vector, void (*handler)(), std::u8 dpl = 0) {
-        interrupt_set_gate(vector, handler, dpl);
-    }
 
     /**
      * @brief Fills and loads the IDT (exceptions, IRQs with the PICs

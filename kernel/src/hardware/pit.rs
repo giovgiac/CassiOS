@@ -42,12 +42,6 @@ mod imp {
 
     static TICKS: AtomicU32 = AtomicU32::new(0);
 
-    unsafe extern "C" {
-        /// The scheduler (C++, kernel/src/core/scheduler.cpp, until it is
-        /// ported): returns the frame to resume.
-        fn scheduler_schedule(esp: u32) -> u32;
-    }
-
     /// Start ticking.
     pub fn activate() {
         let command = Port::<u8>::new(PortType::PitCommand);
@@ -68,7 +62,7 @@ mod imp {
     /// frame to resume.
     pub fn tick(esp: u32) -> u32 {
         TICKS.fetch_add(1, Ordering::Relaxed);
-        unsafe { scheduler_schedule(esp) }
+        crate::system::scheduler::tick(esp)
     }
 
     /// Wait at least `ms` milliseconds. Interrupts must be enabled.

@@ -81,6 +81,11 @@ mod imp {
         unsafe { &mut *(phys_to_virt(entry & ADDRESS_MASK) as *mut Table) }
     }
 
+    /// The kernel directory's physical address, for CR3.
+    pub fn kernel_directory() -> u32 {
+        KERNEL_DIRECTORY.with(|d| d.0.as_ptr() as u32) - KERNEL_VBASE
+    }
+
     /// A free frame, zeroed; its physical address.
     pub fn zeroed_frame() -> Option<u32> {
         let frame = PHYSICAL.with(|p| p.alloc())?;

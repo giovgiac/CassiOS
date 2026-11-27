@@ -24,6 +24,10 @@ mod sync;
 mod system {
     pub mod elf;
     pub mod gdt;
+    pub mod process;
+    #[cfg(target_arch = "x86")]
+    pub mod scheduler;
+    pub mod syscall;
 }
 
 mod hardware {
@@ -72,6 +76,9 @@ extern "C" fn kernel_run_tests(passed: &mut u32, failed: &mut u32) {
         memory::heap::ktests::TESTS,
         memory::paging::ktests::TESTS,
         system::elf::ktests::TESTS,
+        system::process::ktests::TESTS,
+        system::scheduler::ktests::TESTS,
+        system::syscall::ktests::TESTS,
     ];
     ktest::run(&groups, &mut out, passed, failed);
 }

@@ -9,8 +9,6 @@
 
 #include "hardware/interrupt.hpp"
 
-#include "core/syscall.hpp"
-
 using namespace cassio;
 using namespace cassio::hardware;
 
@@ -18,5 +16,4 @@ InterruptManager InterruptManager::instance;
 
 void InterruptManager::load(cassio::kernel::GlobalDescriptorTable&) {
     interrupt_init();
-    kernel::SyscallHandler::getSyscallHandler().load();
 }
