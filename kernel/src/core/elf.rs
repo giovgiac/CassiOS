@@ -13,8 +13,6 @@
 // Most of it is only used by the i586 build.
 #![cfg_attr(not(target_arch = "x86"), allow(dead_code))]
 
-use alloc::vec::Vec;
-
 use crate::memory::KERNEL_VBASE;
 
 const PAGE: u32 = 4096;
@@ -32,10 +30,9 @@ pub struct Segment {
     pub memsz: u32,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Program {
     pub entry: u32,
-    pub segments: Vec<Segment>,
     /// Page-aligned end of the highest segment.
     pub heap_start: u32,
 }
@@ -61,36 +58,48 @@ fn u32_at(data: &[u8], at: usize) -> u32 {
     u32::from_le_bytes(data[at..at + 4].try_into().unwrap())
 }
 
-/// Validate the executable in `data` and list what to load.
+/// Every program header of the executable in `data`: Some(segment) for
+/// PT_LOAD, None for other types, Err if the header lies outside the file.
+/// Expects a valid ELF header.
+fn program_headers(data: &[u8]) -> impl Iterator<Item = Result<Option<Segment>, Error>> + '_ {
+    let phoff = u32_at(data, 28) as usize;
+    let phnum = u16_at(data, 44) as usize;
+    (0..phnum).map(move |i| {
+        let at = phoff
+            .checked_add(i * PROGRAM_HEADER_SIZE)
+            .filter(|&at| at.saturating_add(PROGRAM_HEADER_SIZE) <= data.len())
+            .ok_or(Error::Truncated)?;
+        if u32_at(data, at) != PT_LOAD {
+            return Ok(None);
+        }
+        Ok(Some(Segment {
+            offset: u32_at(data, at + 4),
+            vaddr: u32_at(data, at + 8),
+            filesz: u32_at(data, at + 16),
+            memsz: u32_at(data, at + 20),
+        }))
+    })
+}
+
+/// Validate the executable in `data`. Allocates nothing: a program file
+/// is user input, and the kernel heap may be short.
 pub fn parse(data: &[u8]) -> Result<Program, Error> {
     if data.len() < HEADER_SIZE {
         return Err(Error::Truncated);
     }
     let ident_ok = data[..4] == *b"\x7FELF" && data[4] == 1 && data[5] == 1;
-    // e_type ET_EXEC, e_machine EM_386.
-    if !ident_ok || u16_at(data, 16) != 2 || u16_at(data, 18) != 3 {
+    // e_type ET_EXEC, e_machine EM_386, 32-byte program headers.
+    let header_ok = u16_at(data, 16) == 2
+        && u16_at(data, 18) == 3
+        && u16_at(data, 42) as usize == PROGRAM_HEADER_SIZE;
+    if !ident_ok || !header_ok {
         return Err(Error::NotAnExecutable);
     }
-    let entry = u32_at(data, 24);
-    let phoff = u32_at(data, 28) as usize;
-    let phentsize = u16_at(data, 42) as usize;
-    let phnum = u16_at(data, 44) as usize;
 
-    let mut segments = Vec::new();
     let mut end = 0u64;
-    for i in 0..phnum {
-        let at = phoff
-            .checked_add(i * phentsize)
-            .filter(|&at| at.saturating_add(PROGRAM_HEADER_SIZE) <= data.len())
-            .ok_or(Error::Truncated)?;
-        if u32_at(data, at) != PT_LOAD {
+    for header in program_headers(data) {
+        let Some(segment) = header? else {
             continue;
-        }
-        let segment = Segment {
-            offset: u32_at(data, at + 4),
-            vaddr: u32_at(data, at + 8),
-            filesz: u32_at(data, at + 16),
-            memsz: u32_at(data, at + 20),
         };
         if segment.offset as u64 + segment.filesz as u64 > data.len() as u64 {
             return Err(Error::Truncated);
@@ -100,13 +109,16 @@ pub fn parse(data: &[u8]) -> Result<Program, Error> {
             return Err(Error::BadSegment);
         }
         end = end.max(segment_end);
-        segments.push(segment);
     }
     Ok(Program {
-        entry,
-        segments,
+        entry: u32_at(data, 24),
         heap_start: end.next_multiple_of(PAGE as u64) as u32,
     })
+}
+
+/// The PT_LOAD segments of an executable `parse` accepted.
+pub fn segments(data: &[u8]) -> impl Iterator<Item = Segment> + '_ {
+    program_headers(data).filter_map(|header| header.ok().flatten())
 }
 
 #[cfg(target_arch = "x86")]
@@ -125,27 +137,39 @@ mod imp {
     /// in it: the caller destroys the address space.
     pub fn load(directory: u32, data: &[u8]) -> Result<Program, Error> {
         let program = parse(data)?;
-        for segment in &program.segments {
+        let flags = PAGE_PRESENT | PAGE_READWRITE | PAGE_USER;
+        for segment in segments(data) {
+            let file = &data[segment.offset as usize..][..segment.filesz as usize];
             let start = segment.vaddr & !(PAGE - 1);
             let end = segment.vaddr as u64 + segment.memsz as u64;
-            // Map every page the segment touches; a page an earlier segment
-            // already mapped keeps its frame.
             for page in (start as u64..end).step_by(PAGE as usize) {
                 let page = page as u32;
-                if translate(directory, page).is_none() {
-                    let frame = zeroed_frame().ok_or(Error::OutOfMemory)?;
-                    let flags = PAGE_PRESENT | PAGE_READWRITE | PAGE_USER;
-                    map_user_page(directory, page, frame, flags);
-                }
-            }
-            let file = &data[segment.offset as usize..][..segment.filesz as usize];
-            for i in 0..segment.memsz {
-                let virt = segment.vaddr + i;
-                let frame = translate(directory, virt).ok_or(Error::OutOfMemory)?;
-                let byte = file.get(i as usize).copied().unwrap_or(0);
-                // SAFETY: the frame was mapped above, and reached through
-                // the direct map.
-                unsafe { *phys_to_virt(frame + virt % PAGE) = byte };
+                // A page an earlier segment already mapped keeps its frame.
+                let frame = match translate(directory, page) {
+                    Some(frame) => frame,
+                    None => {
+                        let frame = zeroed_frame().ok_or(Error::OutOfMemory)?;
+                        map_user_page(directory, page, frame, flags);
+                        frame
+                    }
+                };
+                // The part of the segment in this page: file bytes, then
+                // zeros (a fresh frame is zeroed, a shared one may not be).
+                let from = page.max(segment.vaddr);
+                let to = (page as u64 + PAGE as u64).min(end) as u32;
+                // SAFETY: the frame is mapped above and reached through the
+                // direct map; [from, to) lies within its page.
+                let bytes = unsafe {
+                    core::slice::from_raw_parts_mut(
+                        phys_to_virt(frame + from % PAGE),
+                        (to - from) as usize,
+                    )
+                };
+                // The file bytes for this part, if any are left.
+                let rest = file.get((from - segment.vaddr) as usize..).unwrap_or(&[]);
+                let copied = rest.len().min(bytes.len());
+                bytes[..copied].copy_from_slice(&rest[..copied]);
+                bytes[copied..].fill(0);
             }
         }
         Ok(program)
@@ -181,9 +205,12 @@ mod imp {
 
     #[cfg(not(test))]
     pub mod ktests {
+        use alloc::vec::Vec;
+
         use super::*;
         use crate::ktest::Outcome;
         use crate::memory::paging::{create_address_space, destroy_address_space};
+        use crate::memory::physical::PHYSICAL;
 
         tests!(
             elf_load_places_every_byte,
@@ -221,6 +248,7 @@ mod imp {
                 (0x0040_0000, &[0xAA; 16], 16),
                 (0x0040_0800, &[0xBB; 16], 16),
             ]);
+            let before = PHYSICAL.with(|p| p.free_frames());
             let directory = create_address_space().unwrap_or(0);
             check!(directory != 0);
             let loaded = load(directory, &image);
@@ -229,6 +257,8 @@ mod imp {
             destroy_address_space(directory);
             check!(loaded.is_ok());
             check_eq!((first, second), (Some(0xAA), Some(0xBB)));
+            // One frame for the shared page, all of it given back.
+            check_eq!(PHYSICAL.with(|p| p.free_frames()), before);
             Ok(())
         }
 
@@ -245,6 +275,8 @@ mod imp {
 
 #[cfg(any(test, target_arch = "x86"))]
 pub mod tests {
+    use alloc::vec::Vec;
+
     use super::*;
 
     /// An executable with one PT_LOAD per (vaddr, file bytes, memsz), the
@@ -285,7 +317,7 @@ pub mod tests {
         assert_eq!(program.entry, 0x0040_0000);
         assert_eq!(program.heap_start, 0x0040_1000);
         assert_eq!(
-            program.segments,
+            segments(&image).collect::<Vec<_>>(),
             [Segment {
                 offset: (HEADER_SIZE + PROGRAM_HEADER_SIZE) as u32,
                 vaddr: 0x0040_0000,
@@ -305,13 +337,15 @@ pub mod tests {
     fn other_segment_types_are_skipped() {
         let mut image = executable(&[(0x0040_0000, &[1], 1)]);
         set_u32(&mut image, SEGMENT, 0x6474_E551); // PT_GNU_STACK
-        assert!(parse(&image).unwrap().segments.is_empty());
+        assert!(parse(&image).is_ok());
+        assert_eq!(segments(&image).count(), 0);
     }
 
     #[test]
     fn non_executables_are_rejected() {
         let good = executable(&[(0x0040_0000, &[1], 1)]);
-        for (at, value) in [(0, 0x7Eu8), (4, 2), (5, 2), (16, 3), (18, 0x28)] {
+        // Magic, class, byte order, type, machine, program header size.
+        for (at, value) in [(0, 0x7Eu8), (4, 2), (5, 2), (16, 3), (18, 0x28), (42, 0)] {
             let mut image = good.clone();
             image[at] = value;
             assert_eq!(parse(&image), Err(Error::NotAnExecutable), "byte {at}");
