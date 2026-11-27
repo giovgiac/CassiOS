@@ -14,6 +14,7 @@
 #include "core/scheduler.hpp"
 #include "core/syscall.hpp"
 #include "hardware/pit.hpp"
+#include "hardware/serial.hpp"
 #include "memory/heap.hpp"
 #include "memory/paging.hpp"
 #include "memory/physical.hpp"
@@ -38,6 +39,8 @@ void ctors() {
 }
 
 void start(void* multiboot, u32 magic) {
+    COM1::init();
+
     GlobalDescriptorTable& gdt = *new (gdt_storage) GlobalDescriptorTable;
     InterruptManager& im = InterruptManager::getManager();
 

@@ -29,7 +29,12 @@ struct TestNode {
 extern TestNode* test_list_head;
 
 void init(WriteFn fn);
-u32 run();
+/**
+ * Runs the registered tests and prints the summary. passed and failed
+ * start the counts with tests already run elsewhere (the Rust kernel
+ * tests). Returns the total failed.
+ */
+u32 run(u32 passed = 0, u32 failed = 0);
 void fail(const char* name, const char* expr, const char* file, int line);
 void fail_eq(const char* name, u32 expected, u32 got, const char* file, int line);
 

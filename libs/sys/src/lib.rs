@@ -4,12 +4,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 //
-// The IPC message layout, message types, syscall numbers and the
-// structures syscalls return. Plain data only: no allocator, panic handler
-// or syscalls, so both the kernel and userspace can depend on it. Until the
-// kernel is ported, libs/ipc and libs/os hold C++ copies; keep them in step.
+// The IPC message layout, message types, syscall numbers, the structures
+// syscalls return, and port I/O. No allocator, panic handler or syscalls,
+// so both the kernel and userspace can depend on it. Until the kernel is
+// ported, libs/ipc, libs/os and libs/io hold C++ copies; keep them in step.
 
 #![no_std]
 
+pub mod io;
 pub mod ipc;
 pub mod os;

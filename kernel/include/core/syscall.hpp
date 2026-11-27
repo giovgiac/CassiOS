@@ -30,6 +30,8 @@ struct SyscallFrame {
     std::u32 gs, fs, es, ds;
     std::u32 edi, esi, ebp, esp_pusha;
     std::u32 ebx, edx, ecx, eax;
+    std::u32 number, error_code;
+    std::u32 eip, cs; // Pushed by the CPU; cs holds the caller's ring.
 };
 
 /**

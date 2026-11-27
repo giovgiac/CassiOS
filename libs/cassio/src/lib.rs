@@ -19,7 +19,7 @@ pub mod ata;
 pub mod display;
 pub mod gfx;
 pub mod heap;
-pub mod io;
+pub use sys::io;
 pub mod ipc;
 pub mod kbd;
 pub mod ns;

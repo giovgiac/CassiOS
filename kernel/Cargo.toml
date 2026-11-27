@@ -1,0 +1,14 @@
+[package]
+name = "kernel"
+edition.workspace = true
+version.workspace = true
+autobins = false
+# kernel/tests holds the C++ kernel tests, not Cargo integration tests.
+autotests = false
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["staticlib"]
+
+[dependencies]
+sys = { path = "../libs/sys" }
