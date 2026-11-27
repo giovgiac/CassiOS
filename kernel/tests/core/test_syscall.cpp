@@ -56,25 +56,6 @@ TEST(syscall_write_invalid_fd) {
     ASSERT_EQ(result, static_cast<i32>(-1));
 }
 
-TEST(syscall_write_kernel_buffer_rejected) {
-    // The test kernel's own data lies above KERNEL_VBASE. Rejected before
-    // the write enables interrupts.
-    const char* msg = "x";
-    i32 result;
-    asm volatile("int $0x80"
-                 : "=a"(result)
-                 : "a"(os::syscall::Write), "b"(2u), "c"((u32)msg), "d"(1u));
-    ASSERT_EQ(result, static_cast<i32>(-1));
-}
-
-TEST(syscall_write_wrapping_buffer_rejected) {
-    i32 result;
-    asm volatile("int $0x80"
-                 : "=a"(result)
-                 : "a"(os::syscall::Write), "b"(2u), "c"(0x1000u), "d"(0xFFFFF000u));
-    ASSERT_EQ(result, static_cast<i32>(-1));
-}
-
 TEST(syscall_invalid_number) {
     i32 result;
     asm volatile("int $0x80" : "=a"(result) : "a"(999u));

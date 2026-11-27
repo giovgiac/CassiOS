@@ -51,6 +51,39 @@ void SyscallHandler::load() {
     im.setInterruptGate(0x80, &syscallEntry, 3);
 }
 
+// Whether [ptr, ptr + len) lies in user space without wrapping.
+static bool inUserSpace(u32 ptr, u32 len) {
+    u32 end = ptr + len;
+    return end >= ptr && end <= KERNEL_VBASE;
+}
+
+// Whether every buffer a syscall names lies in user space, so a program
+// cannot make the kernel read or write kernel memory for it. Callers in
+// ring 0 (the kernel tests) pass kernel buffers and are trusted.
+static bool userBuffersValid(const SyscallFrame* frame) {
+    if ((frame->cs & 3) != 3) {
+        return true;
+    }
+
+    switch (frame->eax) {
+    case os::syscall::Send:
+    case os::syscall::Reply:
+    case os::syscall::Notify:
+        return inUserSpace(frame->ecx, sizeof(ipc::Message)) && inUserSpace(frame->esi, frame->edi);
+    case os::syscall::Receive:
+        return inUserSpace(frame->ebx, sizeof(ipc::Message)) && inUserSpace(frame->esi, frame->edi);
+    case os::syscall::Write:
+        return inUserSpace(frame->ecx, frame->edx);
+    case os::syscall::ProcList:
+        return frame->ecx <= KERNEL_VBASE / sizeof(os::ProcEntry) &&
+               inUserSpace(frame->ebx, frame->ecx * sizeof(os::ProcEntry));
+    case os::syscall::Exec:
+        return inUserSpace(frame->ebx, frame->ecx);
+    default:
+        return true;
+    }
+}
+
 static void copyMessage(const ipc::Message* src, ipc::Message* dst) {
     mem::copy(dst, src, sizeof(ipc::Message));
 }
@@ -291,13 +324,6 @@ i32 SyscallHandler::notify(u32 targetPid, ipc::Message* msg, u32 dataPtr, u32 da
 i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
     const char* str = reinterpret_cast<const char*>(buf);
 
-    // The buffer must lie in user space (below KERNEL_VBASE) without
-    // wrapping, or a program could print kernel memory.
-    u32 end = buf + len;
-    if (end < buf || end > KERNEL_VBASE) {
-        return -1;
-    }
-
     if (fd == 2) {
         // Polling the UART takes about 0.26 ms per character at 38400
         // baud, so interrupts stay enabled meanwhile (see load()).
@@ -509,6 +535,13 @@ u32 SyscallHandler::sbrk(u32 increment) {
 u32 SyscallHandler::handleSyscall(u32 esp) {
     SyscallFrame* frame = (SyscallFrame*)esp;
     u32 number = frame->eax;
+
+    if (!userBuffersValid(frame)) {
+        // ProcList and Exec report failure as 0 (no entries, no process).
+        bool zero = number == os::syscall::ProcList || number == os::syscall::Exec;
+        frame->eax = zero ? 0 : static_cast<u32>(-1);
+        return esp;
+    }
 
     switch (number) {
     case os::syscall::Send: {

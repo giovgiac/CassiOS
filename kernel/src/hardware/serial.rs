@@ -140,8 +140,10 @@ pub mod ktests {
         // putting it on the line. Earlier output must leave first, or it
         // would loop back too, and nothing stale may wait to be read.
         // SAFETY: the kernel owns the UART; normal mode is restored below.
+        let idle = (0..100_000)
+            .any(|_| unsafe { COM1.line_status.read() } & LINE_STATUS_TRANSMITTER_IDLE != 0);
+        check!(idle);
         let received = unsafe {
-            while COM1.line_status.read() & LINE_STATUS_TRANSMITTER_IDLE == 0 {}
             while COM1.line_status.read() & LINE_STATUS_DATA_READY != 0 {
                 COM1.data.read();
             }

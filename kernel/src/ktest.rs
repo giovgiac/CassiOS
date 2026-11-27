@@ -66,7 +66,6 @@ macro_rules! tests {
 }
 
 /// Fail the test unless `cond` holds.
-#[allow(unused_macros)]
 macro_rules! check {
     ($cond:expr) => {
         if !$cond {
