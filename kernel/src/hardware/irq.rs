@@ -4,10 +4,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 //
-// The two PICs are remapped to vectors 0x20-0x2F. IRQ 0 drives the PIT;
-// any IRQ can also be forwarded to one userspace driver, which receives an
-// IrqNotify message, at once if it is blocked in receive and otherwise on
-// its next receive. The entry stubs are in stub.s. The C++ IrqManager
+// The two PICs are remapped to vectors 0x20-0x2F, with only the lines in
+// LINES unmasked (timer 0, keyboard 1, mouse 12, primary ATA 14). IRQ 0
+// drives the PIT; each line can also be forwarded to one userspace driver,
+// which receives an IrqNotify message, at once if it is blocked in
+// receive and otherwise on its next receive. Spurious IRQs (7 and 15 not
+// in service) are dropped. The entry stubs are in stub.s. The C++ IrqManager
 // (kernel/include/hardware/irq.hpp) forwards here until its callers are
 // ported.
 
