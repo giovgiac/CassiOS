@@ -23,6 +23,7 @@ tests!(
     syscall_write_serial_returns_length,
     syscall_kernel_buffers_rejected,
     syscall_wrapping_buffers_rejected,
+    syscall_unmapped_buffers_rejected,
 );
 
 /// The kernel's own image, which no program may read or write through a
@@ -110,5 +111,17 @@ fn syscall_wrapping_buffers_rejected() -> Outcome {
     check_eq!(raw_syscall(WRITE, 2, 0x1000, 0xFFFF_F000, 0, 0) as i32, -1);
     // An entry count whose byte size overflows.
     check_eq!(raw_syscall(PROC_LIST, 0x1000, 0x2000_0000, 0, 0, 0), 0);
+    Ok(())
+}
+
+fn syscall_unmapped_buffers_rejected() -> Outcome {
+    use os::syscall::{NOTIFY, PROC_LIST, WRITE};
+    // Below the program (linked at 0x400000) nothing is mapped.
+    let unmapped = 0x1000;
+    check_eq!(raw_syscall(WRITE, 2, unmapped, 4, 0, 0) as i32, -1);
+    check_eq!(raw_syscall(NOTIFY, 1, unmapped, 0, 0, 0) as i32, -1);
+    check_eq!(raw_syscall(PROC_LIST, unmapped, 4, 0, 0, 0), 0);
+    // Two bytes before the program's first page and two inside it.
+    check_eq!(raw_syscall(WRITE, 2, 0x003F_FFFE, 4, 0, 0) as i32, -1);
     Ok(())
 }
