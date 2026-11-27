@@ -78,16 +78,6 @@ mod imp {
         activate();
     }
 
-    #[unsafe(no_mangle)]
-    extern "C" fn pit_ticks() -> u32 {
-        ticks()
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn pit_sleep(ms: u32) {
-        sleep(ms);
-    }
-
     #[cfg(not(test))]
     pub mod ktests {
         use super::*;

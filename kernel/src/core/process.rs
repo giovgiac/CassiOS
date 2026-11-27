@@ -93,7 +93,8 @@ pub struct Process {
     /// The heap as first loaded, and its current end (0 without a heap).
     pub heap_base: u32,
     pub heap_break: u32,
-    /// The process a WaitBlocked process waits for.
+    /// The process a WaitBlocked process waits for, or a SendBlocked one
+    /// sent to (queued or waiting for the reply).
     pub wait_pid: u32,
     /// The message being sent (SendBlocked) or the user buffer a reply
     /// or received message goes to.
@@ -370,19 +371,18 @@ mod imp {
             let Some(process) = self.remove(pid) else {
                 return;
             };
-            for sender in &process.senders {
-                if let Some(sender) = self.get_mut(*sender) {
-                    if sender.state == State::SendBlocked {
-                        set_return(sender, u32::MAX);
-                        sender.state = State::Ready;
-                    }
+            // Senders fail with -1, whether still queued or already
+            // delivered and waiting for the reply; waiters succeed with 0.
+            for other in self.iter_mut() {
+                if other.wait_pid != pid {
+                    continue;
                 }
-            }
-            for waiter in self.iter_mut() {
-                if waiter.state == State::WaitBlocked && waiter.wait_pid == pid {
-                    set_return(waiter, 0);
-                    waiter.state = State::Ready;
+                match other.state {
+                    State::SendBlocked => set_return(other, u32::MAX),
+                    State::WaitBlocked => set_return(other, 0),
+                    _ => continue,
                 }
+                other.state = State::Ready;
             }
             if process.directory != 0 {
                 destroy_address_space(process.directory);
@@ -521,14 +521,22 @@ mod imp {
 
         fn process_destroy_wakes_send_blocked_senders() -> Outcome {
             with_table(|table| {
-                let (mut target, mut sender) = (Frame::default(), Frame::default());
+                let (mut target, mut queued, mut answered) =
+                    (Frame::default(), Frame::default(), Frame::default());
                 let target_pid = add(table, &mut target, State::Ready);
-                let sender_pid = add(table, &mut sender, State::SendBlocked);
-                table.get_mut(target_pid).unwrap().push_sender(sender_pid);
+                // One still in the queue, one delivered and awaiting the reply.
+                let queued_pid = add(table, &mut queued, State::SendBlocked);
+                let answered_pid = add(table, &mut answered, State::SendBlocked);
+                table.get_mut(target_pid).unwrap().push_sender(queued_pid);
+                for pid in [queued_pid, answered_pid] {
+                    table.get_mut(pid).unwrap().wait_pid = target_pid;
+                }
                 table.destroy(target_pid);
-                // The send fails with -1.
-                check_eq!(sender.eax, u32::MAX);
-                check_eq!(table.get(sender_pid).unwrap().state, State::Ready);
+                // Both sends fail with -1.
+                check_eq!((queued.eax, answered.eax), (u32::MAX, u32::MAX));
+                for pid in [queued_pid, answered_pid] {
+                    check_eq!(table.get(pid).unwrap().state, State::Ready);
+                }
                 Ok(())
             })
         }

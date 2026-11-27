@@ -26,16 +26,6 @@ public:
     /** Programs the UART. Must run before the first write. */
     static void init() { com1_init(); }
 
-    static void putchar(char ch) { com1_write(&ch, 1); }
-
-    static void puts(const char* str) {
-        std::u32 len = 0;
-        while (str[len] != '\0') {
-            ++len;
-        }
-        com1_write(str, len);
-    }
-
     static void write(const char* buf, std::u32 len) { com1_write(buf, len); }
 
     COM1() = delete;

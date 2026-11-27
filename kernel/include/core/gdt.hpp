@@ -16,7 +16,6 @@
 #include <std/types.hpp>
 
 extern "C" void gdt_init();
-extern "C" void gdt_set_kernel_stack(std::u32 esp0);
 
 namespace cassio {
 namespace kernel {
@@ -39,12 +38,6 @@ public:
     std::u16 getUserCodeOffset() { return 0x18; }
     std::u16 getUserDataOffset() { return 0x20; }
     std::u16 getTssOffset() { return 0x28; }
-
-    /**
-     * @brief Updates TSS.esp0, the kernel stack pointer used on ring 3 to ring 0 transitions.
-     *
-     */
-    void setTssEsp0(std::u32 esp0) { gdt_set_kernel_stack(esp0); }
 
     /** Deleted Methods */
     GlobalDescriptorTable(const GlobalDescriptorTable&) = delete;

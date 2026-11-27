@@ -158,16 +158,6 @@ mod imp {
         }
     }
 
-    pub fn unmap_page(virt: u32) {
-        KERNEL_DIRECTORY.with(|directory| {
-            let entry = directory.0[directory_index(virt)];
-            if entry & PAGE_PRESENT != 0 {
-                table(entry)[table_index(virt)] = 0;
-            }
-        });
-        flush_tlb(virt);
-    }
-
     pub fn flush_tlb(virt: u32) {
         unsafe { asm!("invlpg [{}]", in(reg) virt, options(nostack)) };
     }
@@ -243,28 +233,8 @@ mod imp {
     }
 
     #[unsafe(no_mangle)]
-    extern "C" fn paging_range_unmapped(directory: u32, start: u32, len: u32) -> bool {
-        range_unmapped(directory, start, len)
-    }
-
-    #[unsafe(no_mangle)]
     unsafe extern "C" fn paging_init(info: *const Info) {
         unsafe { init(&*info) };
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn paging_map_page(virt: u32, phys: u32, flags: u32) {
-        map_page(virt, phys, flags);
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn paging_unmap_page(virt: u32) {
-        unmap_page(virt);
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn paging_flush_tlb(virt: u32) {
-        flush_tlb(virt);
     }
 
     /// 0 when memory is exhausted.
@@ -274,21 +244,8 @@ mod imp {
     }
 
     #[unsafe(no_mangle)]
-    extern "C" fn paging_map_user_page(directory: u32, virt: u32, phys: u32, flags: u32) {
-        map_user_page(directory, virt, phys, flags);
-    }
-
-    #[unsafe(no_mangle)]
     extern "C" fn paging_destroy_address_space(directory: u32) {
         destroy_address_space(directory);
-    }
-
-    /// Checks the current directory (CR3).
-    #[unsafe(no_mangle)]
-    extern "C" fn paging_user_range_mapped(start: u32, len: u32) -> bool {
-        let directory: u32;
-        unsafe { asm!("mov {}, cr3", out(reg) directory, options(nomem, nostack)) };
-        user_range_mapped(directory, start, len)
     }
 
     #[cfg(not(test))]

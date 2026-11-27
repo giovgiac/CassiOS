@@ -253,38 +253,6 @@ mod imp {
         });
     }
 
-    /// A free frame's physical address, or 0 when memory is exhausted
-    /// (frame 0 is never handed out).
-    #[unsafe(no_mangle)]
-    extern "C" fn physical_alloc_frame() -> u32 {
-        PHYSICAL.with(|b| b.alloc()).unwrap_or(0)
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn physical_free_frame(address: u32) {
-        PHYSICAL.with(|b| b.free(address));
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn physical_is_frame_used(address: u32) -> bool {
-        PHYSICAL.with(|b| b.is_used(address))
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn physical_total_frames() -> u32 {
-        PHYSICAL.with(|b| b.total_frames())
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn physical_free_frames() -> u32 {
-        PHYSICAL.with(|b| b.free_frames())
-    }
-
-    #[unsafe(no_mangle)]
-    extern "C" fn physical_used_frames() -> u32 {
-        PHYSICAL.with(|b| b.used_frames())
-    }
-
     #[cfg(not(test))]
     pub mod ktests {
         use super::PHYSICAL;

@@ -168,8 +168,10 @@ fn faulting_program_ends_alone() -> Outcome {
     let program = executable(&[0x0F, 0x0B]);
     let pid = os::exec(&program);
     check!(pid != 0);
-    // The kernel ends the child (waking us) instead of halting.
-    check_eq!(os::waitpid(pid), 0);
+    // The kernel ends the child instead of halting. waitpid returns 0 when
+    // the child ends while we wait, or -1 if it already had.
+    let waited = os::waitpid(pid);
+    check!(waited == 0 || waited == -1);
     let mut entries = [os::ProcEntry::default(); 32];
     let n = os::proc_list(&mut entries);
     check!(entries[..n].iter().all(|e| e.pid != pid));

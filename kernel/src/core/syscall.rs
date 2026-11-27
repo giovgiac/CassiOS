@@ -210,6 +210,8 @@ mod imp {
             process.msg_ptr = msg;
             process.data_ptr = data;
             process.data_len = len;
+            // So it is woken with an error if the target ends first.
+            process.wait_pid = target;
         }
         if table.get(target).unwrap().state == State::ReceiveBlocked {
             deliver(table, target, &message, data, len, sender);
