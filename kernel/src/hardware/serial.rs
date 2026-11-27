@@ -22,6 +22,9 @@ const MODEM_CONTROL_LOOPBACK: u8 = 0x10;
 #[cfg(not(test))]
 const LINE_STATUS_DATA_READY: u8 = 0x01;
 const LINE_STATUS_TRANSMIT_EMPTY: u8 = 0x20;
+/// Nothing left to send: the FIFO and the shift register are empty.
+#[cfg(not(test))]
+const LINE_STATUS_TRANSMITTER_IDLE: u8 = 0x40;
 /// 115200 / 3 = 38400 baud.
 const BAUD_DIVISOR: u8 = 3;
 
@@ -134,9 +137,14 @@ pub mod ktests {
 
     fn com1_loopback_round_trip() -> Outcome {
         // In loopback mode the UART receives what it sends instead of
-        // putting it on the line.
+        // putting it on the line. Earlier output must leave first, or it
+        // would loop back too, and nothing stale may wait to be read.
         // SAFETY: the kernel owns the UART; normal mode is restored below.
         let received = unsafe {
+            while COM1.line_status.read() & LINE_STATUS_TRANSMITTER_IDLE == 0 {}
+            while COM1.line_status.read() & LINE_STATUS_DATA_READY != 0 {
+                COM1.data.read();
+            }
             COM1.modem_control
                 .write(MODEM_CONTROL_DTR_RTS | MODEM_CONTROL_LOOPBACK);
             COM1.putchar(0xA5);

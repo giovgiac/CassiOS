@@ -291,6 +291,13 @@ i32 SyscallHandler::notify(u32 targetPid, ipc::Message* msg, u32 dataPtr, u32 da
 i32 SyscallHandler::write(u32 fd, u32 buf, u32 len) {
     const char* str = reinterpret_cast<const char*>(buf);
 
+    // The buffer must lie in user space (below KERNEL_VBASE) without
+    // wrapping, or a program could print kernel memory.
+    u32 end = buf + len;
+    if (end < buf || end > KERNEL_VBASE) {
+        return -1;
+    }
+
     if (fd == 2) {
         // Polling the UART takes about 0.26 ms per character at 38400
         // baud, so interrupts stay enabled meanwhile (see load()).

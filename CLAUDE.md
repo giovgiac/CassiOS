@@ -26,7 +26,7 @@ CassiOS is a microkernel. The kernel contains only: GDT/TSS, interrupt subsystem
 - **Userspace services**: each is a separate ELF binary loaded as a GRUB multiboot module. Services register with the nameserver and communicate via IPC. Drivers live under `userspace/drivers/`, core services under `userspace/core/` (ns, shell, vfs), and user programs under `userspace/apps/`. Service clients in `libs/cassio` (e.g. `cassio::vfs::Vfs`) look up the service's PID in the nameserver when they connect.
 - **User program execution**: the shell `exec` command reads an ELF from the FAT32 filesystem, passes it to the `Exec` syscall which creates a new process, then blocks via `WaitPid` until the child exits. Programs under `userspace/apps/` are compiled to `disk/bin/` and included in the FAT32 image.
 - **FAT32 filesystem**: the VFS service parses FAT32 on-disk structures, reads FAT entries on demand via an LRU sector cache, supports long filenames (LFN), case-sensitive matching. The ATA driver provides full 512-byte sector transfers via IPC data buffers. The build system creates a 32 MiB FAT32 disk image with pre-seeded files using `mkfs.fat` and `mtools`.
-- **Singletons** for kernel managers: `InterruptManager`, `IrqManager`, `PitTimer`, `COM1`, etc. (private constructors, static `instance`, accessed via getter)
+- **Singletons** for kernel managers: `InterruptManager`, `IrqManager`, `PitTimer`, etc. (private constructors, static `instance`, accessed via getter)
 - **Serial**: the COM1 driver is Rust (`kernel/src/hardware/serial.rs`); the C++ `COM1` class forwards to it. Used for the kernel log, the serial write syscall and test output.
 
 ## Rust (migration in progress)
@@ -52,7 +52,7 @@ Never merge a pull request without explicit user approval. After opening a PR, s
 2. Be concise. Keep README minimal.
 3. NEVER use emojis.
 4. Use proper C++ classes, not C-style free function APIs. Follow existing patterns.
-5. Hardware-bound classes use singletons (private constructor, static instance, public getter). General-purpose classes take configuration via constructor and are wrapped by singletons for specific instances (e.g., Serial + COM1).
+5. Hardware-bound classes use singletons (private constructor, static instance, public getter). General-purpose classes take configuration via constructor and are wrapped by singletons for specific instances.
 6. I/O port addresses go in the `PortType` enum in `std/io.hpp` and `libs/sys/src/io.rs` -- no magic numbers. Do not add raw `u16` constructors to `Port`.
 7. Functions called from assembly (`ctors`, `start`) must be declared `extern "C"`.
 8. Tests are part of the implementation, not separate work items. Everything testable must be tested within the same issue. Only skip tests when something genuinely can't be tested or the effort is disproportionate -- but make every effort not to skip. Never create separate issues for testing.
