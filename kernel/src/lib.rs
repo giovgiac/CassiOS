@@ -108,6 +108,7 @@ mod libmem {
     /// A word-aligned buffer, so offsets choose which loops run: libs/mem
     /// copies words only when both pointers have the same alignment.
     #[repr(align(4))]
+    #[derive(Clone, Copy)]
     struct Buffer([u8; 64]);
 
     impl Buffer {
@@ -115,13 +116,14 @@ mod libmem {
         fn counting() -> Self {
             Buffer(core::array::from_fn(|i| i as u8))
         }
+    }
 
-        /// The address of byte `offset`. Like every length below, it is
-        /// hidden from the compiler (black_box), which would otherwise
-        /// work out or inline a call instead of reaching libstd_mem.
-        fn at(&mut self, offset: usize) -> *mut c_void {
-            black_box(self.0[offset..].as_mut_ptr().cast())
-        }
+    /// Byte `offset` from `base`. Like every length below, it is hidden
+    /// from the compiler (black_box), which would otherwise work out or
+    /// inline a call instead of reaching libstd_mem. Every pointer comes
+    /// from one `base`, so none invalidates another.
+    fn at(base: *mut u8, offset: usize) -> *mut c_void {
+        black_box(base.wrapping_add(offset).cast())
     }
 
     fn mem_copy_copies_and_returns_dst() -> Outcome {
@@ -129,35 +131,42 @@ mod libmem {
         // different alignment (byte loop only).
         for (dst, src) in [(1, 33), (1, 34)] {
             let mut buf = Buffer::counting();
-            let expected = buf.0;
-            let out = unsafe { memcpy(buf.at(dst), buf.at(src).cast_const(), black_box(29)) };
-            check_eq!(out, buf.at(dst));
-            check!(buf.0[dst..dst + 29] == expected[src..src + 29]);
-            check_eq!((buf.0[0], buf.0[dst + 29]), (0, expected[dst + 29]));
+            let mut expected = buf;
+            expected.0.copy_within(src..src + 29, dst);
+            let base = buf.0.as_mut_ptr();
+            let out = unsafe { memcpy(at(base, dst), at(base, src), black_box(29)) };
+            check_eq!(out, at(base, dst));
+            check!(buf.0 == expected.0);
         }
         Ok(())
     }
 
     fn mem_move_handles_both_overlaps() -> Outcome {
         // (dst, src): forward and backward, each with the same alignment
-        // (word loop) and a different one (byte loop).
+        // (alignment, word and byte loops) and a different one (byte loop).
+        // 26 bytes leave neither end of the range on a word boundary.
         for (dst, src) in [(1, 9), (2, 9), (9, 1), (9, 2)] {
             let mut buf = Buffer::counting();
-            let expected = buf.0;
-            let out = unsafe { memmove(buf.at(dst), buf.at(src).cast_const(), black_box(27)) };
-            check_eq!(out, buf.at(dst));
-            check!(buf.0[dst..dst + 27] == expected[src..src + 27]);
+            let mut expected = buf;
+            expected.0.copy_within(src..src + 26, dst);
+            let base = buf.0.as_mut_ptr();
+            let out = unsafe { memmove(at(base, dst), at(base, src), black_box(26)) };
+            check_eq!(out, at(base, dst));
+            check!(buf.0 == expected.0);
         }
         Ok(())
     }
 
     fn mem_set_fills_and_returns_dst() -> Outcome {
+        // 30 bytes from offset 1: alignment, word and trailing byte loops.
         let mut buf = Buffer([0; 64]);
-        let out = unsafe { memset(buf.at(1), black_box(0x1AB), black_box(31)) };
-        check_eq!(out, buf.at(1));
+        let base = buf.0.as_mut_ptr();
+        let out = unsafe { memset(at(base, 1), black_box(0x1AB), black_box(30)) };
+        check_eq!(out, at(base, 1));
         // Only the low byte of the value is stored.
-        check!(buf.0[1..32].iter().all(|&b| b == 0xAB));
-        check_eq!((buf.0[0], buf.0[32]), (0, 0));
+        let mut expected = [0u8; 64];
+        expected[1..31].fill(0xAB);
+        check!(buf.0 == expected);
         Ok(())
     }
 
